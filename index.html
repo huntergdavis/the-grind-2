@@ -542,6 +542,7 @@
         <section id="journal-view" class="journal-view" aria-label="Adventure journal" hidden>
           <nav class="journal-sections" aria-label="Journal sections">
             <button id="journal-adventure-button" type="button" aria-pressed="true">Adventure</button>
+            <button id="journal-company-button" type="button" aria-pressed="false" aria-controls="journal-company journal-mentors">Company</button>
             <button id="journal-status-button" type="button" aria-pressed="false" aria-controls="journal-status">Status</button>
             <button id="journal-narratives-button" type="button" aria-pressed="false" aria-controls="journal-narratives">Narratives</button>
           </nav>
@@ -599,18 +600,24 @@
               <ol id="journal-completed-list" class="journal-completed-list"></ol>
             </section>
           </article>
-          <article class="journal-companions" data-journal-section="adventure" aria-labelledby="journal-companion-title">
+          <article id="journal-company" class="journal-companions" data-journal-section="company" aria-labelledby="journal-companion-title" hidden>
             <span class="view-kicker">Shared roads</span>
-            <h2 id="journal-companion-title">Companion ledger</h2>
+            <h2 id="journal-companion-title">Company on the road</h2>
             <p id="journal-companion-summary">No road oath has been sworn.</p>
             <section id="journal-companion-active" class="journal-companion-active" hidden></section>
-            <ol id="journal-companion-former" class="journal-companion-former"></ol>
+            <details id="journal-companion-history" class="company-history">
+              <summary>Earlier journeys</summary>
+              <ol id="journal-companion-former" class="journal-companion-former"></ol>
+            </details>
           </article>
-          <article class="journal-mentors" data-journal-section="adventure" aria-labelledby="journal-mentor-title">
+          <article id="journal-mentors" class="journal-mentors" data-journal-section="company" aria-labelledby="journal-mentor-title" hidden>
             <span class="view-kicker">Legacy roads</span>
             <h2 id="journal-mentor-title">Mentor memory</h2>
             <p id="journal-mentor-summary">No recurring mentor road has begun.</p>
-            <ol id="journal-mentor-list" class="journal-mentor-list"></ol>
+            <details id="journal-mentor-history" class="company-history">
+              <summary>Meetings and milestones</summary>
+              <ol id="journal-mentor-list" class="journal-mentor-list"></ol>
+            </details>
           </article>
           <article class="journal-growth" data-journal-section="adventure" aria-labelledby="journal-growth-title">
             <span class="view-kicker">Permanent · three choices</span>

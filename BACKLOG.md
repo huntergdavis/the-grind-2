@@ -21,11 +21,11 @@ Immediate queue:
    exposes discovered locations and recorded town districts, buildings and
    residents. No invented services, undiscovered places, route commands or
    always-on Watch panel. Browsing stays separate from the moving hero.
-2. **Now — V04.9c1, more than one shared journey (v0.5.140).** Allow the autonomous hero
+2. **Delivered — V04.9c1, more than one shared journey (v0.5.140).** Allow the autonomous hero
    to take a later eligible road oath after a farewell, retaining one active
    companion, distinct recorded identities, quest-route priority and the
    existing history cap. Reuse recruitment, combat, farewell and saved state.
-3. **Then — V04.16d1b, shared-road relationship inspection.** Make the current
+3. **Now — V04.16d1b, Journal Company (v0.5.141).** Make the current
    travelling companion and recorded former companions easier to inspect with
    compact bond/victory evidence and journey history. Reuse canonical facts;
    do not pretend that a bond number is an inferred private emotion.
@@ -105,6 +105,49 @@ within the unchanged 12,000-step limit. Exact no-power/state-isolation checks,
 200 further turns without repetition and JSON resume pass. Twelve focused
 mentor checks pass, and all ten audited campaign goldens match. The separate
 repair commit does not include the upcoming Company UI.
+
+Feature commit `9e44832` and repair `a6e6e25` are on `origin/main`. The repair
+passed the full Pages check/build/deploy run `34397241202`. Public v0.5.140,
+the service worker and both copies of the companion/director source modules
+match the repair commit. The recurring-companion feature is live.
+
+### V04.16d1b — Journal Company (v0.5.141)
+
+Journal gains a Company section beside Adventure, Status and Narratives. Current
+and former travelling companions and mentor records move there; Adventure is
+less crowded, Watch is unchanged, and no top-level view is added. The current
+companion uses the same portrait identity as Watch, with labeled health and bond
+bars, the oath destination and shared victories. Bond remains recorded travel
+and combat evidence, not a claim about private feelings.
+
+Roadcraft and exact journey facts are available in a native disclosure. Earlier
+journeys and mentor milestones start collapsed. These controls retain their open
+state through ordinary updates and tab switches. The active companion's record
+also retains keyboard focus across a live refresh, but not across an identity
+change. Company hides the unrelated adventure vignette and uses larger record
+text with wrapping layouts and 44px disclosure targets.
+
+No canonical commands, save fields, model calls or new combat rules. Fifty-nine
+focused party/projection/journal checks, version/boundary checks and the production
+build pass. Council review caught the live-refresh keyboard-focus regression;
+the targeted fix is included and final read-only review is clear. A two-minute
+browser journey passes section isolation, keyboard disclosures, exact meters,
+retained history, reload and a real one-tick focus-preserving refresh, with no
+model/external requests or browser errors. Visual review then caught the shared
+health-meter style overriding bond's intended color; explicit green meter fills
+and wider desktop Company cards are included in the final CSS follow-up.
+The final CSS build passes the same two-minute Company journey; supported
+computed colors, the explicit green fill rule and refreshed desktop/mobile
+captures agree. The existing mentor promise/return/farewell browser journey also
+passes through Company. Public deployment verification is pending.
+
+Test-maintenance debt: the older all-in-one Shared Road browser script stops at
+its pre-existing expectation that the detailed companion card is visible on
+Watch. Current UI keeps that card in Adventure and uses compact Watch portraits.
+Several later assertions share that old placement assumption. This is recorded
+separately, not called a passing test or used to restore the crowded UI. The
+dedicated recurring-Company journey proves current/former identity, exact meters,
+Map, reload and navigation against the shipped layout.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

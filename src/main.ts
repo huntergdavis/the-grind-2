@@ -3272,16 +3272,63 @@ function presentViewScreens(): void {
       : `${party.former.length} completed ${party.former.length === 1 ? "oath" : "oaths"} retained.`
     : `${activeCompanion.name} · ${activeCompanion.statusText}`;
   elements.journalCompanionActive.hidden = activeCompanion === null;
+  const previousCompanyRecord = elements.journalCompanionActive.firstElementChild as HTMLElement | null;
+  const companyRecordOpen = previousCompanyRecord?.dataset.companionId === activeCompanion?.id
+    && previousCompanyRecord?.querySelector("details")?.open === true;
+  const companyRecordFocused = previousCompanyRecord?.dataset.companionId === activeCompanion?.id
+    && previousCompanyRecord?.querySelector("details > summary") === document.activeElement;
   elements.journalCompanionActive.replaceChildren(...(activeCompanion === null ? [] : [(() => {
     const record = document.createElement("article");
     record.className = "journal-companion-record";
     record.dataset.companionId = activeCompanion.id;
     record.dataset.status = activeCompanion.status;
     record.dataset.injured = String(isInjuredPartyStatus(activeCompanion.status));
+    const identity = document.createElement("header");
+    identity.className = "company-identity";
+    const portrait = document.createElement("span");
+    portrait.className = "watch-portrait company-portrait";
+    portrait.setAttribute("aria-hidden", "true");
+    const character = projectWatchParty(state.depth.hero, activeCompanion).companion!;
+    portrait.dataset.characterId = character.id;
+    for (const [part, color] of Object.entries(character.appearance)) portrait.style.setProperty(`--portrait-${part}`, cssColor(color));
+    for (const part of ["cloak", "face", "hair"]) {
+      const layer = document.createElement("i");
+      layer.className = `watch-portrait-${part}`;
+      portrait.append(layer);
+    }
     const name = document.createElement("strong");
-    name.textContent = `${activeCompanion.name} · ${activeCompanion.combatKitText}`;
+    name.textContent = activeCompanion.name;
+    const role = document.createElement("span");
+    role.textContent = activeCompanion.role;
+    identity.append(portrait, name, role);
     const route = document.createElement("span");
     route.textContent = activeCompanion.purposeText;
+    const meters = document.createElement("div");
+    meters.className = "company-meters";
+    for (const [id, label, kind, value, maximum] of [
+      ["company-health", "HP", "health", activeCompanion.health, activeCompanion.maxHealth],
+      ["company-bond", "Bond", "bond", activeCompanion.bond, 100],
+    ] as const) {
+      const row = document.createElement("label");
+      row.htmlFor = id;
+      row.textContent = `${label} ${value}/${maximum}`;
+      const bar = document.createElement("progress");
+      bar.id = id;
+      bar.max = Math.max(1, maximum);
+      bar.value = value;
+      bar.setAttribute("aria-label", `${activeCompanion.name} ${kind} ${value} of ${maximum}`);
+      row.append(bar);
+      meters.append(row);
+    }
+    const victories = document.createElement("span");
+    victories.textContent = `${activeCompanion.victories} victories together · ${activeCompanion.statusText}`;
+    const details = document.createElement("details");
+    details.className = "company-history";
+    details.open = companyRecordOpen;
+    const summary = document.createElement("summary");
+    summary.textContent = "Roadcraft and journey record";
+    const kit = document.createElement("span");
+    kit.textContent = activeCompanion.combatKitText;
     const facts = document.createElement("small");
     facts.textContent = `${activeCompanion.statusText} · HP ${activeCompanion.health}/${activeCompanion.maxHealth} · ${activeCompanion.combatActionTexts.join(" · ")} · ${activeCompanion.victories} victories together · bond ${activeCompanion.bond} · joined T${activeCompanion.joinedTick}`;
     const roadcraft = document.createElement("small");
@@ -3289,9 +3336,15 @@ function presentViewScreens(): void {
     roadcraft.textContent = activeCompanion.roadcraftEffectiveness === null
       ? ""
       : describeRoadcraftEffectiveness(activeCompanion.roadcraftEffectiveness);
-    record.append(name, route, facts, ...(activeCompanion.roadcraftEffectiveness === null ? [] : [roadcraft]));
+    const bondNote = document.createElement("small");
+    bondNote.textContent = "Bond records shared travel and victories, not a private feeling.";
+    details.append(summary, kit, facts, bondNote, ...(activeCompanion.roadcraftEffectiveness === null ? [] : [roadcraft]));
+    record.append(identity, route, meters, victories, details);
     return record;
   })()]));
+  if (companyRecordFocused) {
+    elements.journalCompanionActive.querySelector<HTMLElement>("details > summary")?.focus({ preventScroll: true });
+  }
   elements.journalCompanionFormer.replaceChildren(...party.former.map((companion) => {
     const item = document.createElement("li");
     item.className = "journal-companion-record";

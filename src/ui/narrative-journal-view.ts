@@ -10,6 +10,7 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
   }
   const doc = root.ownerDocument;
   const adventureButton = required<HTMLButtonElement>("#journal-adventure-button");
+  const companyButton = required<HTMLButtonElement>("#journal-company-button");
   const statusButton = required<HTMLButtonElement>("#journal-status-button");
   const statusHistory = required<HTMLElement>("#journal-status");
   const narrativesButton = required<HTMLButtonElement>("#journal-narratives-button");
@@ -103,17 +104,20 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
     }
   }
 
-  function selectSection(section: "adventure" | "status" | "narratives"): void {
+  function selectSection(section: "adventure" | "company" | "status" | "narratives"): void {
     root.dataset.journalSection = section;
     adventureButton.setAttribute("aria-pressed", String(section === "adventure"));
+    companyButton.setAttribute("aria-pressed", String(section === "company"));
     statusButton.setAttribute("aria-pressed", String(section === "status"));
     narrativesButton.setAttribute("aria-pressed", String(section === "narratives"));
     narratives.hidden = section !== "narratives";
     statusHistory.hidden = section !== "status";
     for (const article of root.querySelectorAll<HTMLElement>('[data-journal-section="adventure"]')) article.hidden = section !== "adventure";
+    for (const article of root.querySelectorAll<HTMLElement>('[data-journal-section="company"]')) article.hidden = section !== "company";
     if (section === "narratives") render(true);
   }
   adventureButton.addEventListener("click", () => selectSection("adventure"));
+  companyButton.addEventListener("click", () => selectSection("company"));
   statusButton.addEventListener("click", () => selectSection("status"));
   narrativesButton.addEventListener("click", () => selectSection("narratives"));
   scope.addEventListener("change", () => render(true));

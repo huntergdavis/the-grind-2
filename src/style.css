@@ -2268,6 +2268,7 @@ body {
 .inventory-ledger,
 .journal-quests,
 .journal-companions,
+.journal-mentors,
 .journal-history,
 .journal-growth {
   padding: 1rem;
@@ -2552,6 +2553,43 @@ body {
   font-size: 0.56rem;
   line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.journal-view[data-journal-section="company"] {
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+}
+.journal-view[data-journal-section="company"] .journal-companion-record {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.journal-view[data-journal-section="company"] .journal-companion-record strong { font-size: 1rem; }
+.journal-view[data-journal-section="company"] .journal-companion-record small { font-size: 0.78rem; }
+.company-identity {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 0.1rem 0.75rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+.company-identity > span:not(.company-portrait) { color: #b8c8d4; }
+.company-meters { display: grid; gap: 0.65rem; margin-block: 0.85rem; }
+.company-meters label { display: grid; gap: 0.3rem; font-size: 0.85rem; color: #e0e7ed; }
+.company-meters progress { width: 100%; height: 0.65rem; accent-color: #ee6f79; }
+#company-bond { accent-color: #85bbaa; color: #85bbaa; }
+#company-bond::-webkit-progress-value { background: linear-gradient(90deg, #4b8875, #85bbaa); }
+#company-bond::-moz-progress-bar { background: linear-gradient(90deg, #4b8875, #85bbaa); }
+.company-history { margin-top: 0.85rem; }
+.company-history > summary {
+  min-height: 44px;
+  padding-block: 0.7rem;
+  cursor: pointer;
+  color: #f0d89e;
+  font-size: 0.85rem;
+}
+.company-history > summary:focus-visible { outline: 2px solid #ffe19a; outline-offset: 2px; }
+.company-history[open] > summary { margin-bottom: 0.4rem; }
+#app[data-active-view="journal"]:has(#journal-view[data-journal-section="company"]) #screen-hero-activity {
+  display: none;
 }
 
 .journal-quest-list,
@@ -6664,6 +6702,7 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 .watch-party-ribbon [data-injured="true"] .watch-companion-status { color: #ffc9a1; font-weight: 750; }
 .watch-party-ribbon [data-injured="true"] .watch-portrait { border-color: #ca936e; }
 
+.company-portrait,
 .watch-party-ribbon .watch-portrait {
   position: relative;
   grid-row: 1 / 3;

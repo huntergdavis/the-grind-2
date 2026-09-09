@@ -2,6 +2,33 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — Journal Company (v0.5.141)
+
+The compact Company section consolidates the existing companion and mentor
+records inside Journal rather than adding another top-level panel. Watch keeps
+its existing portraits and vitals. The inspected companion uses the same public
+identity projection; health and bond have both textual values and native meters.
+Exact journey facts remain readable behind native disclosures. No relationship
+graph or inferred emotion is claimed, and browsing never changes the campaign.
+
+Independent review found one accessibility regression: rebuilding the active
+record could discard keyboard focus from its disclosure. Preserve the open and
+focused state only for the same companion, without scrolling or moving focus
+from other controls. The follow-up browser journey exercises an actual automatic
+step separately from paused save-immutability checks. Former/mentor disclosures
+are outside the replaced children and retain their own state. Existing browser
+checks are updated to navigate Company before inspecting those records.
+
+Fifty-nine focused checks and version/boundary/production-build checks pass.
+Final read-only review is clear. Browser evidence includes the two-minute Company
+journey with one real focus-preserving update, plus the existing mentor journey.
+Visual review caught a shared health gradient overriding bond's accent color;
+explicit green fill rules and wider desktop cards fix it. The final captures
+and supported style checks agree. A Chromium pseudo-element introspection failure
+was corrected in the test, not hidden by changing the requirement. One older
+Shared Road script still assumes pre-streamlining Watch panels; that independent
+test-maintenance debt is recorded in the backlog, not counted as passing.
+
 ## Gameplay-first council — recurring shared-road companions (v0.5.140)
 
 Approved after code review: one shared predicate now gates both candidate

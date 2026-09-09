@@ -64,7 +64,7 @@ async function savedCampaign(page: Page, campaignId: string): Promise<string> {
   }, campaignId);
 }
 
-test("a later automatic road oath shows a distinct companion and retains the first journey across reload", async ({ page }, testInfo) => {
+test("a later automatic road oath keeps current Company separate from recorded history across reload", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
   const inference: string[] = [];
@@ -120,6 +120,8 @@ test("a later automatic road oath shows a distinct companion and retains the fir
   expect(upgradeWorldState(JSON.parse(saved))).toEqual(joined);
 
   const toolbar = page.locator("#view-toolbar");
+  const companyButton = page.locator("#journal-company-button");
+  const companionHistory = page.locator("#journal-companion-history");
   async function verifyVisibleHistory(): Promise<void> {
     await toolbar.locator('[data-view="watch"]').click();
     await expect(page.locator("#stage-focus-ribbon")).toHaveAttribute("data-party-size", "2");
@@ -137,14 +139,78 @@ test("a later automatic road oath shows a distinct companion and retains the fir
     await expect(page.locator("#watch-companion-card")).not.toContainText(former.identity.name);
 
     await toolbar.locator('[data-view="journal"]').click();
+    await expect(page.locator(".journal-sections button")).toHaveCount(4);
+    await expect(companyButton).toHaveText("Company");
+    for (const section of ["adventure", "status", "narratives"] as const) {
+      await page.locator(`#journal-${section}-button`).click();
+      await expect(page.locator(".journal-companions")).toBeHidden();
+      await expect(page.locator(".journal-mentors")).toBeHidden();
+    }
+    await companyButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(companyButton).toHaveAttribute("aria-pressed", "true");
+    await expect(companyButton).toBeFocused();
+    await expect(page.locator(".journal-companions")).toHaveAttribute("data-journal-section", "company");
+    await expect(page.locator(".journal-mentors")).toHaveAttribute("data-journal-section", "company");
     const activeRecord = page.locator("#journal-companion-active .journal-companion-record");
     await expect(activeRecord).toHaveCount(1);
+    await expect(activeRecord).toBeVisible();
     await expect(activeRecord).toHaveAttribute("data-companion-id", companion.identity.residentId);
+    await expect(activeRecord.locator(".company-portrait")).toHaveAttribute("data-character-id", companion.identity.residentId);
     await expect(activeRecord).toContainText(companion.identity.name);
     await expect(activeRecord).toContainText(companion.destination.name);
     await expect(activeRecord).toContainText(`joined T${companion.joinedTick}`);
+    await expect(activeRecord).toContainText(`${companion.victories} victories together`);
+    await expect(activeRecord).toContainText(`HP ${companion.resources.health}/${companion.combat.maxHealth}`);
+    await expect(activeRecord).toContainText(`Bond ${companion.bond}/100`);
+    const currentDetails = activeRecord.locator("details");
+    await expect(currentDetails).toHaveJSProperty("open", false);
+    await currentDetails.locator(":scope > summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(currentDetails.locator("small").filter({ hasText: `joined T${companion.joinedTick}` })).toBeVisible();
+    await expect(currentDetails).toContainText("Bond records shared travel and victories, not a private feeling.");
+    await page.keyboard.press("Enter");
+    await expect(currentDetails).toHaveJSProperty("open", false);
+    for (const [id, resource, value, max] of [
+      ["company-health", "health", companion.resources.health, companion.combat.maxHealth],
+      ["company-bond", "bond", companion.bond, 100],
+    ] as const) {
+      const meter = page.locator(`#${id}`);
+      await expect(meter).toBeVisible();
+      await expect(meter).toHaveAttribute("aria-label", `${companion.identity.name} ${resource} ${value} of ${max}`);
+      expect(await meter.evaluate((bar) => ({
+        value: (bar as HTMLProgressElement).value, max: (bar as HTMLProgressElement).max,
+      }))).toEqual({ value, max });
+    }
+    const meterFills = await page.evaluate(() => {
+      // Chromium returns the host track for getComputedStyle's WebKit progress
+      // pseudo argument. Check supported computed colors and the loaded fill
+      // rule instead; the screenshots also show the actual rendered meters.
+      const bondFillRules = [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules])
+        .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule
+          && rule.selectorText === "#company-bond::-webkit-progress-value")
+        .map((rule) => rule.style.backgroundImage);
+      return {
+        healthColor: getComputedStyle(document.getElementById("company-health")!).color,
+        bondColor: getComputedStyle(document.getElementById("company-bond")!).color,
+        bondFillRules,
+      };
+    });
+    await testInfo.attach("Company computed meter fills", {
+      body: JSON.stringify(meterFills), contentType: "application/json",
+    });
+    expect(meterFills.healthColor).toBe("rgb(239, 111, 108)");
+    expect(meterFills.bondColor).toBe("rgb(133, 187, 170)");
+    expect(meterFills.bondFillRules).toContain("linear-gradient(90deg, rgb(75, 136, 117), rgb(133, 187, 170))");
+    await expect(companionHistory).toHaveJSProperty("open", false);
+    await expect(page.locator("#journal-mentor-history")).toHaveJSProperty("open", false);
     const formerRecord = page.locator("#journal-companion-former .journal-companion-record");
     await expect(formerRecord).toHaveCount(1);
+    await expect(formerRecord).toBeHidden();
+    await companionHistory.locator(":scope > summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(companionHistory).toHaveJSProperty("open", true);
+    await expect(formerRecord).toBeVisible();
     await expect(formerRecord).toHaveAttribute("data-companion-id", former.identity.residentId);
     await expect(formerRecord).toHaveAttribute("data-outcome", former.departure.outcome);
     await expect(formerRecord).toContainText(former.identity.name);
@@ -160,6 +226,18 @@ test("a later automatic road oath shows a distinct companion and retains the fir
     await expect(page.locator("#stage")).toHaveAttribute("data-atlas-party-formation", "paired");
     await expect(page.locator("#stage")).toHaveAttribute("data-atlas-party-companion", companion.identity.residentId);
     await expect(page.locator("#map-party")).not.toContainText(former.identity.name);
+    await toolbar.locator('[data-view="journal"]').click();
+    await expect(companyButton).toHaveAttribute("aria-pressed", "true");
+    await expect(companionHistory).toHaveJSProperty("open", true);
+    await expect(activeRecord).toBeVisible();
+    await expect(formerRecord).toBeVisible();
+    await page.locator("#journal-adventure-button").click();
+    await expect(activeRecord).toBeHidden();
+    await expect(formerRecord).toBeHidden();
+    await companyButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(companionHistory).toHaveJSProperty("open", true);
+    await expect(formerRecord).toBeVisible();
   }
   await verifyVisibleHistory();
   expect(await savedCampaign(page, fixture.campaignId)).toBe(saved);
@@ -174,24 +252,64 @@ test("a later automatic road oath shows a distinct companion and retains the fir
   await verifyVisibleHistory();
   expect(JSON.parse(await savedCampaign(page, fixture.campaignId))).toEqual(joined);
 
-  for (const view of ["watch", "journal"] as const) {
-    await toolbar.locator(`[data-view="${view}"]`).click();
-    const content = page.locator(view === "watch" ? "#stage-focus-ribbon" : ".journal-companions");
-    await content.scrollIntoViewIfNeeded();
-    const bounds = await content.boundingBox();
-    expect(bounds).not.toBeNull();
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-    if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      const path = testInfo.outputPath(`recurring-companions-${view}-320.png`);
-      await page.screenshot({ path, timeout: 8_000 });
-      await testInfo.attach(`Recurring companions ${view} at 320px`, { path, contentType: "image/png" });
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    for (const view of ["watch", "journal"] as const) {
+      await toolbar.locator(`[data-view="${view}"]`).click();
+      const content = page.locator(view === "watch" ? "#stage-focus-ribbon" : ".journal-companions");
+      await content.scrollIntoViewIfNeeded();
+      if (view === "journal") {
+        await expect(companyButton).toHaveAttribute("aria-pressed", "true");
+        await expect(companionHistory).toHaveJSProperty("open", true);
+        await expect(page.locator("#company-health, #company-bond")).toHaveCount(2);
+      }
+      const bounds = await content.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+      if (process.env.TG2_VISUAL_CAPTURE === "1") {
+        const label = view === "journal" ? "company" : view;
+        const path = testInfo.outputPath(`recurring-companions-${label}-${viewport.width}.png`);
+        await page.screenshot({ path, timeout: 8_000 });
+        await testInfo.attach(`Recurring companions ${label} at ${viewport.width}px`, { path, contentType: "image/png" });
+      }
     }
   }
   await expect(page.locator("#app")).toHaveAttribute("data-play-mode", "deterministic");
   await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
   expect(JSON.parse(await savedCampaign(page, fixture.campaignId))).toEqual(joined);
+
+  // All save-immutability checks and captures above were paused. This separate
+  // phase intentionally allows one real automatic step to refresh Company.
+  await toolbar.locator('[data-view="journal"]').click();
+  await companyButton.click();
+  const liveDetails = page.locator("#journal-companion-active details");
+  const liveSummary = liveDetails.locator(":scope > summary");
+  await expect(liveDetails).toHaveJSProperty("open", false);
+  await liveSummary.focus();
+  await page.keyboard.press("Enter");
+  await expect(liveDetails).toHaveJSProperty("open", true);
+  const oldSummary = await liveSummary.elementHandle();
+  expect(oldSummary).not.toBeNull();
+  // Resume and focus in the same browser task, before the worker can reply.
+  await liveSummary.evaluate((summary) => {
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    (summary as HTMLElement).focus();
+  });
+  await page.waitForFunction(({ id, tick }) => {
+    const raw = sessionStorage.getItem(`the-grind-2:campaign:${id}`);
+    return raw !== null && JSON.parse(raw).tick > tick;
+  }, { id: fixture.campaignId, tick: joined.tick }, { polling: 20, timeout: 15_000 });
+  await expect.poll(() => oldSummary!.evaluate((summary) => summary.isConnected)).toBe(false);
+  await expect(liveSummary).toBeFocused();
+  await expect(liveDetails).toHaveJSProperty("open", true);
+  await page.locator("#pause-button").click();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  const refreshed = JSON.parse(await savedCampaign(page, fixture.campaignId)) as WorldState;
+  expect(refreshed.tick).toBe(joined.tick + 1);
+  expect(refreshed.depth.companions.active[0]?.identity).toEqual(companion.identity);
+  expect(refreshed.depth.companions.former).toEqual(joined.depth.companions.former);
   expect(inference).toEqual([]);
   expect(externalRequests).toEqual([]);
   expect(errors).toEqual([]);

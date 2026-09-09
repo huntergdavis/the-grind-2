@@ -425,7 +425,14 @@ test("carries one mortal mentor promise through return farewell and permanent me
   await expect(page.locator("#scene-headline")).toHaveText(`Roads Part: ${legend.heroName}`);
   await expect(page.locator("#scene-consequence")).toContainText("kept-road-promise");
   await page.locator('.view-button[data-view="journal"]').click();
+  await page.locator("#journal-company-button").click();
+  const mentorHistory = page.locator("#journal-mentor-history");
+  await expect(mentorHistory).not.toHaveAttribute("open", "");
+  if (!(await mentorHistory.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await mentorHistory.locator(":scope > summary").click();
+  }
   const memory = page.locator(`#journal-mentor-list .journal-mentor-record[data-legend-id="${legend.id}"]`);
+  await expect(memory).toBeVisible();
   await expect(memory).toHaveAttribute("data-phase", "farewell");
   await expect(memory).toHaveAttribute("data-memory", "kept-road-promise");
   await expect(memory).toHaveAttribute("data-imported-power", "false");
@@ -1214,6 +1221,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.locator('.view-button[data-view="journal"]').click();
+  await page.locator("#journal-company-button").click();
   const activeRecord = page.locator("#journal-companion-active .journal-companion-record");
   await expect(activeRecord).toBeVisible();
   await expect(activeRecord).toHaveAttribute("data-companion-id", companion.identity.residentId);
@@ -1464,9 +1472,16 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#stage")).not.toHaveAttribute("data-atlas-party-support", /.+/);
   await page.keyboard.press("Escape");
   await page.locator('.view-button[data-view="journal"]').click();
+  await page.locator("#journal-company-button").click();
   await expect(page.locator("#journal-companion-active")).toBeHidden();
+  const companionHistory = page.locator("#journal-companion-history");
+  await expect(companionHistory).not.toHaveAttribute("open", "");
+  if (!(await companionHistory.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await companionHistory.locator(":scope > summary").click();
+  }
   const former = page.locator("#journal-companion-former .journal-companion-record");
   await expect(former).toHaveCount(1);
+  await expect(former).toBeVisible();
   await expect(former).toHaveAttribute("data-companion-id", companion.identity.residentId);
   await expect(former).toContainText(companion.destination.name);
   await expect(former).toContainText(/Oath fulfilled|Journey ended by injury/);
