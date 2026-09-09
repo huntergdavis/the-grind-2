@@ -2,9 +2,9 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — town-visit Chronicle Plates (v0.5.145, in progress)
+## Gameplay-first council — town-visit Chronicle Plates (v0.5.145)
 
-Implement the previously recommended V04.16i1a subset using the validated
+Implements the previously recommended V04.16i1a subset using the validated
 event-time town itinerary, after the canonical save succeeds and independently
 of cutaway selection. Retain only source identity/tick, town and up to three
 recorded landmarks, plus the exact visit/reputation outcome. The small static
@@ -18,8 +18,8 @@ simulation, narrator or protected compact-ledger changes are required. The full
 multi-event Chronicle Plates travelogue remains deferred. Thirty new focused
 recipe/archive/view tests and nine existing town-itinerary tests pass. Version,
 boundaries, TypeScript and the production build pass. Read-only review confirms
-the post-save capture ordering and view-only behavior; browser and deployment
-verification remain pending.
+the post-save capture ordering and view-only behavior. Browser and deployment
+verification are complete, with details below.
 
 Initial browser attempts exhausted their 120-second total budget. The test now
 batches repeated static DOM reads and omits a duplicate second-hero visit while
@@ -29,7 +29,14 @@ inference or external-request errors, then its final whole-save comparison
 caught ordinary catch-up bookkeeping after switching heroes. Reapply the
 fixture's existing future checkpoint before returning to the original hero;
 do not change the game or ignore the metadata. Fully framed 320px and desktop
-cards were visually reviewed and are clear. Final rerun verification is pending.
+cards were visually reviewed and are clear. The corrected same-build journey
+passes every assertion in 98 seconds within the unchanged 120-second limit,
+including exact reload dedupe, hero filtering and whole paused-save equality.
+Diagnostics report zero browser errors, inference or external requests. Final
+release review is clear; the owned preview is closed. Commit `e9b8837` passed
+Pages run `34414452477` in 5m5s, including all 3,266 release tests. Public
+v0.5.145, service worker, markup, exact CSS and committed source maps for the
+three plate modules and `main.ts` are verified. Simulation worker is unchanged.
 
 Next-slice read-only review recommends V04.16e1: one Inkcap Mimic research task.
 Actual False Treasure poison application and attributable pre-action poison

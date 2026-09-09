@@ -47,7 +47,7 @@ Immediate queue:
    complete codec coverage. No second profession or generic combo
    framework is included. Chronicle Plates, field research, mastery sidegrades,
    settlement chains and alternate encounters remain queued afterward.
-7. **In progress — V04.16i1a, town-visit Chronicle Plates (v0.5.145).** Preserve a small illustrated
+7. **Delivered — V04.16i1a, town-visit Chronicle Plates (v0.5.145).** Automatically preserves a small illustrated
    landmark reconstruction in a collapsed Adventure journal section after a
    durably saved town visit. Reuse the validated event-time town itinerary;
    retain exact place, tick and visit/reputation facts in a bounded 48-entry,
@@ -340,7 +340,7 @@ and its service worker are verified; entry `index-FxDosoSi.js` and simulation
 worker `simulation.worker-BGOV4Q-y.js` contain 17 exact committed source copies
 across the ten checked feature modules. The feature is live on hunterdavis.com.
 
-### V04.16i1a — town-visit Chronicle Plates (v0.5.145, in progress)
+### V04.16i1a — town-visit Chronicle Plates (v0.5.145)
 
 Reuses the council plan recovered with `deja "Chronicle Plates"` from the prior
 15:05 session recommendation and session `01a06835-15f`. Each qualifying live
@@ -365,7 +365,16 @@ travelogue intermissions, historical actor/gear/weather staging, catch-up captur
 import/export and ledger-backed reconstruction remain deferred. Thirty new
 recipe/archive/view checks and nine existing town-itinerary checks pass, along
 with the version contract, boundaries, TypeScript and production build. One
-real saved-visit browser journey and deployment verification are in progress.
+real saved-visit browser journey passes all assertions in 98 seconds within its
+unchanged 120-second limit: exact landmark/counter archive, stable keyboard
+reading, 320px/desktop layouts, next-step immutability, reload dedupe, hero
+filtering and unchanged paused saves. Zero browser errors, inference or external
+requests. Both card layouts were visually reviewed; council review is clear.
+Commit `e9b8837` passed Pages run `34414452477` in 5m5s, including all 3,266
+release tests. Public v0.5.145, its service worker, journal markup and CSS are
+verified. Entry `index-DjSWJ_mD.js` contains exact committed source for all three
+plate modules and `main.ts`; simulation worker `simulation.worker-BGOV4Q-y.js`
+is unchanged. This town-visit subset is live on hunterdavis.com.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
