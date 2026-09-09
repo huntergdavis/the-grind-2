@@ -2,6 +2,31 @@
 
 Status: council reviews, latest update 2026-09-08
 
+## Post-V1 council — submission policy gives a meaningful first-token improvement
+
+Reused `f9490d5` and its receipts after the new narrow recall query found no
+additional session. Kernel review found actual i915 hang/reset entries in both
+prior run windows, including the run with an empty native-error list. Source
+review isolated command batching as one testable boundary, not a proven cause.
+The opt-in experiment flushes after each compute pass, with no added GPU wait,
+shader change or direct score rewrite. Timing and uniform-pool reuse do change.
+Two independent reviews found no isolation/reporting blocker; 59 tests pass.
+
+Actual `4c771c92` completes the guarded first-token diagnostic: 607 separately
+flushed dispatches, four full hashed shader records, one sample, all resources
+closed offline. Kernel journal has no entries in the checked run window.
+Live/fresh outputs match bit-for-bit and the expected argmax; maximum reference
+error is about 2.86e-6. The value 1.000002861 still violates the strict probability
+range, so numerical qualification remains false. No threshold was loosened.
+
+Verdict: a promising submission-policy workaround, not a universal repair or
+better live prose. Next run one complete cached story under this candidate;
+judge the actual words and kernel health before extending the sequence. A
+separately confirmed shared-scalar shader race remains a before-promotion item.
+[Evidence and pinned upstream provenance](docs/STORYTELLING_FINISH.md#post-v1--per-dispatch-submission-experiment)
+keep these findings distinct. No second GPU experiment or production change
+this slice; v0.5.132 remains live.
+
 ## Post-V1 council — first-token stop and device-loss evidence
 
 Reused the `5fe1f0b` handoff and retained receipts; the narrow

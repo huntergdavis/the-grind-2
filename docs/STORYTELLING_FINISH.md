@@ -770,6 +770,80 @@ new actual-device experiment. The native failure can precede softmax; neither
 OOM, oversized storage nor a particular shader is proven responsible. Do not
 repeat the unchanged full request or reopen the deferred device matrix.
 
+## Post-V1 — per-dispatch submission experiment
+
+Reused `f9490d5` and its two receipts after
+`deja "Qwen3 prefill dispatch device loss"` found no new match. The source-first
+review added a fact missing from the earlier browser-only interpretation:
+kernel logs record GPU hangs during **both** prior runs.
+
+| Prior receipt | UTC kernel timestamp | Recorded i915 evidence |
+| --- | --- | --- |
+| `25952e40` | 2026-09-09 02:41:37–38 | Fence timeout, rcs0 preemption reset, GPU HANG in chrome-headless PID 2937116 |
+| `1f6289d1` | 2026-09-09 02:54:31–32 | Fence timeout, rcs0 preemption reset, GPU HANG in chrome-headless PID 2968184 |
+
+Both show hang code `9:1:8ed8fff3`. The windows were read with `journalctl -k
+--utc`, bounded respectively to 02:40:00–02:42:00 and 02:53:45–02:55:00 UTC.
+No OOM entry appeared in either window; that does not exclude memory-related
+causes. The device is Intel UHD620/Kaby Lake-R `[8086:5917]`, i915 on Linux
+7.0.0-27-generic, with Mesa Vulkan 26.0.3-1ubuntu1. This is same-window evidence,
+not identification of the failing shader. An empty browser error list did not
+prove absence of a kernel hang.
+
+The pinned runtime accumulates compute passes in one command encoder until a
+copy, write, free or sync flushes it. The isolated new `--submit-each-dispatch`
+mode calls the original flush immediately after each ended compute pass. It
+requires the existing cache-only first-token/dispatch flags, retains the same
+five-minute total ceiling, and never enters the next-token or story-review loop.
+One bounded policy report records actual dispatch/flush counts, including any
+loading-time dispatches, through the first model-buffer report. It changes queue
+boundaries and uniform-pool reuse, but adds no GPU waits or direct shader/score/
+RNG edits. Numerical equivalence is not assumed. Normal builds remain unchanged.
+
+[Actual receipt `4c771c92`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T03-37-32-217Z-4c771c92.json)
+records 607 dispatches and 607 successful flush calls, maximum pending dispatch
+count one, with no helper errors. All four shader records are complete; source
+hashes still match the two original kernels. The 35 receipt source hashes match
+the final files. The first-token stop is acknowledged, comparison and owned
+cleanup finish, and the receipt is `complete: true` **as a diagnostic only**.
+The actual failed worker reply remains explicit; no story or Journal entry exists.
+
+Logits now range from -14.365978 to 53.123737 instead of all zeros. The sampled
+token and expected argmax are both 44. Live/fresh probabilities are bit-identical
+and match the reference within about 2.861e-6 maximum absolute/L1 error. Their
+sum is 1.0000028610229497, with one value 1.0000028610229492. There are no NaNs,
+infinities or negative probabilities, but that one value exceeds one, so
+`normalized`, `matchesReference` and the comparison's `ok` remain **false**.
+The absolute and sum errors fit the existing tolerances; the strict range rule
+is independently violated. No threshold was changed and no value was clamped.
+
+Cached load 38.233s, stopped write 32.026s, total 93.147s. No external requests,
+native GPU errors or cleanup failures were captured. An independent
+`journalctl -k --utc --since '2026-09-09 03:37:25 UTC' --until
+'2026-09-09 03:39:08 UTC'` check found **no kernel entries** in the run window.
+Worker/browser/server closed, port 19877 is free and the model cache is preserved.
+This one run supports a promising submission-policy workaround, not a universal
+fix, proved batching defect, numerical qualification or better live prose.
+
+A separate source review confirms two nonatomic shared-scalar write/write races
+in the retained output shader: the `x == 0` guards allow eight `y` invocations
+to write the same `[0]` location between barriers. Equal intended values do not
+remove the race under the [WGSL memory model](https://www.w3.org/TR/WGSL/#memory-model).
+The [binary build PR](https://github.com/mlc-ai/binary-mlc-llm-libs/pull/165)
+identifies MLC commit `2008fe8343e1f40ef89ee57b9287aebcf1b86c98` and TVM
+`bc1a904ec1ad89454ee6577d66cde1268b8f6bc8`;
+the [pinned softmax scheduler](https://github.com/mlc-ai/mlc-llm/blob/2008fe8343e1f40ef89ee57b9287aebcf1b86c98/python/mlc_llm/compiler_pass/attach_softmax_with_temperature.py#L232)
+contains the corresponding x-only shared reduction and x/y output schedule.
+This experiment did not patch those guards or establish them as the hang cause.
+
+Next: one complete cached road scene using the per-dispatch candidate and
+unchanged prompt/settings, with actual raw/cleaned prose review and another
+matching kernel-window check. Keep the shader race as a separate repair and
+qualification item before promotion. Do not resume unchanged batched trials,
+prompt-only tuning or a broad device matrix. All **59 focused tests**, syntax,
+whitespace and canonical-boundary checks pass. No second GPU experiment or
+production change this slice; live v0.5.132 remains unchanged.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

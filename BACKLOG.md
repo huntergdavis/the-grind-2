@@ -2,7 +2,35 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — first-token stop and native device-loss evidence
+## Current slice — per-dispatch submission restores meaningful first-token computation
+
+The source-first review found i915 GPU hang/reset entries during **both** prior
+run windows, including `25952e40` with its empty browser error list. Browser
+silence did not establish kernel health. No OOM entry was found in those narrow
+windows; the underlying trigger is not proved.
+
+The new opt-in `--submit-each-dispatch` experiment changes only command submission
+boundaries within the cache-only first-token probe. Actual `4c771c92` records
+607 separate dispatch flushes, complete shader evidence, exactly one sampled
+token and full offline cleanup. No kernel entries appeared in the inspected
+run window. Logits are now nonzero; live/fresh probabilities are bit-identical
+and within 0.000002862 of the reference, with the expected argmax/token 44.
+One probability is 1.000002861, so the unchanged strict range check still fails.
+The diagnostic is complete; this is **not a numerical qualification or story**.
+
+All **59 focused tests** pass. No production source, model, shader, score-array
+rewrite or new CI matrix. Live v0.5.132 is unchanged. [Evidence, kernel windows
+and source findings](docs/STORYTELLING_FINISH.md#post-v1--per-dispatch-submission-experiment)
+record one meaningful execution improvement, not a universal driver fix.
+
+**Next:** one complete cached road-scene generation with per-dispatch submission,
+unchanged prompt/settings, actual prose review and a matching kernel-log check.
+Do not rerun the unchanged batched failure or retune prompts first. Separately,
+source review confirms a shared-scalar write race in the pinned output shader;
+retain it as a repair/qualification item before any production promotion, not
+an established cause of the earlier hangs. P1-B/P2/P3 remain deferred.
+
+## Previous slice — first-token stop and native device-loss evidence
 
 The queued `--inspect-dispatch` slice is implemented as a cache-only extension
 of `--inspect-model-buffer`: two labeled softmax calls, bounded dispatch/binding/

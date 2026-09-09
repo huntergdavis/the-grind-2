@@ -85,14 +85,32 @@ but the original 32,768-character cap truncated the chunk shader. That receipt
 stays incomplete. After raising the cap, final `1f6289d1` lost its device before
 sampling, recording native `vkQueueSubmit failed with VK_ERROR_DEVICE_LOST` and
 a mapping abort, with no dispatches or stop acknowledgment. Both runs closed
-offline; no third run or candidate promotion. The complete-trace success path
-has portable test coverage, **not a passing actual-device receipt yet**.
+offline; no third run or candidate promotion in that slice. Those two original-
+batching runs did **not** qualify a complete actual-device trace; the separate
+per-dispatch experiment below subsequently completed one.
 [Full evidence and next boundary](../../docs/STORYTELLING_FINISH.md#post-v1--first-token-dispatch-and-native-device-loss).
 
-Focused tooling checks (54 tests, seconds rather than a new CI matrix):
+Add `--submit-each-dispatch` only to the full cache-only first-token command to
+test a different submission boundary. It calls the original `flushCommands()`
+after each compute pass, without adding waits or editing shaders, score arrays,
+RNG calls or model artifacts. Timing and uniform-pool reuse change. A single
+bounded counter record covers worker lifetime through the first model-buffer
+report; completion requires each recorded dispatch to have flushed, maximum
+pending dispatch count one, and no helper errors. Existing modes are unchanged.
+
+Actual `4c771c92` completes the diagnostic with 607 individual dispatch flushes,
+full shader records, one sample and offline cleanup. The checked kernel window
+has no entries, unlike both earlier batched run windows. Live/fresh results are
+bit-identical and close to the reference; one value exceeds one by 2.86e-6, so
+the strict numerical check remains false. No complete story was attempted.
+[Measured result, limitations and next literary step](../../docs/STORYTELLING_FINISH.md#post-v1--per-dispatch-submission-experiment).
+Do not interpret `changesScores: false` as numerically identical execution; it
+means no direct score rewrite. No driver fix or production promotion is claimed.
+
+Focused tooling checks (59 tests, seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs
 ```
 
 ## Historical finish decision — September 7
