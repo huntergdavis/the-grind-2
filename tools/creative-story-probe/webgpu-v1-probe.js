@@ -13,17 +13,22 @@ import { createCreativeWriterClient } from '../../src/narrator/creative-writer-c
 import { creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib } from '../../src/narrator/creative-writer-model';
 import failedSequence from './webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json';
 import failedCandidate from './webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json';
+import failedConnectedSequence from './webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json';
 
 const parameters = new URLSearchParams(location.search);
 const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
 const connectedSequence = parameters.get('connected-story') === '1';
+const replayArrival = parameters.get('replay-arrival') === '1';
 const candidateScenes = parameters.get('candidate-scenes') === '1' || candidateDiagnostic;
 const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
 const productionScenes = parameters.get('production-scenes') === '1' || candidateScenes;
 const productionSolo = parameters.get('production-solo') === '1';
 const replayFarewell = parameters.get('replay-farewell') === '1';
 const replaySequence = parameters.get('replay-sequence') === '1';
-const replay = replayFarewell || replaySequence;
+const replay = replayFarewell || replaySequence || replayArrival;
+if (replayArrival && (!candidateDiagnostic || parameters.get('cache-only') !== '1' || connectedSequence)) {
+  throw new Error('Arrival replay requires the isolated cache-only candidate diagnostic, without a connected sequence');
+}
 if (connectedSequence && (!candidateDiagnostic || parameters.get('cache-only') !== '1')) {
   throw new Error('Connected stories require the isolated cache-only candidate diagnostic');
 }
@@ -31,7 +36,8 @@ if (candidateDiagnostic && (parameters.get('cache-only') !== '1' || parameters.g
   || parameters.get('production-scenes') === '1')) throw new Error('Candidate diagnostics require an isolated cache-only replay');
 if ([productionScenes, productionSolo, replayFarewell, replaySequence].filter(Boolean).length > 1) throw new Error('Production modes are mutually exclusive');
 const productionMode = productionScenes || productionSolo || replay;
-const cases = connectedSequence ? createWebgpuV1ProductionCases().slice(0, 3)
+const cases = replayArrival ? [failedConnectedSequence.outputs[1]]
+  : connectedSequence ? createWebgpuV1ProductionCases().slice(0, 3)
   : candidateDiagnostic ? failedCandidate.outputs.slice(0, 1) : replaySequence ? failedSequence.outputs : replayFarewell ? [failedSequence.outputs[2]] : productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
   : productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
 // Reuse the production journal, but never inherit a previous probe's narrative.
@@ -84,6 +90,10 @@ globalThis.webgpuV1Probe = {
       // Fixed-input diagnostic replay, not another three-scene quality qualification.
       const { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages } = fixture;
       prepared = { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages,
+        ...(replayArrival ? { arrivalReplay: {
+          receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', originalScene: 2,
+          lifecycle: 'fresh-worker-exact-messages-not-original-sequence', history: 'actual-recorded-prior-prose',
+        }, journalScope: 'none' } : {}),
         promptMode: 'exact-recorded-production-messages', writerPath: candidateDiagnostic
           ? 'production-client-and-worker-with-candidate-adapter' : 'production-client-and-worker',
         rawOutputKind: 'client-result-after-worker-sentence-stop', isolatedSolo: false,
@@ -154,10 +164,10 @@ globalThis.webgpuV1Probe = {
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
-        independentChatReset: productionMode && (productionSolo || index === 3),
+        independentChatReset: productionMode && (productionSolo || replayArrival || index === 3),
         productionChatReset: productionMode,
         generationMs: Math.round(performance.now() - started), exactMemoryRepeat, recalledPassageRepeat, characterAnchorPreserved, acceptedNewStory, archived,
-        journal: connectedSequence ? { ...journal.snapshot, persistent: false } : journal.snapshot };
+        journal: connectedSequence || replayArrival ? { ...journal.snapshot, persistent: false } : journal.snapshot };
     } catch (error) {
       return { ...fixture, status: 'failed', raw, cleaned: null, usage, firstTokenMs, finishReason,
         partialOutputAvailable: !productionMode,

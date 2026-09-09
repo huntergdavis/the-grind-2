@@ -174,10 +174,36 @@ arrival samples are captured after the 40 road samples; they are finite/in-range
 but include three small above-one values. Do not replay the full unchanged
 sequence or raise the deadline. [Targeted next step and evidence](../../docs/STORYTELLING_FINISH.md#post-v1--connected-story-sequence).
 
-Focused tooling checks (84 tests, seconds rather than a new CI matrix):
+Add `--replay-arrival` instead of `--connected-story` to the repaired, cache-only
+command to investigate the saved arrival timeout without regenerating the road:
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-diagnostic --cache-only --inspect-model-buffer --inspect-dispatch --submit-each-dispatch --complete-story --repair-softmax-race --replay-arrival
+```
+
+It submits exactly scene two's recorded messages from `85f1c932`, including the
+actual earlier road prose, on a fresh cached worker. This is not a recreation of
+the original worker lifetime or a connected-story quality pass. Only one scene
+is allowed; no Journal writes, new download, prompt change or larger deadline.
+Limits remain 180s load / 90s write / 5min total. Enter only `quit` after review.
+
+Tool-only timing observes existing worker reset, runtime prefill/decode, chunk,
+interrupt, drain and settlement boundaries without adding GPU waits. The runner
+retains at most 128 bounded events, including incomplete progress if the deadline
+terminates the worker. Partial text is diagnostic evidence, not completed prose
+or an archive entry. Missing settlement must remain incomplete. Instrumentation
+can affect timing; these observations do not measure native GPU queue backlog.
+
+Actual `ebd53af9` records 321 input tokens taking 53.316s to prefill, followed by
+38 completed decode steps taking 35.827s, before the unchanged 90s deadline.
+No interruption or drainage begins. The readable partial draft is not completed
+or archived. Full cleanup and an empty matching kernel window are recorded.
+[Measured bottleneck and compact-context next step](../../docs/STORYTELLING_FINISH.md#post-v1--saved-arrival-timing).
+
+Focused tooling checks (seconds rather than a new CI matrix):
+
+```sh
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs
 ```
 
 ## Historical finish decision — September 7

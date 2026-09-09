@@ -1,6 +1,34 @@
 # The Grind 2 — Red-Team Council Report
 
-Status: council reviews, latest update 2026-09-08
+Status: council reviews, latest update 2026-09-09
+
+## Post-V1 council — saved arrival timing identifies the expensive phases
+
+Reused `14f0148`/`85f1c932` after local recall. Independent review passes the
+exact saved-arrival request, actual recorded memory, fresh-worker scope,
+cache-only one-scene gates, unchanged deadlines, and no-archive behavior.
+Runtime observation adds no GPU wait or score change. A reviewer identified
+unnecessary whole-receipt writes; decode checkpoints are now batched while
+retaining every bounded timing record. All **94 focused tests** pass.
+
+Actual `ebd53af9` records 321-token prefill at 53.316s and 38 completed decode
+steps at 35.827s before the 90.004s timeout. No interrupt or drainage begins;
+termination is cleanup, not successful settlement. Reset/setup is negligible
+in this run. The phase bottleneck is measured, not its underlying hardware cause.
+Forty source hashes match; the checked kernel window has no entries and all
+resources close offline. Six small probability overshoots remain explicit.
+
+The partial draft starts an emotional movement from road fear toward relief,
+then begins a hand gesture. It is too incomplete to assess continuing care,
+the Rowan anchor or a coherent arrival outcome. “The clearing” is unprovided
+setting detail; “familiar ground” may imply unestablished familiarity. There
+is no complete prose or connected-arc pass, and nothing is promoted live.
+
+Verdict: one compact-context trial is justified by measured prefill cost, with
+actual earlier prose and all meaningful current/emotional constraints preserved.
+Use the same deadline and judge both input cost and completed prose. Do not
+extend the timeout, sweep prompts/models or rerun the unchanged full sequence.
+Live v0.5.132 stays unchanged. [Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--saved-arrival-timing).
 
 ## Post-V1 council — connected flow implemented, actual arrival times out
 

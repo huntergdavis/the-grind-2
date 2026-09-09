@@ -1,8 +1,29 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, updated 2026-09-08
+Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — connected-story flow wired; arrival exceeds the write budget
+## Current slice — arrival timeout localized to prefill and decoding
+
+`--replay-arrival` runs only the saved arrival request from `85f1c932`, including
+its actual road prose, on one fresh cached worker. Bounded timing survives a
+failed write; it is never mistaken for completed or archived prose. All **94
+focused tests** pass; no new CI matrix or production change.
+
+Actual `ebd53af9` times out at 90.004s: **321 input tokens take 53.316s to
+prefill**, then 38 completed decode steps take 35.827s. No interruption or
+drainage begins. Reset takes 2ms. Sparse partial prose is readable but unfinished;
+no complete arrival or connected arc is qualified. Full offline cleanup, no
+entries in the matching kernel window, and all 40 source hashes match.
+[Timing, partial draft and limits](docs/STORYTELLING_FINISH.md#post-v1--saved-arrival-timing).
+
+**Next:** one compact arrival-context candidate targeting the measured input
+cost, preserving actual prior prose, authoritative outcomes, character identity
+and emotional direction. Compare actual prefill time and completed prose under
+the same deadline. This is not permission to discard continuity, raise the
+timeout, rerun the unchanged full sequence or search more models. Live v0.5.132
+and the P1-B/P2/P3 deferrals remain unchanged.
+
+## Previous slice — connected-story flow wired; arrival exceeds the write budget
 
 The repaired candidate now has an explicit three-scene mode on one cached worker:
 road → arrival → farewell, with production-selected 0 → 1 → 2 actual earlier

@@ -1018,6 +1018,60 @@ repeat the whole unchanged sequence, enlarge the timeout, tune prompts blindly
 or add a device matrix. The stronger candidate's connected narrative remains
 unqualified; no live-default change, and v0.5.132 remains the shipped baseline.
 
+## Post-V1 — saved arrival timing
+
+Reused `14f0148` and its immutable `85f1c932` arrival request after local recall.
+The opt-in `--replay-arrival` mode uses the full repaired, per-dispatch, cache-only
+candidate chain. It submits that exact saved request and actual prior road prose
+on one fresh worker: no road regeneration, second scene, player archive write,
+model download, prompt/sampling change or longer deadline. A fresh-worker replay
+does not reproduce the original two-write worker lifetime.
+
+The isolated observer records existing worker reset/create, runtime prefill/decode,
+partial text, interruption, stream drainage and settlement boundaries. It adds
+no GPU readback or wait. At most 128 records, including a reserved settlement
+record, can be emitted; partial text is explicitly bounded and diagnostic-only.
+Every decode event is retained, but receipt writes are batched to avoid unnecessary
+per-token serialization. These are wall-clock/native phase counters, not GPU
+queue-depth measurements. Instrumentation can still affect timing.
+
+Actual [arrival timing receipt `ebd53af9`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T07-37-44-367Z-ebd53af9.json):
+
+- Cache-only load: **38.042s**. Reset: **2ms**; prefill begins 18ms after write start.
+- Prefill: **321 tokens**, **53.316s** observed, 53.295s native runtime counter.
+- First text chunk: **53.340s**, containing `M`.
+- **38 completed decode steps**: 35.827s native cumulative time; last completed
+  step at 89.263s. Per-step durations, tokens and dispatch counts are retained.
+- The write times out at **90.004s** with no interrupt, stream-drained or worker
+  settlement event. Its final `raw`/`cleaned` are null. No arrival is archived.
+- **51 timing records** survive; last sparse text snapshot at 82.827s/32 chunks:
+
+> Mara exhales a breath of relief as they step into the clearing, the weight of the journey eased by the familiar ground of their oath. Her fingers tighten
+
+This is an unfinished draft, not a completed emotional-coherence pass. It starts
+to develop relief from the earlier uncertainty, but its continuing care, named
+companion and second sentence cannot be judged from the incomplete fragment.
+
+The evidence localizes this failure to expensive input processing plus continuing
+decoding, **not an observed interrupt/drain stall**. It does not identify the
+underlying hardware/kernel cost or prove unchanged warm-worker behavior.
+Thirty-nine sampled tokens are finite/in-range; six distributions retain small
+above-one warnings (maximum 1.000002622604). No numerical threshold is relaxed.
+The receipt remains **complete: false**, with total elapsed time 151.389s.
+
+All owned resources close offline; no external or blocked request occurs.
+Kernel inspection for **07:37:40–07:40:20 UTC on September 9** returns no entries;
+that narrow observation is not a general GPU-health guarantee. All **40 source
+hashes** match the files at this slice, and **94 focused tests** pass. The source
+review also identifies avoidable story logit-processor transfers and diagnostic
+overhead, but these phase timings do not separately measure their contribution.
+
+Next try one compact input candidate that preserves actual prior prose, current
+facts, names/values and the emotional goal while reducing repeated scaffolding.
+Compare measured prefill cost and completed prose at the same deadline. No blind
+prompt sweep, new model search, larger timeout or unchanged full-sequence rerun.
+The live v0.5.132 narrator and approved V1 scope remain unchanged.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

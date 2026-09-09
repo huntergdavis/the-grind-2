@@ -19,6 +19,7 @@ import { instrumentFirstTokenStop, firstTokenStopPlugin, isExpectedFirstTokenSto
 import { instrumentSubmissionRuntime, submissionDiagnosticPlugin, isCompleteSubmissionDiagnostic } from './webgpu-submission-diagnostics.mjs';
 import { instrumentCompleteStoryRuntime, completeStoryPlugin, isCompleteStoryDiagnostic, isCompleteConnectedStoryEvidence } from './webgpu-complete-story.mjs';
 import { instrumentShaderRepairRuntime, shaderRepairPlugin, isCompleteShaderRepairEvidence } from './webgpu-shader-repair.mjs';
+import { instrumentWriteTimingRuntime, writeTimingPlugin, isCompleteWriteTiming } from './webgpu-write-timing.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -39,6 +40,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const replayArrival = args.includes('--replay-arrival');
   const connectedStory = args.includes('--connected-story');
   const repairSoftmaxRace = args.includes('--repair-softmax-race');
   const completeStory = args.includes('--complete-story');
@@ -69,14 +71,15 @@ export function parseWebgpuV1Arguments(args) {
     || completeStory && !submitEachDispatch
     || repairSoftmaxRace && !completeStory
     || connectedStory && !repairSoftmaxRace
+    || replayArrival && (!repairSoftmaxRace || connectedStory)
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--replay-arrival', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story | --replay-arrival]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
   return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory,
-    cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
+    replayArrival, cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 /** Stop before authorizing another scene if admission or current-run memory provenance is missing. */
@@ -106,7 +109,7 @@ export function hasConnectedStoryProgress(outputs) {
 }
 
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, replayArrival, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
@@ -117,10 +120,19 @@ async function run() {
   const reportPath = resolve(root, `${candidateScenes ? 'webgpu-candidate' : 'webgpu-v1'}-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: connectedStory ? 'qwen3-connected-story-repaired-softmax-cache-only' : repairSoftmaxRace ? 'qwen3-complete-story-repaired-softmax-cache-only' : completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    mode: replayArrival ? 'qwen3-recorded-arrival-timing-cache-only' : connectedStory ? 'qwen3-connected-story-repaired-softmax-cache-only' : repairSoftmaxRace ? 'qwen3-complete-story-repaired-softmax-cache-only' : completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
     writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: cacheOnly,
+    ...(replayArrival ? { arrivalReplay: {
+      receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', scene: 2,
+      lifecycle: 'fresh-worker-exact-messages-not-original-sequence',
+      history: 'actual-recorded-road-prose', noJournalWrites: true,
+    }, writeTimingPolicy: { maximumRecords: 128, maximumRecordChars: 4000,
+      boundaries: 'worker-reset-prefill-decode-interrupt-drain-settlement',
+      extraGpuSynchronization: false, changesPromptOrSampling: false,
+      partialProgressIsNotCompletedProse: true, timingMayDiffer: true,
+    }, writeTimingObservations: [] } : {}),
     ...(connectedStory ? { connectedSequence: { scenes: ['road', 'arrival', 'farewell'],
       maximumScenes: 3, modelLoads: 1, requiresIndividualApproval: true,
       history: 'actual-current-run-accepted-prose', journalScope: 'owned-memory-only',
@@ -146,7 +158,9 @@ async function run() {
       productionDefaultUnchanged: true }, candidateRawOutputs: [] } : {}),
     ...(candidateDiagnostic ? { samplingDiagnostic: {
       ...(connectedStory ? { requestOrigin: 'unmodified-production-builder-with-current-run-history',
-        scope: 'first-64-worker-samples' } : { receipt: 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', scene: 1 }),
+        scope: 'first-64-worker-samples' } : replayArrival
+        ? { receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', scene: 2 }
+        : { receipt: 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', scene: 1 }),
       recordLimit: 64, observesExistingProcessorArrays: true, additionalProbabilityReadback: true,
       reusesExistingDeviceSynchronization: !inspectModelBuffer, changesScoresOrSampling: false,
       timingMayDiffer: true, noJournalWrites: !connectedStory,
@@ -192,6 +206,7 @@ async function run() {
       'webgpu-dispatch-diagnostics.mjs', 'webgpu-first-token-stop.mjs',
       'webgpu-submission-diagnostics.mjs',
       'webgpu-complete-story.mjs',
+      ...(replayArrival ? ['webgpu-write-timing.mjs', 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json'] : []),
       ...(repairSoftmaxRace ? ['webgpu-shader-repair.mjs', 'webgpu-candidate-report-2026-09-09T04-39-55-729Z-d474de03.json'] : []),
       'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
@@ -214,6 +229,7 @@ async function run() {
       if (candidateTransferCheck) adaptedWorker = transferDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
       if (candidateComputeCheck) adaptedWorker = computeDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
       if (completeStory) adaptedWorker = completeStoryPlugin(repo, []).transform(adaptedWorker, workerPath).code;
+      if (replayArrival) adaptedWorker = writeTimingPlugin(repo, []).transform(adaptedWorker, workerPath).code;
       report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(adaptedWorker).digest('hex');
     }
     const diagnosticRuntimePaths = [resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(runtime, 'lib/index.js')];
@@ -227,6 +243,7 @@ async function run() {
       if (submitEachDispatch) diagnosticRuntime = instrumentSubmissionRuntime(diagnosticRuntime);
       if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime, { connected: connectedStory });
       if (repairSoftmaxRace) diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime);
+      if (replayArrival) diagnosticRuntime = instrumentWriteTimingRuntime(diagnosticRuntime);
       report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
     }
     if (cacheOnly && !report.profile.preexisting) throw new Error('Cache-only proof requires the existing owned cached-model profile');
@@ -242,6 +259,7 @@ async function run() {
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
+        ...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
       worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
@@ -251,6 +269,7 @@ async function run() {
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
+        ...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
@@ -291,6 +310,7 @@ async function run() {
         ...(submitEachDispatch ? [['TG2_SUBMISSION_DIAGNOSTIC ', 'submissionObservations', 1, 4000]] : []),
         ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', connectedStory ? 3 : 1, 4000]] : []),
         ...(repairSoftmaxRace ? [['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]] : []),
+        ...(replayArrival ? [['TG2_WRITE_TIMING ', 'writeTimingObservations', 128, 4000]] : []),
       ].find(([prefix]) => text.startsWith(prefix));
       if (dispatchEvent) {
         const [prefix, field, limit, maximumLength] = dispatchEvent;
@@ -298,7 +318,12 @@ async function run() {
           if (text.length >= maximumLength || report[field].length >= limit) throw new Error('record bound exceeded');
           const record = JSON.parse(text.slice(prefix.length));
           if (record === null || typeof record !== 'object' || Array.isArray(record)) throw new Error('invalid record');
-          report[field].push(record); void checkpoint();
+          report[field].push(record);
+          // Keep every timing event in memory, but avoid a full receipt rewrite for
+          // each token. Milestones/every eighth timing event and final cleanup persist
+          // partial progress; the write deadline does not depend on worker settlement.
+          if (field !== 'writeTimingObservations' || report[field].length % 8 === 0
+            || record.phase !== 'decode-end') void checkpoint();
         } catch { report.errors.push({ type: 'invalid-dispatch-diagnostic', field }); }
       } else if (inspectModelBuffer && text.startsWith('TG2_MODEL_BUFFER_DIAGNOSTIC ')) {
         if (text.length >= 40_000 || report.modelBufferObservations.length >= 1) {
@@ -332,7 +357,7 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+    await page.goto(origin + (replayArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1' : connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
       { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
@@ -397,6 +422,9 @@ async function run() {
         }
       }
       if (result.status !== 'completed') throw new Error(result.error ?? 'GPU generation failed');
+      if (replayArrival && !isCompleteWriteTiming(report.writeTimingObservations)) {
+        throw new Error('Arrival replay lacks complete write timing; partial progress is not settlement');
+      }
       if (connectedStory && !hasConnectedStoryProgress(report.outputs)) {
         throw new Error('Connected story requires accepted current-run prose and exact memory provenance');
       }
