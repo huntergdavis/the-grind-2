@@ -2,6 +2,45 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — town-visit Chronicle Plates (v0.5.145, in progress)
+
+Implement the previously recommended V04.16i1a subset using the validated
+event-time town itinerary, after the canonical save succeeds and independently
+of cutaway selection. Retain only source identity/tick, town and up to three
+recorded landmarks, plus the exact visit/reputation outcome. The small static
+illustration is an explicitly labeled reconstruction in a collapsed Adventure
+disclosure, not a new Watch panel or a claim about historical actors or weather.
+
+Review focuses on honest retention: immutable snapshots, campaign/source checks,
+48-entry and 128-KiB bounds, save/load, dedupe, readable storage-failure status,
+stable reading while new pages arrive and matching native text at 320px. No
+simulation, narrator or protected compact-ledger changes are required. The full
+multi-event Chronicle Plates travelogue remains deferred. Thirty new focused
+recipe/archive/view tests and nine existing town-itinerary tests pass. Version,
+boundaries, TypeScript and the production build pass. Read-only review confirms
+the post-save capture ordering and view-only behavior; browser and deployment
+verification remain pending.
+
+Initial browser attempts exhausted their 120-second total budget. The test now
+batches repeated static DOM reads and omits a duplicate second-hero visit while
+retaining real hero-switch isolation checks; the time limit is unchanged. The
+batched run passed all feature assertions in 112 seconds with zero browser,
+inference or external-request errors, then its final whole-save comparison
+caught ordinary catch-up bookkeeping after switching heroes. Reapply the
+fixture's existing future checkpoint before returning to the original hero;
+do not change the game or ignore the metadata. Fully framed 320px and desktop
+cards were visually reviewed and are clear. Final rerun verification is pending.
+
+Next-slice read-only review recommends V04.16e1: one Inkcap Mimic research task.
+Actual False Treasure poison application and attributable pre-action poison
+damage are distinct evidence; aggregate MonsterLore encounters are not. A new
+bounded canonical record must retain source IDs and HP arithmetic after combat
+history rolls off, starting empty on old-save migration. Source overwrite or
+missing evidence cannot qualify. Completion reveals the factual poison-timing
+clue, with no power reward or narrator change. Other research systems remain
+deferred. Reuses the `deja` field-research dependency audit and session
+`01a06835-15f`; no research mechanic is included in v0.5.145.
+
 ## Gameplay-first council — Millrace Reversal (v0.5.144)
 
 Reuses the V04.9b6a proposal recovered from Codex session 09: one

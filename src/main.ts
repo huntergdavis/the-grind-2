@@ -23,6 +23,9 @@ import { createLastPresentedStory } from "./ui/last-presented-story";
 import { createNarrativeJournal } from "./ui/narrative-journal";
 import { selectNarrativeContinuity } from "./ui/narrative-continuity";
 import { createNarrativeJournalView } from "./ui/narrative-journal-view";
+import { projectTownChroniclePlate } from "./ui/chronicle-plate";
+import { createChroniclePlateArchive } from "./ui/chronicle-plate-archive";
+import { createChroniclePlateView } from "./ui/chronicle-plate-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -556,6 +559,9 @@ let state = restoredWorld ?? createNewWorld();
 const lastPresentedStory = createLastPresentedStory(state.campaignId);
 const narrativeJournal = createNarrativeJournal();
 const narrativeJournalView = createNarrativeJournalView(elements.journalView, narrativeJournal, () => state.campaignId);
+const chroniclePlateArchive = createChroniclePlateArchive();
+const chroniclePlateView = createChroniclePlateView(requiredElement<HTMLDetailsElement>("#journal-chronicle-plates"),
+  chroniclePlateArchive, () => ({ campaignId: state.campaignId, currentTick: state.tick }));
 const statusHistoryView = createStatusHistoryView(elements.journalStatus);
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
@@ -3205,6 +3211,7 @@ function presentViewScreens(): void {
 
   narrativeJournalView.render();
   statusHistoryView.render(state);
+  chroniclePlateView.render();
   const journal = projectJournalView(state);
   const heroGrowth = projectHeroGrowth(state.depth.heroGrowth, state.depth.hero);
   const party = projectParty(state.depth);
@@ -4789,6 +4796,14 @@ async function step(): Promise<void> {
     const cutawayCandidates = source === undefined
       ? Object.freeze([])
       : projectCutawayCandidates(before, state, source);
+    // Capture event-time landmarks only after the successful save above.
+    // Gallery retention is independent of cutaway selection and narrator mode.
+    for (const candidate of cutawayCandidates) {
+      if (candidate.recipeKey !== "town-itinerary@1") continue;
+      const plate = projectTownChroniclePlate(candidate.packet,
+        { campaignId: state.campaignId, currentTick: state.tick });
+      if (plate !== null) chroniclePlateArchive.record(plate);
+    }
     present();
     for (const candidate of cutawayCandidates) enqueueCutaway(candidate);
     await refreshCampaigns();

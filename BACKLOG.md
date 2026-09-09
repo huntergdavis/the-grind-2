@@ -47,7 +47,7 @@ Immediate queue:
    complete codec coverage. No second profession or generic combo
    framework is included. Chronicle Plates, field research, mastery sidegrades,
    settlement chains and alternate encounters remain queued afterward.
-7. **Next — V04.16i1a, town-visit Chronicle Plates.** Preserve a small illustrated
+7. **In progress — V04.16i1a, town-visit Chronicle Plates (v0.5.145).** Preserve a small illustrated
    landmark reconstruction in a collapsed Adventure journal section after a
    durably saved town visit. Reuse the validated event-time town itinerary;
    retain exact place, tick and visit/reputation facts in a bounded 48-entry,
@@ -55,6 +55,13 @@ Immediate queue:
    weather or actor poses; no permanent Watch panel or narrator change. Full
    multi-event curation, automatic reviews and ledger-backed rebuilding remain
    deferred, so this is explicitly only the first V04.16i subset.
+8. **Next — V04.16e1, Inkcap Mimic: study False Treasure.** One finite Codex
+   research task joins two different witnessed events: the actual ability's
+   poison application, then its attributable damage before the hero acts.
+   Preserve minimal source evidence in a new bounded canonical research state;
+   old aggregate lore receives no retrospective credit. Completion reveals an
+   actionable factual clue, not a stat bonus or new AI policy. Habitat, weather,
+   hunting rewards, other species and a general research framework stay deferred.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -332,6 +339,33 @@ run `34410185789` in 4m58s, including all 3,236 release tests. Public v0.5.144
 and its service worker are verified; entry `index-FxDosoSi.js` and simulation
 worker `simulation.worker-BGOV4Q-y.js` contain 17 exact committed source copies
 across the ten checked feature modules. The feature is live on hunterdavis.com.
+
+### V04.16i1a — town-visit Chronicle Plates (v0.5.145, in progress)
+
+Reuses the council plan recovered with `deja "Chronicle Plates"` from the prior
+15:05 session recommendation and session `01a06835-15f`. Each qualifying live
+town visit can preserve an illustrated landmark memento after the world save
+succeeds, regardless of narrator mode or whether its town cutaway is selected.
+The existing validated itinerary supplies event-time town/building names,
+building kinds, source tick and exact visit/reputation changes.
+
+Journal → Adventure → Pages from the Road is a collapsed, read-only disclosure.
+The illustrations are explicitly reconstructions, not historical photographs
+or proof that buildings were entered or residents personally met. No hero pose,
+past gear, weather, private emotion or fabricated historical detail is supplied.
+No Watch panel, simulation command or narrator change is added.
+
+A separate browser archive retains at most 48 immutable recipes across campaigns
+within 128 KiB. The view shows only this campaign's non-future pages. Reading
+must remain stable when another page arrives; storage failures must be labeled
+session-only, without overwriting a malformed or unreadable archive.
+
+This is the first V04.16i subset only. Balanced multi-event curation, automatic
+travelogue intermissions, historical actor/gear/weather staging, catch-up capture,
+import/export and ledger-backed reconstruction remain deferred. Thirty new
+recipe/archive/view checks and nine existing town-itinerary checks pass, along
+with the version contract, boundaries, TypeScript and production build. One
+real saved-visit browser journey and deployment verification are in progress.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

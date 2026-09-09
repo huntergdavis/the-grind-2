@@ -546,6 +546,18 @@
             <button id="journal-status-button" type="button" aria-pressed="false" aria-controls="journal-status">Status</button>
             <button id="journal-narratives-button" type="button" aria-pressed="false" aria-controls="journal-narratives">Narratives</button>
           </nav>
+          <details id="journal-chronicle-plates" class="chronicle-plates" data-journal-section="adventure">
+            <summary>Pages from the Road</summary>
+            <div class="chronicle-plate-content">
+              <div class="chronicle-plate-controls">
+                <p id="chronicle-plate-status" role="status" aria-live="polite"></p>
+                <button id="chronicle-plate-refresh" type="button" hidden>Latest pages</button>
+              </div>
+              <p class="chronicle-plate-note">Landmark sketches from recorded town visits, not pictures of personal meetings or proof of entering the buildings.</p>
+              <ol id="chronicle-plate-list" class="chronicle-plate-list" aria-label="Saved pages for this hero, newest captured first"></ol>
+              <p id="chronicle-plate-retention" class="chronicle-plate-retention"></p>
+            </div>
+          </details>
           <article id="journal-status" class="journal-status" aria-labelledby="journal-status-title" hidden>
             <span class="view-kicker">The adventure, explained</span>
             <h2 id="journal-status-title">Status log</h2>
