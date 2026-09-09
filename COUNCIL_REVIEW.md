@@ -2,6 +2,39 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — Inkcap Mimic field research (v0.5.146, in progress)
+
+Reuses the prior council's V04.16e1 dependency review: one source-grounded task,
+not a generic research engine. An actual False Treasure application and its later
+positive pre-action poison damage are distinct observations. The second receipt
+must retain the actual source and reject intervening overwrite or unrelated
+poison. Completed minimal evidence persists after combat history rolls off.
+
+Depth schema 22 adds a bounded record, with empty migration from schema 21 and
+older. The existing Codex card carries the progress and factual clue; no power,
+ability admission, actor-policy or narrator change. Protected compact-ledger
+edits remain outside this slice. Review checks source attribution, save behavior,
+no-power replay equivalence and a short visible browser journey. Fifty-one
+focused checks, version/boundaries, TypeScript and the production build pass.
+The first browser run passes in 104.7 seconds under the existing 120-second
+budget: actual source-bound poison HP 5→3 is distinct from later tonic HP 14,
+with no power/ability grants or research XP, unchanged paused saves, native
+disclosure continuity and 1280/320px layouts. Both captures were inspected;
+zero errors, inference or external requests. Independent v145/current replay
+matches all 10,010 states after removing only research and its schema increment;
+all ten canonical JSON saves resume and legacy saves migrate empty. The mentor
+arc retains its exact released normalized hash and T6147/visit 22 completion.
+No combat, rewards or decision policy changed. Deployment pending.
+
+Next-slice council recommendation: the explicitly queued V04.18a active-search
+subset, using a once-per-room stationary command, existing deterministic trap
+detection and Map knowledge. Search admission must not inspect hidden trap
+existence, and old saves must not gain searched-room history. Settle its bounded
+advantage/cost before implementation; keep disarming, recovery and key priorities.
+The lower-risk alternate is one further source-grounded species study. Familiar
+Opening remains gated on its pacing and non-dominant response contract. Mobile
+Codex portrait width is a nonblocking presentation follow-up, not a Watch panel.
+
 ## Gameplay-first council — town-visit Chronicle Plates (v0.5.145)
 
 Implements the previously recommended V04.16i1a subset using the validated

@@ -25,14 +25,17 @@ describe("canonical state serialization", () => {
   }, 20_000);
 
   it("produces ten stable golden campaign hashes", () => {
+    const releasedHashes: string[] = [];
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
+      const { fieldResearch: _research, ...releasedDepth } = world.depth;
+      releasedHashes.push(canonicalHash({ ...world, depth: { ...releasedDepth, schemaVersion: 21 } }));
       return canonicalHash(world);
     });
-    // v143 first divergences: seed 0's finisher classification and seed 1's Guard label;
-    // seeds 2/3/6/8/9 choose lower overkill, while 4/7 use level/piercing-aware ranking. Seed 5 is unchanged.
-    expect(hashes).toEqual([
+    // v146 adds only bounded research data/schema. An independent v145 replay
+    // audit matched every one of the 10,010 states without those two additions.
+    expect(releasedHashes).toEqual([
       "394de1e505301842",
       "47b637af68787d22",
       "ba0d4264eead3321",
@@ -43,6 +46,18 @@ describe("canonical state serialization", () => {
       "6b7b03f8bd44558b",
       "0b9fd43581446b8e",
       "806e68b79e682047",
+    ]);
+    expect(hashes).toEqual([
+      "c6cedec858d2cf0d",
+      "3f746664980d2251",
+      "ddeb1aae12c658a9",
+      "441da62bbe97b0f5",
+      "80186df3a1f050b4",
+      "dc03a4f93cd00f6f",
+      "d2a4f814e9e6b9c5",
+      "a187b2a8b3e68b37",
+      "d48f0bf49a2cf114",
+      "f45df49966598fa4",
     ]);
   }, 80_000);
 });

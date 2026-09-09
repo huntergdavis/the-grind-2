@@ -378,6 +378,42 @@ export interface MonsterLoreState {
   learned: boolean;
 }
 
+export interface FalseTreasureApplicationV1 {
+  readonly speciesId: "inkcap-mimic";
+  readonly abilityId: "secret:inkcap-mimic:false-treasure";
+  readonly combatId: string;
+  readonly sourceEventId: string;
+  readonly sourceTick: number;
+  readonly sourceTurn: number;
+  readonly actorId: string;
+  readonly targetId: string;
+  readonly potency: number;
+  readonly duration: 3;
+  readonly targetHealthAfter: number;
+}
+
+export interface FalseTreasureAftereffectV1 {
+  readonly combatId: string;
+  readonly sourceEventId: string;
+  readonly sourceTick: number;
+  readonly sourceTurn: number;
+  readonly applicationEventId: string;
+  readonly targetId: string;
+  readonly potency: number;
+  readonly durationBefore: number;
+  readonly durationAfter: number;
+  readonly healthBefore: number;
+  readonly amount: number;
+  readonly healthAfter: number;
+}
+
+export interface FieldResearchStateV1 {
+  readonly schemaVersion: 1;
+  readonly taskId: "inkcap:false-treasure@1";
+  readonly application: FalseTreasureApplicationV1 | null;
+  readonly aftereffect: FalseTreasureAftereffectV1 | null;
+}
+
 export interface DetailedHeroState {
   id: string;
   name: string;
@@ -986,7 +1022,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 21;
+  schemaVersion: 22;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -994,6 +1030,7 @@ export interface DepthState {
   companions: CompanionRosterState;
   dungeon: DungeonState | null;
   hero: DetailedHeroState;
+  fieldResearch: FieldResearchStateV1;
   heroGrowth: HeroGrowthState;
   quest: QuestState;
   completedQuests: readonly CompletedQuestSummary[];

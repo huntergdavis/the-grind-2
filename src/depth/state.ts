@@ -91,6 +91,7 @@ import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { createLegacyUnratedThreat, isValidEncounterThreatProvenance, type EncounterThreatContext } from "./threat";
 import { generateTown, visitTown } from "./towns";
 import { selectPaidInnRest } from "./town-rest";
+import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState } from "./field-research";
 import type {
   CombatLogEntry,
   CombatState,
@@ -189,7 +190,8 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV20 = Omit<DepthState, "schemaVersion" | "companions"> & {
+type PreviousDepthStateV21 = Omit<DepthState, "schemaVersion" | "fieldResearch"> & { schemaVersion: 21 };
+type PreviousDepthStateV20 = Omit<PreviousDepthStateV21, "schemaVersion" | "companions"> & {
   schemaVersion: 20;
   companions:
     | { schemaVersion: 1; active: DepthState["companions"]["active"]; former: DepthState["companions"]["former"] }
@@ -820,11 +822,15 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
+    // Aggregate lore and retained old battles never manufacture retrospective research credit.
+    return upgradeDepthState({ ...value, schemaVersion: 22, fieldResearch: createFieldResearchState() }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 22) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -839,6 +845,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) ||
+      !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
       !isValidQuestState(value.quest) ||
       !isCanonicalQuestDefinition(value.seed as string, value.quest) ||
       !isValidQuestCompletionState(value.quest, value.completedQuests, value.totalCompletedQuests, value.tick as number) ||
@@ -1316,7 +1323,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 21,
+    schemaVersion: 22,
     seed,
     tick: 0,
     atlas,
@@ -1324,6 +1331,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     companions: createEmptyCompanionRoster(),
     dungeon: null,
     hero,
+    fieldResearch: createFieldResearchState(),
     heroGrowth: createHeroGrowthState(hero),
     quest: createQuest(seed),
     completedQuests: [],
@@ -1821,6 +1829,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         throw new Error("Restorative item action is unavailable");
       }
       const combat = resolveCombatTurn(state.combat, command.action, state.seed, item);
+      const fieldResearch = advanceFieldResearch(state.fieldResearch, state.combat, combat, { heroId: state.hero.id, depthTick: state.tick });
       const combatHero = combat.combatants.find((entry) => entry.id === state.hero.id);
       let hero = syncHeroFromCombat(state.hero, combatHero);
       const restorativeUse = command.action.type === "item"
@@ -1848,7 +1857,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       const companions = companionParticipated
         ? syncActiveCompanionCombat(state.companions, combat.combatants, combat.outcome)
         : state.companions;
-      if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero, companions }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
+      if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero, companions, fieldResearch }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
       let masteryReceipt = null;
       if (combat.weaponUse.tracking === "tracked" && combat.weaponUse.basicStrikes > 0) {
         const trackedUse = combat.weaponUse;
@@ -1928,6 +1937,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       });
       let next = appendLog({
         ...state,
+        fieldResearch,
         combat: null,
         completedCombats,
         legacyUnratedCombatIds,
@@ -2281,6 +2291,7 @@ function heldSecretAdmissionCandidate(state: DepthState): SecretDiscoveryOutcome
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
+    !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
     !isValidSecretDiscoveryGraph(input) || !isValidCounterDuelGraph(input) ||
     !isValidCompanionStateGraph(input)
   ) {
@@ -2288,6 +2299,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
+    !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
     !isValidSecretDiscoveryGraph(output) || !isValidCounterDuelGraph(output) ||
     !isValidCompanionStateGraph(output)
   ) {

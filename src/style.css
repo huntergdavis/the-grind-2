@@ -3049,6 +3049,29 @@ body {
   accent-color: #c9a8ff;
 }
 
+.codex-field-research {
+  margin-top: 0.7rem;
+  padding: 0.65rem;
+  border: 1px solid rgb(145 188 140 / 30%);
+  border-radius: 0.35rem;
+  background: rgb(25 44 31 / 28%);
+}
+
+.codex-research-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 0.65rem; }
+.codex-research-heading h4 { min-width: 0; font-size: 0.8rem; color: #d0e2c7; overflow-wrap: anywhere; }
+.codex-research-heading strong { flex: 0 0 auto; color: #aad196; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.codex-field-research progress { height: 0.4rem; margin-top: 0.4rem; color: #91bc8c; accent-color: #91bc8c; }
+.codex-field-research progress::-webkit-progress-value { background: linear-gradient(90deg, #749c72, #acd496); }
+.codex-field-research progress::-moz-progress-bar { background: linear-gradient(90deg, #749c72, #acd496); }
+.codex-monster .codex-research-pending,
+.codex-monster .codex-research-clue { margin-top: 0.4rem; color: #c7d5c1; font-size: 0.75rem; line-height: 1.45; overflow-wrap: anywhere; }
+.codex-monster .codex-research-clue { color: #dcead4; }
+.codex-research-evidence { margin-top: 0.35rem; }
+.codex-research-evidence > summary { min-height: 44px; padding-block: 0.65rem; color: #bdd0b5; cursor: pointer; font-size: 0.75rem; }
+.codex-research-evidence > summary:focus-visible { outline: 2px solid #e3c27d; outline-offset: 2px; }
+.codex-research-evidence ol { display: grid; gap: 0.45rem; margin: 0 0 0.5rem; padding-left: 1.2rem; color: #d2ddd0; font-size: 0.74rem; line-height: 1.5; overflow-wrap: anywhere; }
+.codex-monster .codex-research-boundary { margin-top: 0.35rem; color: #a5b1bd; font-size: 0.68rem; line-height: 1.4; }
+
 .codex-habit {
   display: grid;
   grid-template-columns: 1.65rem minmax(0, 1fr);

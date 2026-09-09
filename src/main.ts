@@ -3523,6 +3523,10 @@ function presentViewScreens(): void {
   elements.journalGrowthRecords.replaceChildren(...growthRecords);
 
   const codex = projectCodexView(state);
+  const previousResearch = elements.codexGrid.querySelector<HTMLDetailsElement>(".codex-research-evidence");
+  const sameResearchCampaign = elements.codexGrid.dataset.researchCampaign === state.campaignId;
+  const researchWasOpen = sameResearchCampaign && previousResearch?.open === true;
+  const researchHadFocus = sameResearchCampaign && previousResearch?.querySelector("summary") === document.activeElement;
   elements.codexRecorded.textContent = String(codex.recordedCount);
   elements.codexLearned.textContent = String(codex.learnedCount);
   elements.codexHeld.textContent = String(codex.heldCount);
@@ -3536,6 +3540,7 @@ function presentViewScreens(): void {
     card.className = "codex-monster";
     card.dataset.monsterId = projected.monsterId;
     card.dataset.techniqueStatus = projected.techniqueStatus;
+    if (projected.observedOnly) card.dataset.observation = "direct";
     const portrait = document.createElement("div");
     portrait.className = "codex-portrait";
     portrait.dataset.visualKey = projected.visualKey;
@@ -3567,7 +3572,7 @@ function presentViewScreens(): void {
 
     const facts = document.createElement("dl");
     for (const [label, value] of [
-      ["Battles encountered", projected.encounters],
+      [projected.observedOnly ? "Encounter records" : "Battles encountered", projected.encounters],
       ["Victories studied", projected.victories],
     ] as const) {
       const fact = document.createElement("div");
@@ -3674,6 +3679,79 @@ function presentViewScreens(): void {
       technique.append(techniqueName, techniqueDetail, masteryLabel, mastery, provenance);
     }
     dossier.append(heading, facts, habit, insightLabel, insight, technique);
+    if (projected.observedOnly) {
+      const observation = document.createElement("p");
+      observation.className = "codex-research-boundary";
+      observation.textContent = "Directly observed; no encounter count recorded.";
+      dossier.insertBefore(observation, habit);
+    }
+    if (projected.fieldResearch !== undefined) {
+      const research = projected.fieldResearch;
+      const study = document.createElement("section");
+      study.className = "codex-field-research";
+      study.dataset.taskId = research.taskId;
+      study.dataset.progress = `${research.progress}/2`;
+      const label = document.createElement("div");
+      label.className = "codex-research-heading";
+      const title = document.createElement("h4");
+      title.textContent = "Study False Treasure";
+      const count = document.createElement("strong");
+      count.textContent = `${research.progress}/2`;
+      label.append(title, count);
+      const progress = document.createElement("progress");
+      progress.className = "codex-research-progress";
+      progress.max = 2;
+      progress.value = research.progress;
+      progress.setAttribute("aria-label", `${projected.monsterName} field research ${research.progress} of 2`);
+      const result = document.createElement("p");
+      result.className = research.clue === null ? "codex-research-pending" : "codex-research-clue";
+      result.textContent = research.clue ?? (research.progress === 0
+        ? "Observe its technique and a later effect. Two different observations, not victories."
+        : "Technique application recorded. A different observation is still needed.");
+      const evidence = document.createElement("details");
+      evidence.className = "codex-research-evidence";
+      evidence.open = researchWasOpen;
+      const toggle = document.createElement("summary");
+      toggle.textContent = "Observed evidence";
+      const records = document.createElement("ol");
+      for (const [kind, fact, text] of [
+        ["application", research.application, research.applicationText],
+        ["aftereffect", research.aftereffect, research.aftereffectText],
+      ] as const) {
+        if (fact === null || text === null) continue;
+        const record = document.createElement("li");
+        record.className = `codex-research-${kind}`;
+        record.dataset.sourceEvent = fact.sourceEventId;
+        record.dataset.sourceTick = String(fact.sourceTick);
+        record.dataset.sourceTurn = String(fact.sourceTurn);
+        record.dataset.combatId = fact.combatId;
+        record.dataset.targetId = fact.targetId;
+        record.textContent = text;
+        if ("applicationEventId" in fact) {
+          record.dataset.applicationEvent = fact.applicationEventId;
+          record.dataset.healthBefore = String(fact.healthBefore);
+          record.dataset.amount = String(fact.amount);
+          record.dataset.healthAfter = String(fact.healthAfter);
+        } else {
+          record.dataset.abilityId = fact.abilityId;
+          record.dataset.potency = String(fact.potency);
+          record.dataset.duration = String(fact.duration);
+          record.dataset.targetHealthAfter = String(fact.targetHealthAfter);
+        }
+        records.append(record);
+      }
+      if (records.childElementCount === 0) {
+        const empty = document.createElement("li");
+        empty.textContent = "No qualifying observations recorded yet.";
+        records.append(empty);
+      }
+      const boundary = document.createElement("p");
+      boundary.className = "codex-research-boundary";
+      boundary.textContent = "Field research only. This study grants no ability or combat bonus.";
+      evidence.append(toggle, records, boundary);
+      study.append(label, progress, result, evidence);
+      dossier.insertBefore(study, insightLabel);
+    }
     card.append(portrait, dossier);
     return card;
   });
@@ -3684,6 +3762,8 @@ function presentViewScreens(): void {
     codexCards.push(empty);
   }
   elements.codexGrid.replaceChildren(...codexCards);
+  elements.codexGrid.dataset.researchCampaign = state.campaignId;
+  if (researchHadFocus) elements.codexGrid.querySelector<HTMLElement>(".codex-research-evidence > summary")?.focus({ preventScroll: true });
   elements.codexOverflow.hidden = codex.hiddenCount === 0;
   elements.codexOverflow.textContent = codex.hiddenCount === 0
     ? ""

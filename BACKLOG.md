@@ -55,13 +55,23 @@ Immediate queue:
    weather or actor poses; no permanent Watch panel or narrator change. Full
    multi-event curation, automatic reviews and ledger-backed rebuilding remain
    deferred, so this is explicitly only the first V04.16i subset.
-8. **Next — V04.16e1, Inkcap Mimic: study False Treasure.** One finite Codex
+8. **In progress — V04.16e1, Inkcap Mimic: study False Treasure (v0.5.146).** One finite Codex
    research task joins two different witnessed events: the actual ability's
    poison application, then its attributable damage before the hero acts.
    Preserve minimal source evidence in a new bounded canonical research state;
    old aggregate lore receives no retrospective credit. Completion reveals an
    actionable factual clue, not a stat bonus or new AI policy. Habitat, weather,
    hunting rewards, other species and a general research framework stay deferred.
+9. **Next — V04.18a subset, active dungeon searching.** One deliberate,
+   stationary search of a room's unexplored exits can reveal a trap before entry.
+   Reuse the existing deterministic detection/disarming rules and Map glyphs;
+   searching and disarming remain separate actions. Eligibility must use visible
+   frontier/hero facts, never hidden trap existence. No repeat-search farming,
+   movement XP, new panel or narrator dependency. Before implementation, settle
+   the bounded detection advantage and search-cost policy; migrate any new
+   search history empty and preserve recovery/key/disarm priorities. Compact
+   ledger support remains deferred. A second species research task is the
+   lower-risk alternate, not part of the Inkcap release.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -375,6 +385,48 @@ release tests. Public v0.5.145, its service worker, journal markup and CSS are
 verified. Entry `index-DjSWJ_mD.js` contains exact committed source for all three
 plate modules and `main.ts`; simulation worker `simulation.worker-BGOV4Q-y.js`
 is unchanged. This town-visit subset is live on hunterdavis.com.
+
+### V04.16e1 — Inkcap Mimic field research (v0.5.146, in progress)
+
+Reuses the council proposal recovered with `deja "Inkcap Mimic research"` from
+the prior 15:45 dependency review. One finite task studies False Treasure through
+two different actual combat observations: poison applied to the living hero,
+then attributable positive poison damage before the hero's next action. Repeated
+casts alone cannot complete it. Overwritten, unrelated or missing source evidence
+cannot supply the second observation.
+
+The existing Inkcap Codex card shows compact 0/2 → 1/2 → 2/2 progress and exact
+source/HP evidence in a disclosure. Completion reveals the poison-timing clue,
+not an ability, stat bonus, hunting reward or new autonomous tactic. No Watch
+panel or narrator change is added.
+
+Depth schema 22 adds one bounded canonical research record. Schema-21 and older
+saves start with empty research, never inferred credit from aggregate lore.
+Minimal completed evidence survives combat-history eviction; it is not rebuilt
+from current status or remembered encounter counts. Compact-ledger encoding
+remains deferred and the protected ledger work stays untouched.
+
+Fifty-one focused research/projection/existing migration/core checks pass, as do
+version, boundaries, TypeScript and the production build. The first built-game
+browser run passes in 104.7 seconds within its unchanged 120-second test budget:
+a naturally generated, rated Inkcap uses False Treasure, then the hero's real
+poison tick completes 0/2 → 1/2 → 2/2. The source receipt preserves HP 5→3 even
+though the subsequent emergency tonic heals the current hero to 14. No power,
+ability or research XP is granted; expanded evidence and exact paused-save bytes
+survive inspection at 1280/320px. Both captures were reviewed; zero browser
+errors, inference or external requests. Mobile evidence scrolls vertically; a
+future compact Codex portrait layout could give it more reading width.
+
+The independent v0.5.145 comparison matches all 10,010 states across the ten
+existing 1,000-turn golden campaigns after removing only field research and
+normalizing depth schema 22→21. Golden expectations retain the released hashes
+alongside the new hashes; canonical JSON resume and empty legacy migration pass
+for every seed. The mentor arc still completes at T6147/visit 22, with its full
+released state hash unchanged after the same normalization. The audit accounted
+for existing JSON -0→0 terrain normalization present in both releases; no game
+fix or weaker research checks were needed. Deployment is pending. Broader
+species tasks, habitat, weather, research rewards and a general framework remain
+queued.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
