@@ -2,6 +2,28 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — recorded farewells without oath history (v0.5.135)
+
+Reuses `39d99ca`, recall session `01a06835-15f`, the canonical departure projector
+and existing farewell intermission. Narration now receives a separately bound
+current-departure context; an old oath is required only for the existing optional
+authored remembrance. Healthy and injured conditions stay explicit rather than
+inferred from imagined prior prose. Existing archive/moment metadata is reused,
+without a save migration or another panel.
+
+Acceptance covers exact canonical source/health wording, pre-await capture,
+alternate-scene isolation, quiet recovery, source mismatch rejection, and both
+healthy/no-oath and prior wounded browser flows. Mocked replies and intentionally
+omitted history prove integration, not literary improvement or a long-duration
+simulation. [Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--recorded-farewells-without-oath-history).
+
+Independent read-only review finds no release blocker. Both browser scenarios
+and the release build pass; desktop/mobile captures remain uncluttered. One
+invalid positive-health active-wounded test fixture was removed after checking
+the existing invariant: active companions use `none` above zero health and
+`fallen` at zero. The real healthy and fallen-but-alive departure cases remain;
+no production invariant or admission rule was relaxed.
+
 ## Post-V1 council — live farewell identity and continuity (v0.5.134)
 
 Reuses `489afa3`, the canonical farewell projector and the earlier rejected

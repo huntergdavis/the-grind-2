@@ -1,5 +1,6 @@
 import type { CreativeStoryFocus, CreativeStoryInspirationTone, CreativeStoryOrigin } from "../narrator/creative-story";
 import { captureFarewellRemembrance, type FarewellRemembrance } from "../narrator/farewell-remembrance";
+import { bindRecordedFarewell, captureRecordedFarewell, type RecordedFarewell } from "../narrator/recorded-farewell";
 import { captureFirstSharedVictory, type FirstSharedVictory } from "../narrator/first-shared-victory";
 import type { createCreativeStoryController, CreativeStoryMoment } from "./creative-story-controller";
 import { normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
@@ -12,6 +13,7 @@ export const creativeStoryReadyMaximumAgeMs = 180_000;
 
 export interface CreativeStoryCandidate extends CreativeStoryMoment {
   readonly remembrance?: FarewellRemembrance;
+  readonly farewell?: RecordedFarewell;
   readonly firstVictory?: FirstSharedVictory;
 }
 
@@ -54,6 +56,7 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
       companion: viewpoint.companion === null ? null : Object.freeze({ ...viewpoint.companion }),
     }),
     ...(candidate.remembrance === undefined ? {} : { remembrance: captureFarewellRemembrance(candidate.remembrance) }),
+    ...(candidate.farewell === undefined ? {} : { farewell: captureRecordedFarewell(candidate.farewell) }),
     ...(candidate.firstVictory === undefined ? {} : { firstVictory: captureFirstSharedVictory(candidate.firstVictory) }),
   });
 }
@@ -95,12 +98,13 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       || priority.candidate.job.campaignId !== campaignId || priority.candidate.job.tick <= attemptedThroughTick)) priority = null;
   };
 
-  const offerMilestone = (candidate: CreativeStoryCandidate, kind: "farewell-remembrance" | "first-shared-victory"): boolean => {
+  const offerMilestone = (candidate: CreativeStoryCandidate, kind: "recorded-farewell" | "farewell-remembrance" | "first-shared-victory"): boolean => {
     reconcile();
-    const memory = kind === "farewell-remembrance" ? candidate.remembrance : candidate.firstVictory;
+    const memory = kind === "recorded-farewell" ? bindRecordedFarewell(candidate.farewell, candidate.job, candidate.viewpoint)
+      : kind === "farewell-remembrance" ? candidate.remembrance : candidate.firstVictory;
     const phase = writer.snapshot.phase;
     if (phase === "off" || phase === "failed" || memory?.kind !== kind
-      || (candidate.remembrance !== undefined && candidate.firstVictory !== undefined)
+      || ((candidate.remembrance !== undefined || candidate.farewell !== undefined) && candidate.firstVictory !== undefined)
       || candidate.job.campaignId !== campaignId || memory.campaignId !== campaignId
       || memory.eventId !== candidate.job.eventId || memory.tick !== candidate.job.tick
       || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
@@ -123,6 +127,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
     offerRemembrance(candidate: CreativeStoryCandidate): boolean {
       return offerMilestone(candidate, "farewell-remembrance");
     },
+    offerFarewell: (candidate: CreativeStoryCandidate): boolean => offerMilestone(candidate, "recorded-farewell"),
     offerFirstVictory: (candidate: CreativeStoryCandidate): boolean => offerMilestone(candidate, "first-shared-victory"),
     takeReady(): HeldNarrative | null {
       reconcile();

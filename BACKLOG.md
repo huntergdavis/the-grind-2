@@ -2,7 +2,28 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — live farewell identity and emotional continuity (v0.5.134)
+## Current slice — farewells no longer depend on a retained oath (v0.5.135)
+
+Both healthy and injured departures can now enter the existing background
+storytelling path directly from their canonical departure. The model receives
+the departing identity, recorded condition and relevant earlier prose even when
+the recruitment record is no longer in the Chronicle. Healthy farewells ask for
+gratitude and letting go without inventing injury; injured farewells keep the
+existing concern-based brief and wounded-but-alive facts.
+
+Oath-based authored recovery is still optional and requires its genuine recorded
+oath. It no longer gates LLM coverage. Source binding, two-memory limits, both-name
+admission, Quiet recovery, shared-road priority, safe-break scroll and exact
+archive/Last-story replay stay in place. No new panel, save field, model, download
+or inference call. **412 focused tests, both browser scenarios and the release
+build pass.** [Scope and evidence](docs/STORYTELLING_FINISH.md#post-v1--recorded-farewells-without-oath-history).
+
+The remaining storytelling work is editorial acceptance during ordinary play,
+not another context-wiring prerequisite or stronger-model sweep. Earlier failed
+prose trials remain failed; this release expands integration coverage, not a
+measured literary-quality claim. Approved V1 and P1-B/P2/P3 deferrals remain.
+
+## Previous slice — live farewell identity and emotional continuity (v0.5.134)
 
 Recorded wounded-but-alive farewells now remain eligible for background LLM
 narration with authored draft recovery set to Quiet. A source-bound departing

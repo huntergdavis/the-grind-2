@@ -39,6 +39,15 @@ function farewell(tick = 13, campaignId = "campaign"): CreativeStoryCandidate {
   } };
 }
 
+function recordedFarewell(condition: "healthy" | "injured" = "healthy"): CreativeStoryCandidate {
+  const { remembrance: _remembrance, ...source } = farewell();
+  const capturedJob = { ...source.job, facts: { ...source.job.facts,
+    action: `Iona departs ${condition === "healthy" ? "in good health" : "wounded but alive"} after 0 shared victories.` } };
+  return { ...source, job: capturedJob, farewell: { kind: "recorded-farewell",
+    campaignId: capturedJob.campaignId, eventId: capturedJob.eventId, tick: capturedJob.tick,
+    heroName: "Mira", companionName: "Iona", condition, facts: { ...capturedJob.facts } } };
+}
+
 async function flush(): Promise<void> {
   for (let turn = 0; turn < 8; turn++) await Promise.resolve();
 }
@@ -303,6 +312,44 @@ describe("automatic creative story director", () => {
     expect(model.write).toHaveBeenCalledOnce();
     expect(storyFocus).toHaveBeenCalledOnce();
     expect(kind === "farewell" ? director.offerRemembrance(milestone) : director.offerFirstVictory(milestone)).toBe(false);
+  });
+
+  it.each(["healthy", "injured"] as const)("offers a %s farewell without an oath or authored recovery", async (condition) => {
+    const { director, writer, model, sync, settle } = setup(false, () => "shared-road");
+    const chooseMoment = vi.fn(async () => "1");
+    Object.assign(model, { chooseMoment });
+    const captured = recordedFarewell(condition);
+    expect(director.offerFarewell(captured)).toBe(false);
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerFarewell(captured)).toBe(true);
+    (captured.farewell as { companionName: string }).companionName = "Changed companion";
+    sync(candidate(20));
+    await flush();
+    await settle();
+    const held = director.takeReady();
+    expect(chooseMoment).not.toHaveBeenCalled();
+    expect(held).toMatchObject({ sourceTick: 13, text: prose, origin: "model",
+      momentSelection: { choice: "milestone", kind: "farewell-remembrance", origin: "focus" } });
+    expect(held).not.toHaveProperty("remembrance");
+    expect(held).not.toHaveProperty("farewell");
+    expect(JSON.stringify(model.write.mock.calls)).toContain("Mira and departing Iona");
+    expect(JSON.stringify(model.write.mock.calls)).not.toContain("Changed companion");
+    expect(director.offerFarewell(recordedFarewell(condition))).toBe(false);
+  });
+
+  it.each(["event", "facts", "condition"] as const)("rejects a recorded farewell with mismatched %s", async (wrong) => {
+    const { director, writer, sync } = setup();
+    await writer.load();
+    sync(candidate(), false);
+    const source = recordedFarewell();
+    const altered = { ...source, farewell: { ...source.farewell!,
+      ...(wrong === "event" ? { eventId: "other-event" } : {}),
+      ...(wrong === "facts" ? { facts: { ...source.farewell!.facts, action: "Another departure." } } : {}),
+      ...(wrong === "condition" ? { condition: "injured" as const } : {}),
+    } };
+    expect(director.offerFarewell(altered)).toBe(false);
+    expect(director.offerFarewell(source)).toBe(true);
   });
 
   it.each(["missing", "expired", "foreign"] as const)("does not credit Shared road with selecting a %s milestone", async (condition) => {

@@ -6,6 +6,45 @@ The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
 
+## Post-V1 — recorded farewells without oath history
+
+**v0.5.135** expands farewell narration to healthy and injured companions without
+requiring their earlier recruitment entry. A new public context is projected
+from the already-validated canonical departure: identity, current condition and
+exact current facts. It checks the actual departure location, headline, action
+and consequence, then binds them to the selected narration job. No oath is
+reconstructed, and private party IDs/resources are not added to the prompt.
+
+Healthy farewells ask for gratitude mixed with letting go, explicitly retaining
+the healthy outcome without invented injury. Injured farewells retain the v0.5.134
+brief. Both use the same bounded prior-prose selection and both-name admission.
+The new context is captured before async choice/staging; a newer current scene
+cannot inherit the departing companion. Existing milestone captions, archive
+and Last-story replay need no new persisted fields or panels.
+
+Quiet recovery still allows model narration and skips rejected drafts. Optional
+authored oath remembrance remains restricted to genuine retained evidence of an
+injured farewell; healthy or absent-oath contexts cannot fabricate that recovery.
+Scene focus, No LLM, first-victory preferences, model/runtime, input/output budgets
+and canonical state remain unchanged.
+
+Reuses recall session `01a06835-15f`, release `39d99ca`, the canonical
+`projectCompanionFarewell` transition and existing farewell browser scenarios.
+Missing-history fixtures intentionally omit the recruitment entry before the
+real departure is committed. They prove independence from retained oath history,
+not a simulated 32-tick eviction, long-duration run, or improved model prose.
+Browser replies are supplied fixtures; no model download or GPU trial is added.
+
+All **412 tests across 12 focused suites** pass, along with version and reducer
+boundary checks. The v0.5.135 build and both browser scenarios pass: the existing Quiet
+wounded farewell and the new healthy/no-retained-oath departure. Each preserves
+actual earlier accepted fixture prose, exact current facts, archive and Last-story
+replay with one load/two writes. No external model requests or browser errors.
+Desktop (960px) and mobile (320px) captures remain readable with source details
+collapsed and both controls visible. Independent release review finds no blocker
+in source/condition binding, pre-await capture, cancellation, milestone conflicts,
+quiet recovery or unchanged archive metadata.
+
 ## Post-V1 — live farewell identity and continuity
 
 **v0.5.134** fixes a live integration gap: a recorded wounded companion's

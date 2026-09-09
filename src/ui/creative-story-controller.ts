@@ -18,6 +18,7 @@ import {
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createStoryVignette } from "../narrator/story-vignette";
 import { captureFarewellRemembrance, createFarewellRemembranceVignette, type FarewellRemembrance } from "../narrator/farewell-remembrance";
+import { bindRecordedFarewell, type RecordedFarewell } from "../narrator/recorded-farewell";
 import { captureFirstSharedVictory, createFirstSharedVictoryVignette, type FirstSharedVictory } from "../narrator/first-shared-victory";
 import { captureStoryDuet, storyDuetText, type StoryDuet } from "../narrator/story-duet";
 import { createStoryDuetVignette } from "../narrator/story-duet-vignette";
@@ -98,6 +99,8 @@ export function createCreativeStoryController(deps: Dependencies) {
   let remembrance: FarewellRemembrance | null = null;
   let capturedRemembrance: FarewellRemembrance | null = null;
   let remembranceKey = "null";
+  let capturedFarewell: RecordedFarewell | null = null;
+  let farewellKey = "null";
   let firstVictory: FirstSharedVictory | null = null;
   let capturedFirstVictory: FirstSharedVictory | null = null;
   let firstVictoryKey = "null";
@@ -135,6 +138,8 @@ export function createCreativeStoryController(deps: Dependencies) {
     remembrance = null;
     capturedRemembrance = null;
     remembranceKey = "null";
+    capturedFarewell = null;
+    farewellKey = "null";
     capturedFirstVictory = null;
     firstVictoryKey = "null";
     lastModelKey = null;
@@ -147,7 +152,7 @@ export function createCreativeStoryController(deps: Dependencies) {
   return {
     get snapshot() { return snapshot(); },
     canChooseMoments: () => typeof writer?.chooseMoment === "function",
-    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus, remembranceKey, firstVictoryKey]),
+    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus, remembranceKey, firstVictoryKey, farewellKey]),
     waitForWriteSettlement: () => settlement,
     async checkCache(): Promise<void> {
       if (removing) return;
@@ -160,10 +165,13 @@ export function createCreativeStoryController(deps: Dependencies) {
         : "Off · no automatic download";
       publish();
     },
-    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null; remembrance?: FarewellRemembrance; firstVictory?: FirstSharedVictory }): void {
+    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null; remembrance?: FarewellRemembrance; farewell?: RecordedFarewell; firstVictory?: FirstSharedVictory }): void {
       const nextViewpointKey = JSON.stringify(next.viewpoint ?? null);
+      const nextFarewell = next.firstVictory === undefined ? bindRecordedFarewell(next.farewell, next.job, next.viewpoint) : null;
+      const nextFarewellKey = JSON.stringify(nextFarewell);
       const memory = next.remembrance;
       const nextRemembrance = next.firstVictory === undefined && memory?.kind === "farewell-remembrance" && next.job !== null
+        && (next.farewell === undefined || (nextFarewell?.condition === "injured" && nextFarewell.companionName === memory.companionName))
         && memory.campaignId === next.job.campaignId && memory.eventId === next.job.eventId && memory.tick === next.job.tick
         && memory.oath.tick < memory.tick && memory.farewell.tick === memory.tick
         && memory.farewell.location === next.job.facts.location && memory.farewell.headline === next.job.facts.headline
@@ -174,7 +182,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       const victory = next.firstVictory;
       const companion = next.viewpoint?.companion;
       const injured = companion?.status === "injured" || companion?.status === "arrived-injured";
-      const nextFirstVictory = memory === undefined && victory?.kind === "first-shared-victory" && next.job !== null
+      const nextFirstVictory = memory === undefined && next.farewell === undefined && victory?.kind === "first-shared-victory" && next.job !== null
         && victory.campaignId === next.job.campaignId && victory.eventId === next.job.eventId && victory.tick === next.job.tick
         && victory.battle.tick === victory.tick && victory.battle.location === next.job.facts.location
         && victory.battle.headline === next.job.facts.headline && victory.heroName === next.viewpoint?.hero.name
@@ -183,7 +191,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         ? captureFirstSharedVictory(victory) : null;
       const nextFirstVictoryKey = JSON.stringify(nextFirstVictory);
       const changed = identity(job) !== identity(next.job) || mode !== next.mode || viewpointKey !== nextViewpointKey
-        || remembranceKey !== nextRemembranceKey || firstVictoryKey !== nextFirstVictoryKey;
+        || remembranceKey !== nextRemembranceKey || firstVictoryKey !== nextFirstVictoryKey || farewellKey !== nextFarewellKey;
       const wasEligible = eligible;
       job = next.job;
       mode = next.mode;
@@ -191,6 +199,8 @@ export function createCreativeStoryController(deps: Dependencies) {
       viewpointKey = nextViewpointKey;
       capturedRemembrance = nextRemembrance;
       remembranceKey = nextRemembranceKey;
+      capturedFarewell = nextFarewell;
+      farewellKey = nextFarewellKey;
       capturedFirstVictory = nextFirstVictory;
       firstVictoryKey = nextFirstVictoryKey;
       if (focus === "shared-road" && viewpoint?.companion == null) focus = "inner-life";
@@ -292,10 +302,11 @@ export function createCreativeStoryController(deps: Dependencies) {
       const allowRecovery = deps.allowVignette?.() === true;
       // Prepare each complete interpretation before awaiting the choice: no later scene can replace its facts or people.
       const prepare = (sourceJob: StoryBeatJobV1, sourceMode: SceneMode, sourceViewpoint: CreativeStoryViewpoint | null,
-        memory: FarewellRemembrance | null, sourceFocus: CreativeStoryFocus, victory: FirstSharedVictory | null = null) => {
+        memory: FarewellRemembrance | null, sourceFocus: CreativeStoryFocus, victory: FirstSharedVictory | null = null,
+        farewell: RecordedFarewell | null = null) => {
         const sourceIdentity = identity(sourceJob)!;
         const effectiveFocus = sourceFocus === "shared-road" && sourceViewpoint?.companion == null ? "inner-life" : sourceFocus;
-        const departure = effectiveFocus === "scene" ? null : captureCreativeStoryDeparture(sourceViewpoint, memory);
+        const departure = effectiveFocus === "scene" ? null : captureCreativeStoryDeparture(sourceViewpoint, farewell ?? memory);
         const seed = selectStorySeed(sourceMode, sourceIdentity, writingAttempt, { viewpoint: sourceViewpoint, focus: effectiveFocus });
         const continuity = captureCreativeStoryMemory(sourceJob,
           deps.continuity?.({ job: sourceJob, mode: sourceMode, viewpoint: sourceViewpoint,
@@ -325,9 +336,9 @@ export function createCreativeStoryController(deps: Dependencies) {
               value: rememberedRecovery.voiceValue, text: rememberedRecovery.text }),
         };
       };
-      let prepared = prepare(job, mode, viewpoint, capturedRemembrance, requestedFocus, capturedFirstVictory);
+      let prepared = prepare(job, mode, viewpoint, capturedRemembrance, requestedFocus, capturedFirstVictory, capturedFarewell);
       const milestoneKind = capturedFirstVictory === null ? "farewell-remembrance" : "first-shared-victory";
-      const alternative = activeWriter.chooseMoment !== undefined && (capturedRemembrance !== null || capturedFirstVictory !== null)
+      const alternative = activeWriter.chooseMoment !== undefined && (capturedFarewell !== null || capturedRemembrance !== null || capturedFirstVictory !== null)
         && currentMoment !== undefined && currentMoment.job.campaignId === job.campaignId
         && Number.isSafeInteger(currentMoment.job.tick) && currentMoment.job.tick > job.tick
         && currentMoment.job.eventId !== job.eventId ? currentMoment : null;

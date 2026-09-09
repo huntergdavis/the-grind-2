@@ -6,6 +6,7 @@ import { createCreativeStoryController, type CreativeStoryMoment } from "./creat
 import { createCreativeStoryDirector } from "./creative-story-director";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
+import type { RecordedFarewell } from "../narrator/recorded-farewell";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
 import { createStoryVignette } from "../narrator/story-vignette";
 
@@ -61,6 +62,80 @@ function remembranceFixture() {
   } satisfies FarewellRemembrance;
   return { farewellJob, solo, remembrance };
 }
+
+function recordedFarewellFixture(condition: "healthy" | "injured" = "healthy") {
+  const { farewellJob, solo } = remembranceFixture();
+  const status = condition === "healthy" ? "in good health" : "wounded but alive";
+  const recordedJob = { ...farewellJob, facts: { ...farewellJob.facts,
+    action: `Tamsin departs ${status} after 0 shared victories.` } };
+  const farewell: RecordedFarewell = { kind: "recorded-farewell", campaignId: recordedJob.campaignId,
+    eventId: recordedJob.eventId, tick: recordedJob.tick, heroName: solo.hero.name,
+    companionName: "Tamsin", condition, facts: { ...recordedJob.facts } };
+  return { farewellJob: recordedJob, solo, farewell };
+}
+
+describe("recorded farewell without oath recovery", () => {
+  it.each(["healthy", "injured"] as const)("carries the %s departure into memory and prose with quiet recovery", async (condition) => {
+    const { farewellJob, solo, farewell } = recordedFarewellFixture(condition);
+    const earlier = { campaignId: farewellJob.campaignId, sourceEventId: "earlier-road", sourceTick: 3,
+      text: "Mira hoped she could trust Tamsin without asking them to stay." };
+    const continuity = vi.fn((_moment: CreativeStoryMoment) => [earlier]);
+    const { controller, writer } = setup(true, () => false, () => undefined, continuity);
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, farewell });
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(continuity).toHaveBeenCalledExactlyOnceWith({ job: farewellJob, mode: "chronicle", viewpoint: solo,
+      departure: { companionName: "Tamsin", condition } });
+    const prompt = JSON.stringify(writer.write.mock.calls[0]![0]);
+    expect(prompt).toContain(farewellJob.facts.action);
+    expect(prompt).toContain(earlier.text);
+    expect(prompt).toContain("No active companion.");
+    expect(prompt).toContain("Mira and departing Tamsin");
+    expect(prompt).not.toContain("Copper Hollow");
+    expect(prompt).not.toContain("recorded-farewell");
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, text: prose, origin: "model", remembrance: null });
+  });
+
+  it.each(["1", "2"] as const)("keeps the captured farewell isolated after moment choice %s", async (choice) => {
+    const { farewellJob, solo, farewell } = recordedFarewellFixture();
+    const { controller, writer } = setup(true, () => false);
+    const current = { job: { ...job, tick: 13, eventId: "current-13" }, mode: "travel" as const,
+      viewpoint: { hero: { name: "Nira", values: [] }, companion: null } };
+    let resolve!: (value: "1" | "2") => void;
+    Object.assign(writer, { chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })) });
+    const output = choice === "1" ? "Nira considered the quiet ahead. Hope flickered beneath her doubt."
+      : "Mira watched Tamsin leave. Gratitude no longer needed a reason to hold on.";
+    writer.write.mockResolvedValueOnce(output);
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, farewell });
+    await controller.load();
+    expect(controller.write(() => true, current)).toBe(true);
+    await Promise.resolve();
+    (farewell as { companionName: string }).companionName = "Changed companion";
+    (farewell.facts as { action: string }).action = "Changed action";
+    resolve(choice);
+    await controller.waitForWriteSettlement();
+    const prompt = JSON.stringify(writer.write.mock.calls[0]![0]);
+    expect(prompt.includes("departing Tamsin")).toBe(choice === "2");
+    expect(prompt).not.toContain("Changed");
+    expect(controller.snapshot).toMatchObject({ text: output, origin: "model", remembrance: null,
+      momentSelection: choice === "1" ? { choice: "current" } : { choice: "milestone", kind: "farewell-remembrance" } });
+  });
+
+  it("keeps healthy departure separate from a supplied injured-oath recovery", async () => {
+    const { farewellJob, solo, farewell } = recordedFarewellFixture();
+    const { remembrance } = remembranceFixture();
+    const { controller, writer } = setup(true, () => true);
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, farewell, remembrance });
+    writer.write.mockResolvedValueOnce("<p>Rejected draft.</p>");
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", origin: "authored", remembrance: null, voiceInspiration: null });
+    expect(controller.snapshot.text).not.toContain("wounded");
+    expect(controller.snapshot.text).not.toContain("Copper Hollow");
+  });
+});
 
 describe("captured story draft admission", () => {
   const firstSample = "2 - 3 years ago . The old road was marked by a white rose on it , a symbol of love and brotherhood , but today it had been a thorn in the side of the weary traveler who now sought to cross it . The";

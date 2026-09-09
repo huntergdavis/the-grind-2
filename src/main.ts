@@ -25,6 +25,7 @@ import { selectNarrativeContinuity } from "./ui/narrative-continuity";
 import { createNarrativeJournalView } from "./ui/narrative-journal-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
+import { projectRecordedFarewell } from "./ui/recorded-farewell";
 import { projectFirstSharedVictory } from "./ui/first-shared-victory";
 import {
   effectiveStoryFocus, normalizeStorytellingPreferences, readStorytellingPreferences,
@@ -4678,15 +4679,18 @@ async function step(): Promise<void> {
     // recovery keeps its existing preference gate.
     if (storytellingPreferences.focus !== "scene"
       && !["off", "failed"].includes(creativeStoryController.snapshot.phase)) {
-      const remembrance = projectFarewellRemembrance(before, state);
+      const farewell = projectRecordedFarewell(before, state);
+      const remembrance = storytellingPreferences.draftRecovery === "vignette"
+        ? projectFarewellRemembrance(before, state) : null;
       const firstVictory = storytellingPreferences.draftRecovery === "vignette"
         ? projectFirstSharedVictory(before, state) : null;
-      const job = remembrance === null && firstVictory === null ? null
+      const job = farewell === null && firstVictory === null ? null
         : projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
-      if (remembrance !== null && job !== null) creativeStoryDirector.offerRemembrance({
+      if (farewell !== null && job !== null) creativeStoryDirector.offerFarewell({
         job, mode: state.scene.mode,
         viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
-        remembrance,
+        farewell,
+        ...(remembrance === null ? {} : { remembrance }),
       });
       if (firstVictory !== null && job !== null) creativeStoryDirector.offerFirstVictory({
         job, mode: state.scene.mode,

@@ -43,6 +43,7 @@ export interface CreativeStoryViewpoint {
 /** Public identity from a source-bound farewell, never an active party member. */
 export interface CreativeStoryDeparture {
   readonly companionName: string;
+  readonly condition?: "healthy" | "injured";
 }
 
 export function captureCreativeStoryDeparture(
@@ -50,9 +51,11 @@ export function captureCreativeStoryDeparture(
   departure?: CreativeStoryDeparture | null,
 ): CreativeStoryDeparture | null {
   const name = departure?.companionName;
+  const condition = departure?.condition;
   return viewpoint?.companion === null && typeof name === "string" && name.length > 0 && name.length <= 128
     && name === name.trim() && !/[<>\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u.test(name)
-    ? Object.freeze({ companionName: name }) : null;
+    && (condition === undefined || condition === "healthy" || condition === "injured")
+    ? Object.freeze({ companionName: name, ...(condition === undefined ? {} : { condition }) }) : null;
 }
 
 export const creativeStoryMaximumInputTokens = 1024;
@@ -175,10 +178,12 @@ export function buildCreativeStoryMessages(
     ? `\nWriting idea (metaphor, not a new place or event): ${seed.tension} ${seed.image} ${seed.turn}` : "";
   const memories = captureCreativeStoryMemory(job, continuity);
   const emotionalBrief = farewell === null ? focusInstruction(focus, viewpoint, memories.length > 0)
-    : `Imagine ${viewpoint!.hero.name}'s concern for departing ${farewell.companionName}, mixed with the difficulty of letting go. `
+    : `Imagine ${viewpoint!.hero.name}'s ${farewell.condition === "healthy" ? "gratitude" : "concern"} for departing ${farewell.companionName}, mixed with the difficulty of letting go. `
       + (memories.length === 0 ? "Show this parting through a small gesture; invent no earlier feelings."
         : "Let a feeling from an earlier passage change through this parting, not repeat the journey.")
-      + " Keep the recorded departure and injury unchanged; invent no death, recovery, promise or object.";
+      + (farewell.condition === "healthy"
+        ? " Keep the recorded healthy departure unchanged; invent no injury, death, recovery, promise or object."
+        : " Keep the recorded departure and injury unchanged; invent no death, recovery, promise or object.");
   return Object.freeze([
     Object.freeze({ role: "system" as const, content: systemInstruction
       + (focus === "scene" ? "" : " Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts.")

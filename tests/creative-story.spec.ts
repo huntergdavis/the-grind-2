@@ -10,6 +10,7 @@ import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
 import { createFirstSharedVictoryVignette } from "../src/narrator/first-shared-victory";
 import { projectParty } from "../src/ui/party-projection";
 import { projectFarewellRemembrance } from "../src/ui/farewell-remembrance";
+import { projectRecordedFarewell } from "../src/ui/recorded-farewell";
 import { projectFirstSharedVictory } from "../src/ui/first-shared-victory";
 import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
 import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
@@ -2019,12 +2020,38 @@ test(duetCase
 });
 }
 
-for (const focusPriority of [false, true]) {
-test(focusPriority
+for (const { focusPriority, healthyWithoutOath } of [
+  { focusPriority: false, healthyWithoutOath: false },
+  { focusPriority: true, healthyWithoutOath: false },
+  { focusPriority: false, healthyWithoutOath: true },
+]) {
+test(healthyWithoutOath
+  ? "healthy farewell without a retained oath recalls prior prose with quiet recovery and preserves exact archive replay"
+  : focusPriority
   ? "Rare Shared road retains a captured farewell beyond three minutes without a moment-choice call"
   : "local DM picks a recorded farewell over a newer current scene with quiet recovery and Last story retains the choice", async ({ page }) => {
   test.setTimeout(240_000);
-  const { before, remembrance } = savedFarewellScene();
+  const saved = savedFarewellScene();
+  const { remembrance } = saved;
+  let before = saved.before;
+  if (healthyWithoutOath) {
+    const companion = before.depth.companions.active[0]!;
+    // A valid saved healthy condition and retained Chronicle suffix, not a
+    // simulated healing or a claimed 32-step journey. The application itself
+    // still commits the actual farewell after loading this snapshot.
+    before = upgradeWorldState({
+      ...before,
+      chronicle: before.chronicle.filter((entry) => entry.tick > remembrance.oath.tick),
+      depth: { ...before.depth, companions: { ...before.depth.companions,
+        active: [{ ...companion, injury: "none", resources: { ...companion.resources, health: companion.combat.maxHealth } }],
+      } },
+    });
+    expect(before.chronicle.some((entry) => entry.commandType === "recruit-companion")).toBe(false);
+    expect(projectFarewellRemembrance(before, advanceWorld(before))).toBeNull();
+  }
+  const recordedFarewell = projectRecordedFarewell(before, advanceWorld(before));
+  expect(recordedFarewell).toMatchObject({ eventId: remembrance.eventId,
+    companionName: remembrance.companionName, condition: healthyWithoutOath ? "healthy" : "injured" });
   const modelRequests: string[] = [];
   const errors: string[] = [];
   page.on("request", (request) => {
@@ -2068,6 +2095,10 @@ test(focusPriority
     const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
     return saved.chronicle.some((entry) => entry.id === eventId);
   }, remembrance)).toBe(true);
+  if (healthyWithoutOath) expect(await page.evaluate((campaignId) => {
+    const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
+    return saved.chronicle.some((entry) => entry.commandType === "recruit-companion");
+  }, remembrance.campaignId)).toBe(false);
   await page.evaluate(() => {
     document.querySelector<HTMLButtonElement>("#pause-button")!.click();
     document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
@@ -2079,7 +2110,7 @@ test(focusPriority
     await expect(page.locator("#creative-story-focus-availability")).toHaveText(
       "Shared road is remembered. Solo scenes use Inner life; captured companion moments can still take priority.");
   }
-  const farewellProse = `${remembrance.heroName} watched ${remembrance.companionName} leave alive but wounded, grateful for their company and uncertain how far concern could follow.`;
+  const farewellProse = `${remembrance.heroName} watched ${remembrance.companionName} leave ${healthyWithoutOath ? "in good health" : "alive but wounded"}, grateful for their company and uncertain how far concern could follow.`;
   if (focusPriority) {
     const beforeQuietStep = await tick(page);
     await page.evaluate(() => {
@@ -2144,8 +2175,12 @@ test(focusPriority
   expect(selection.prosePrompt).toContain("No active companion.");
   expect(selection.prosePrompt).toContain(priorProse);
   expect(selection.prosePrompt).toContain(remembrance.companionName);
-  expect(selection.prosePrompt).toContain(`concern for departing ${remembrance.companionName}`);
+  expect(selection.prosePrompt).toContain(`${healthyWithoutOath ? "gratitude" : "concern"} for departing ${remembrance.companionName}`);
   expect(selection.prosePrompt).toContain("difficulty of letting go");
+  if (healthyWithoutOath) {
+    expect(selection.prosePrompt).toContain("in good health");
+    expect(selection.prosePrompt).not.toMatch(/\b(?:wounded|injured|healed)\b/iu);
+  }
   expect(selection.prosePrompt).not.toContain(current.headline);
   expect(selection.prosePrompt).not.toContain(remembrance.oath.headline);
   const dialog = page.locator("#narrative-intermission");
@@ -2193,7 +2228,7 @@ test(focusPriority
     await page.setViewportSize(viewport);
     await page.locator("#narrative-intermission-reading").evaluate((reading) => { reading.scrollTop = 0; });
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      await page.screenshot({ path: `/tmp/the-grind-2-${focusPriority ? "shared-road-priority" : "dm-farewell-choice"}-${viewport.width}.png` });
+      await page.screenshot({ path: `/tmp/the-grind-2-${healthyWithoutOath ? "healthy-farewell-no-oath" : focusPriority ? "shared-road-priority" : "dm-farewell-choice"}-${viewport.width}.png` });
     }
     await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
     await expect(explanation).toHaveText(expectedExplanation);
@@ -2226,10 +2261,12 @@ test(focusPriority
   expect(modelRequests).toEqual([]);
   expect(errors).toEqual([]);
   expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(archiveAfterFarewell);
-  await test.info().attach(focusPriority ? "shared-road-priority-proof" : "quiet-recovery-farewell-payoff-proof", {
+  await test.info().attach(healthyWithoutOath ? "healthy-farewell-without-retained-oath-proof"
+    : focusPriority ? "shared-road-priority-proof" : "quiet-recovery-farewell-payoff-proof", {
     body: JSON.stringify({ current, currentAtWrite: selection.currentAtWrite, milestone: remembrance.farewell,
       storedFocus: selection.storedFocus, unusedMomentChoice: selection.unusedMomentChoice,
-      storedRhythm: selection.storedRhythm, storedRecovery: selection.storedRecovery, priorProse, farewellProse,
+      storedRhythm: selection.storedRhythm, storedRecovery: selection.storedRecovery,
+      healthyWithoutOath, recordedFarewell, priorProse, farewellProse,
       prosePrompt: selection.prosePrompt, archived,
       moments: selection.moments, directions: selection.directions, workers: await workerCounts(page),
       caption: expectedCaption, explanation: expectedExplanation, modelRequests, errors }, null, 2),

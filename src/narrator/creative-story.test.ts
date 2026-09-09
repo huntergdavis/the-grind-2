@@ -4,11 +4,13 @@ import type { StoryBeatJobV1 } from "./story-beat";
 import seedLibrary from "./story-seeds.json";
 import {
   buildCreativeStoryMessages,
+  captureCreativeStoryDeparture,
   cleanCreativeStoryOutput,
   creativeStoryComparisonKey,
   creativeStoryMaximumOutputCharacters,
   selectStorySeed,
   type CreativeStoryViewpoint,
+  type CreativeStoryDeparture,
   type StorySeed,
 } from "./creative-story";
 
@@ -149,6 +151,52 @@ describe("context-fit emotional inspiration", () => {
 });
 
 describe("creative story prompt", () => {
+  it("gives healthy departures gratitude without borrowing the injured farewell brief", () => {
+    const solo: CreativeStoryViewpoint = { hero: { name: "Mira", values: ["loyalty"] }, companion: null };
+    const healthyJob = { ...job, facts: { ...job.facts, headline: "Tamsin's Shared Road Oath is complete.",
+      action: "Tamsin departs in good health after 2 shared victories.", consequence: "Tamsin reaches Mossbridge safely." } };
+    const seed = selectStorySeed("chronicle", "healthy-farewell", 0);
+    const memory = { campaignId: job.campaignId, sourceEventId: "earlier-arrival", sourceTick: 1,
+      text: "Mira wondered whether gratitude could make letting Tamsin go easier." };
+    const healthy = { companionName: "Tamsin", condition: "healthy" as const };
+    const messages = buildCreativeStoryMessages(healthyJob, seed, solo, "inner-life", [memory], healthy);
+    const prompt = messages.at(-1)!.content;
+    expect(prompt).toContain("Imagine Mira's gratitude for departing Tamsin, mixed with the difficulty of letting go.");
+    expect(prompt).toContain("Keep the recorded healthy departure unchanged; invent no injury, death, recovery, promise or object.");
+    expect(prompt).not.toContain("concern for departing");
+    expect(prompt).not.toContain("recorded departure and injury");
+    expect(prompt).toContain(healthyJob.facts.action);
+    expect(prompt).toContain(healthyJob.facts.consequence);
+    expect(messages[1]!.content).toContain(memory.text);
+    expect(buildCreativeStoryMessages(healthyJob, seed, solo, "scene", [memory], healthy))
+      .toEqual(buildCreativeStoryMessages(healthyJob, seed, solo, "scene", [memory]));
+    const active: CreativeStoryViewpoint = { ...solo, companion: { name: "Other", role: "miller",
+      status: "travelling", purpose: "shared-road-oath", victories: 1 } };
+    expect(buildCreativeStoryMessages(healthyJob, seed, active, "shared-road", [memory], healthy))
+      .toEqual(buildCreativeStoryMessages(healthyJob, seed, active, "shared-road", [memory]));
+    for (const continuity of [[], [memory]]) {
+      expect(buildCreativeStoryMessages(job, seed, solo, "inner-life", continuity, { companionName: "Tamsin", condition: "injured" }))
+        .toEqual(buildCreativeStoryMessages(job, seed, solo, "inner-life", continuity, { companionName: "Tamsin" }));
+    }
+  });
+
+  it("captures only safe optional departure conditions while keeping legacy identity-only shape unchanged", () => {
+    const solo: CreativeStoryViewpoint = { hero: { name: "Mira", values: [] }, companion: null };
+    const legacy = captureCreativeStoryDeparture(solo, { companionName: "Tamsin" });
+    expect(legacy).toEqual({ companionName: "Tamsin" });
+    expect(Object.keys(legacy!)).toEqual(["companionName"]);
+    for (const condition of ["healthy", "injured"] as const) {
+      const packet = { companionName: "Tamsin", condition };
+      const captured = captureCreativeStoryDeparture(solo, packet);
+      expect(captured).toEqual(packet);
+      expect(captured).not.toBe(packet);
+      expect(Object.isFrozen(captured)).toBe(true);
+    }
+    for (const condition of [null, "fallen", "dead", "recovered", 0, {}, []]) {
+      expect(captureCreativeStoryDeparture(solo, { companionName: "Tamsin", condition } as unknown as CreativeStoryDeparture)).toBeNull();
+    }
+  });
+
   it("gives a source-bound farewell both names and an emotional payoff without changing facts or memory", () => {
     const solo: CreativeStoryViewpoint = { hero: { name: "Mira", values: ["loyalty"] }, companion: null };
     const farewellJob = { ...job, facts: { ...job.facts,
