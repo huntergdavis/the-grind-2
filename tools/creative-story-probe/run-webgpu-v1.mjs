@@ -13,6 +13,7 @@ import { adaptCandidateWorker, candidateModelPlugin } from './webgpu-candidate-a
 import { instrumentSamplingRuntime, samplingDiagnosticPlugin } from './webgpu-sampling-diagnostics.mjs';
 import { transferDiagnosticPlugin } from './webgpu-transfer-diagnostics.mjs';
 import { computeDiagnosticPlugin } from './webgpu-compute-diagnostics.mjs';
+import { instrumentModelBufferRuntime, modelBufferDiagnosticPlugin } from './webgpu-model-buffer-diagnostics.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -33,6 +34,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const inspectModelBuffer = args.includes('--inspect-model-buffer');
   const observePreSort = args.includes('--observe-pre-sort');
   const candidateComputeCheck = args.includes('--candidate-compute-check');
   const candidateTransferCheck = args.includes('--candidate-transfer-check');
@@ -51,18 +53,19 @@ export function parseWebgpuV1Arguments(args) {
     || candidateTransferCheck && (args.includes('--candidate-scenes') || candidateDiagnostic || !args.includes('--cache-only'))
     || candidateComputeCheck && (args.includes('--candidate-scenes') || candidateDiagnostic || candidateTransferCheck || !args.includes('--cache-only'))
     || observePreSort && !candidateDiagnostic
+    || inspectModelBuffer && (!candidateDiagnostic || observePreSort)
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
-  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort,
+  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer,
     cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
@@ -87,10 +90,14 @@ async function run() {
     ...(candidateDiagnostic ? { samplingDiagnostic: {
       receipt: 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', scene: 1,
       recordLimit: 64, observesExistingProcessorArrays: true, additionalProbabilityReadback: true,
-      reusesExistingDeviceSynchronization: true, changesScoresOrSampling: false,
+      reusesExistingDeviceSynchronization: !inspectModelBuffer, changesScoresOrSampling: false,
       timingMayDiffer: true, noJournalWrites: true,
       ...(observePreSort ? { comparesPreSortProbabilities: true, probabilityReadbacksPerStep: 2 } : {}),
     }, samplingObservations: [] } : {}),
+    ...(inspectModelBuffer ? { modelBufferDiagnostic: { recordLimit: 1, firstEligibleTokenOnly: true,
+      freshComputeAfterOriginalSample: true, preservesOriginalProbabilitySnapshot: true,
+      extraComputeAndSynchronization: true, timingAndAllocationMayDiffer: true,
+      laterTokensMayDiffer: true, noJournalWrites: true }, modelBufferObservations: [] } : {}),
     ...(replay ? { replay: { receipt: 'webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json', scenes: replaySequence ? [1, 2, 3] : [3],
       lifecycle: replaySequence ? 'same-worker-recorded-request-order-fixed-history' : 'fresh-worker-exact-messages-not-original-sequence' }, diagnostics: [] } : {}),
     identity: webgpuV1, args: webgpuV1Flags, sources: [], requests: [], blockedRequests: [],
@@ -123,6 +130,7 @@ async function run() {
       'webgpu-sampling-diagnostics.mjs', 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json',
       'webgpu-transfer-diagnostics.mjs',
       'webgpu-compute-diagnostics.mjs',
+      'webgpu-model-buffer-diagnostics.mjs',
       'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
       '../../src/narrator/creative-writer-conversation.ts',
@@ -146,9 +154,11 @@ async function run() {
       report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(adaptedWorker).digest('hex');
     }
     const diagnosticRuntimePaths = [resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(runtime, 'lib/index.js')];
-    if (candidateDiagnostic) report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(
-      instrumentSamplingRuntime(await readFile(diagnosticRuntimePaths[0], 'utf8'), { beforeSort: observePreSort }),
-    ).digest('hex');
+    if (candidateDiagnostic) {
+      let diagnosticRuntime = instrumentSamplingRuntime(await readFile(diagnosticRuntimePaths[0], 'utf8'), { beforeSort: observePreSort });
+      if (inspectModelBuffer) diagnosticRuntime = instrumentModelBufferRuntime(diagnosticRuntime);
+      report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
+    }
     if (cacheOnly && !report.profile.preexisting) throw new Error('Cache-only proof requires the existing owned cached-model profile');
     await mkdir(profile, { recursive: true });
     report.phase = 'build'; await checkpoint();
@@ -157,10 +167,12 @@ async function run() {
       resolve: { alias: { '@tg2-webllm-v1': resolve(runtime, 'lib/index.js') } },
       plugins: [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
         ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths, { beforeSort: observePreSort })] : []),
+        ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
       worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
         ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths, { beforeSort: observePreSort })] : []),
+        ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
@@ -194,7 +206,14 @@ async function run() {
     page.on('pageerror', (error) => report.errors.push({ type: 'pageerror', message: String(error).slice(0, 1000) }));
     page.on('console', (message) => {
       const text = message.text();
-      if (candidateComputeCheck && text.startsWith('TG2_COMPUTE_DIAGNOSTIC ') && text.length < 40_000 && report.computeObservations.length < 1) {
+      if (inspectModelBuffer && text.startsWith('TG2_MODEL_BUFFER_DIAGNOSTIC ')) {
+        if (text.length >= 40_000 || report.modelBufferObservations.length >= 1) {
+          report.errors.push({ type: 'invalid-model-buffer-diagnostic', reason: 'record bound exceeded' });
+        } else {
+          try { report.modelBufferObservations.push(JSON.parse(text.slice('TG2_MODEL_BUFFER_DIAGNOSTIC '.length))); void checkpoint(); }
+          catch { report.errors.push({ type: 'invalid-model-buffer-diagnostic' }); }
+        }
+      } else if (candidateComputeCheck && text.startsWith('TG2_COMPUTE_DIAGNOSTIC ') && text.length < 40_000 && report.computeObservations.length < 1) {
         try { report.computeObservations.push(JSON.parse(text.slice('TG2_COMPUTE_DIAGNOSTIC '.length))); void checkpoint(); }
         catch { report.errors.push({ type: 'invalid-compute-diagnostic' }); }
       } else if (candidateTransferCheck && text.startsWith('TG2_TRANSFER_DIAGNOSTIC ') && text.length < 40_000 && report.transferObservations.length < 1) {
@@ -260,6 +279,10 @@ async function run() {
           generationMs: Date.now() - writeStarted, partialOutputAvailable: !productionMode, partialOutputOnly: !productionMode }));
       report.outputs.push(result); await checkpoint(); log({ phase: report.phase, result, reportPath });
       if (result.status !== 'completed') throw new Error(result.error ?? 'GPU generation failed');
+      if (inspectModelBuffer && (report.modelBufferObservations.length !== 1
+        || report.errors.some(error => error.type === 'invalid-model-buffer-diagnostic'))) {
+        throw new Error('Expected exactly one bounded model-buffer diagnostic report');
+      }
       report.phase = 'human-review'; await checkpoint();
       log(index < plannedScenes - 1
         ? `Paused after scene ${index + 1}. Enter next to approve exactly one more scene, or quit to stop.`

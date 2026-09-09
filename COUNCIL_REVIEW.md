@@ -1,6 +1,37 @@
 # The Grind 2 — Red-Team Council Report
 
-Status: final council adjudication, 2026-08-28
+Status: council reviews, latest update 2026-09-08
+
+## Post-V1 council — fresh input also fails after model execution
+
+Reused `deja "Qwen3"` session `01a06835-15f` and the `e87687b` handoff. Two
+independent reviews checked runner isolation, snapshot ordering, tensor ownership,
+error scopes and interpretation. Fresh compute runs after the original sampled
+token and diagnostic, preserving the earlier probability snapshot. Extra reads,
+allocation and synchronization still perturb execution; no sample-equivalence
+claim is made. All 43 focused tests and source-boundary checks pass.
+
+Actual `2fd91ae0` completes its first-token comparison, but neither the original
+nor fresh-owned-input result matches the reference. Transfers/direct reads and
+bounds pass. Oversized pooled-looking probability allocations are evidence to
+investigate, not proof of a pooling defect. The scoped first-token GPU checks
+report no error; **later generation loses the GPU device**. The request fails,
+its receipt stays incomplete, and all owned resources close. Do not call this
+a successful generation, input-copy fix, or established out-of-memory diagnosis.
+
+An independent read-only npm tarball/integrity comparison proves root and staged
+runtime files are pristine 0.2.85. The optimizations observed in that file are
+upstream artifact content, not demonstrated repo-local patches. [Full receipt,
+provenance and limits](docs/STORYTELLING_FINISH.md#post-v1--live-versus-owned-buffer-comparison)
+preserve these distinctions. Stop GPU runs for this slice. Next work must use a
+first-token boundary rather than another full known-bad generation. v0.5.132
+remains unchanged; no candidate promotion, new model download or CI matrix.
+
+Final source review finds no supported allocator-cache purge in the inspected
+JS. Next capture the live/fresh softmax dispatch dimensions, scalar uniforms,
+buffer identities/sizes, WGSL/hash and any debug-limit skip. Whole-buffer storage
+bindings and integer-like residual bits justify this inspection, not a claim
+that the output was never written or that pooled storage is defective.
 
 ## Post-V1 council — failure precedes sorting, standalone softmax passes
 

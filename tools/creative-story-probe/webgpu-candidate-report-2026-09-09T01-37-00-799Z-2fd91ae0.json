@@ -1,0 +1,4651 @@
+{
+  "startedAt": "2026-09-09T01:37:00.801Z",
+  "phase": "scene-1",
+  "complete": false,
+  "mode": "qwen3-recorded-first-scene-sampling-diagnostic-cache-only",
+  "writerPath": "production-client-and-worker-with-candidate-adapter",
+  "plannedScenes": 1,
+  "totalDeadlineMs": 600000,
+  "isolatedSolo": false,
+  "cacheOnlyRestore": true,
+  "candidateAdapter": {
+    "modelManifestSubstitution": true,
+    "enableThinking": false,
+    "stripsOnlyExactRuntimeEmptyThinkingHeader": true,
+    "originalWorkerSourceUnchanged": true,
+    "generatedTokenLimit": 64,
+    "runtimeMaxTokensIncludingHeader": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "productionDefaultUnchanged": true,
+    "transformedWorkerSha256": "4b0b68d0f1c5d7ec0d3147a2db0ee29048fd3b7e506136b8a17cbaf3e6f1db1c"
+  },
+  "candidateRawOutputs": [],
+  "samplingDiagnostic": {
+    "receipt": "webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json",
+    "scene": 1,
+    "recordLimit": 64,
+    "observesExistingProcessorArrays": true,
+    "additionalProbabilityReadback": true,
+    "reusesExistingDeviceSynchronization": false,
+    "changesScoresOrSampling": false,
+    "timingMayDiffer": true,
+    "noJournalWrites": true,
+    "transformedRuntimeSha256": "4295788920a6c0cf82432fd6690dcb4d613cd63b35aaadf10381f02c62ae92ea"
+  },
+  "samplingObservations": [
+    {
+      "step": 1,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 2,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.826695442199707,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.826695442199707,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.203895392974451e-45,
+        "argmax": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 8.407790785948902e-45,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 3,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.481531858444214,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.481531858444214,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 4,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4841108322143555,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4841108322143555,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.00005066004450782202,
+        "argmax": 2,
+        "sum": 0.00011307568274787627,
+        "normalizationError": 0.9998869243172521,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0.000027617161322268657,
+      "strictlyGreaterProbabilityMass": 0.00005066004450782202,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 5,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.472499370574951,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.472499370574951,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.203895392974451e-45,
+        "argmax": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 8.407790785948902e-45,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 6,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.489672899246216,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.489672899246216,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.000027617161322268657,
+        "argmax": 0,
+        "sum": 0.000027617161322268657,
+        "normalizationError": 0.9999723828386777,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 1,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 38,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0.000027617161322268657,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 7,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.1719970703125,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.1719970703125,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.890601642022375e-7,
+        "argmax": 0,
+        "sum": 0.000002015830716572964,
+        "normalizationError": 0.9999979841692834,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 5.890601642022375e-7,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 8,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -0.14606112241744995,
+        "finiteMax": 3.645566940307617,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -0.14606112241744995,
+        "finiteMax": 3.645566940307617,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.0000031148742891673464,
+        "argmax": 3,
+        "sum": 0.0000032524127604460773,
+        "normalizationError": 0.9999967475872396,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 1.3836835677238923e-8,
+      "strictlyGreaterProbabilityMass": 0.0000032385759247688384,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 9,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.6552200317382812,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.6552200317382812,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.000027617161322268657,
+        "argmax": 1,
+        "sum": 0.00008285148396680597,
+        "normalizationError": 0.9999171485160332,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0.00008285148396680597,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 10,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.570878267288208,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.570878267288208,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.00005659324233420193,
+        "argmax": 2,
+        "sum": 0.0001250826881005196,
+        "normalizationError": 0.9998749173118995,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0.000029351140256039798,
+      "strictlyGreaterProbabilityMass": 0.00005659324233420193,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 11,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.520094871520996,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.520094871520996,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.3082780959148295e-8,
+        "argmax": 1,
+        "sum": 3.554413052775374e-8,
+        "normalizationError": 0.9999999644558695,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 3.554413052775374e-8,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 12,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3954176902770996,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3954176902770996,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 8.722613187295281e-10,
+        "argmax": 3,
+        "sum": 1.946830363586116e-9,
+        "normalizationError": 0.9999999980531696,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 1.946830363586116e-9,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 13,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3891005516052246,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3891005516052246,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 890149671,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 14,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.8797993659973145,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.8797993659973145,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.501111104422307e-7,
+        "argmax": 1,
+        "sum": 0.000001694834281806834,
+        "normalizationError": 0.9999983051657182,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 819759375,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 15,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.661245822906494,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.661245822906494,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 1.604606114646856e-9,
+        "argmax": 0,
+        "sum": 5.6769032807935105e-9,
+        "normalizationError": 0.9999999943230967,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 808373716,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 16,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.236076354980469,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.236076354980469,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.914148142911358e-10,
+        "argmax": 2,
+        "sum": 2.3136452753647063e-9,
+        "normalizationError": 0.9999999976863547,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 6.359333060146355e-10,
+      "strictlyGreaterProbabilityMass": 1.3828296285822717e-9,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 17,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.478868246078491,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.478868246078491,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 808373716,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 18,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.26212739944458,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.26212739944458,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.359333060146355e-10,
+        "argmax": 0,
+        "sum": 2.543733224058542e-9,
+        "normalizationError": 0.9999999974562668,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 6.359333060146355e-10,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 19,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.469285726547241,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.469285726547241,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 811100652,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 20,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.451789855957031,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.451789855957031,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 7.873086627085968e-10,
+        "argmax": 0,
+        "sum": 2.6951085807525033e-9,
+        "normalizationError": 0.9999999973048914,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 7.873086627085968e-10,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 21,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4229774475097656,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4229774475097656,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 880368977,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 22,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.567702770233154,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.567702770233154,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.322388041875456e-7,
+        "argmax": 0,
+        "sum": 9.289552167501824e-7,
+        "normalizationError": 0.9999990710447832,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 2.322388041875456e-7,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 23,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.427647113800049,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.427647113800049,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 807007836,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 24,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.225534439086914,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.225534439086914,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.60111734770885e-10,
+        "argmax": 0,
+        "sum": 2.24044693908354e-9,
+        "normalizationError": 0.9999999977595531,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 5.60111734770885e-10,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 25,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4233591556549072,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4233591556549072,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 880368977,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 26,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.695362567901611,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.695362567901611,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.322388041875456e-7,
+        "argmax": 0,
+        "sum": 9.289552167501824e-7,
+        "normalizationError": 0.9999990710447832,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 2.322388041875456e-7,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 27,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4154067039489746,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.4154067039489746,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 799153408,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 28,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.731061935424805,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.731061935424805,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.948823407677992e-10,
+        "argmax": 0,
+        "sum": 1.1795293630711967e-9,
+        "normalizationError": 0.9999999988204706,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 38,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 1.1795293630711967e-9,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 29,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.9668471813201904,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 3.9668471813201904,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.322388041875456e-7,
+        "argmax": 0,
+        "sum": 9.289552167501824e-7,
+        "normalizationError": 0.9999990710447832,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 2.322388041875456e-7,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 30,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.872866630554199,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.872866630554199,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.00041503814281895757,
+        "argmax": 3,
+        "sum": 0.0004562547501336667,
+        "normalizationError": 0.9995437452498663,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0.000016327343473676592,
+      "strictlyGreaterProbabilityMass": 0.0004353934000391746,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 31,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -8.226558685302734,
+        "finiteMax": 0,
+        "argmax": 4
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -8.226558685302734,
+        "finiteMax": 0,
+        "argmax": 4
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 4,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 4,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 4
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": "+Infinity",
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 32,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -7.629480838775635,
+        "finiteMax": 0.14634668827056885,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -7.629480838775635,
+        "finiteMax": 0.14634668827056885,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.800352115807982e-8,
+        "argmax": 3,
+        "sum": 4.954914078770514e-8,
+        "normalizationError": 0.9999999504508592,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 2.2747259804944964e-12,
+      "strictlyGreaterProbabilityMass": 4.954614662988632e-8,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 33,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.9336249828338623,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.9336249828338623,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 3,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 3
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 34,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.7797882556915283,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.7797882556915283,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 38,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 35,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.226787567138672,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.226787567138672,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.00025097531033679843,
+        "argmax": 1,
+        "sum": 0.0005045001889811829,
+        "normalizationError": 0.9994954998110188,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0.0005045001889811829,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 36,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.882841110229492,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.882841110229492,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.000025209466912201606,
+        "argmax": 3,
+        "sum": 0.0000443919218469091,
+        "normalizationError": 0.9999556080781531,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0.00001036631510942243,
+      "strictlyGreaterProbabilityMass": 0.000025209466912201606,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 37,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -7.821085453033447,
+        "finiteMax": 0.257684588432312,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -7.821085453033447,
+        "finiteMax": 0.257684588432312,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 4,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 4,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 4
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": "+Infinity",
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 38,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -8.384405136108398,
+        "finiteMax": 0.10008543729782104,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -8.384405136108398,
+        "finiteMax": 0.10008543729782104,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.2784165543707786e-8,
+        "argmax": 3,
+        "sum": 4.4040584293617794e-8,
+        "normalizationError": 0.9999999559594157,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 4.403939923847133e-8,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 39,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.1979146003723145,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.1979146003723145,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 3,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 3
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 40,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.681632995605469,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.681632995605469,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 38,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 3.808278345451832e-12,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 41,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.134233474731445,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.134233474731445,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.00014799038763158023,
+        "argmax": 2,
+        "sum": 0.00027075708934809484,
+        "normalizationError": 0.9997292429106519,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 1.838254526376204e-8,
+      "strictlyGreaterProbabilityMass": 0.0002707387068028311,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 42,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.015898704528809,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 6.015898704528809,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.000031837796996114776,
+        "argmax": 3,
+        "sum": 0.00005766608933299722,
+        "normalizationError": 0.999942333910667,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0.000012496532690420281,
+      "strictlyGreaterProbabilityMass": 0.000031837796996114776,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 43,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -8.952821731567383,
+        "finiteMax": 0,
+        "argmax": 4
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": -8.952821731567383,
+        "finiteMax": 0,
+        "argmax": 4
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 4,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 4,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 4
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": "+Infinity",
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 44,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2822141647338867,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2822141647338867,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 4.203895392974451e-45,
+        "argmax": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 8.407790785948902e-45,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 45,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2655510902404785,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2655510902404785,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 4,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 4,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 4
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": "+Infinity",
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 46,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2849621772766113,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2849621772766113,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 47,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.283972978591919,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.283972978591919,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 4,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 4,
+        "sum": null,
+        "normalizationError": null,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 4
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": "+Infinity",
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 48,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.293058395385742,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.293058395385742,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 8.972514067071804e-42,
+        "argmax": 3,
+        "sum": 3.5881648477501266e-41,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 49,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.222105979919434,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.222105979919434,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 50,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3309988975524902,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3309988975524902,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 51,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.4282450675964355,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.4282450675964355,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 52,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3072431087493896,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.3072431087493896,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 1.7940824238750633e-41,
+        "argmax": 3,
+        "sum": 7.175488916421658e-41,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 53,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.532316207885742,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.532316207885742,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 54,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.317007064819336,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.317007064819336,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 55,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.690688133239746,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.690688133239746,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 56,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.319085121154785,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.319085121154785,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.690913441042946e-41,
+        "argmax": 3,
+        "sum": 1.076281298509319e-40,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 57,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.696754455566406,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.696754455566406,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 58,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.300062656402588,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.300062656402588,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 730201580,
+      "sampledTokenInRange": false,
+      "sampledProbability": null,
+      "strictlyGreaterProbabilityMass": null,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 59,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.643373966217041,
+        "argmax": 3
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 5.643373966217041,
+        "argmax": 3
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 0,
+        "sum": 3.808278345451832e-12,
+        "normalizationError": 0.9999999999961917,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 9.52069586362958e-13,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 60,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2957582473754883,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2957582473754883,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0.00004300453292671591,
+        "argmax": 2,
+        "sum": 0.00010326606479793554,
+        "normalizationError": 0.9998967339352021,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 4,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0.000025918423489201814,
+      "strictlyGreaterProbabilityMass": 0.00004300453292671591,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 61,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2834434509277344,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.2834434509277344,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 1,
+        "sum": 2.856208759088874e-12,
+        "normalizationError": 0.9999999999971438,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 3,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 2.856208759088874e-12,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    },
+    {
+      "step": 62,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.301054000854492,
+        "argmax": 2
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 2.301054000854492,
+        "argmax": 2
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 9.52069586362958e-13,
+        "argmax": 1,
+        "sum": 1.904139172725916e-12,
+        "normalizationError": 0.9999999999980959,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 2,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 38,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 1.904139172725916e-12,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    }
+  ],
+  "modelBufferDiagnostic": {
+    "recordLimit": 1,
+    "firstEligibleTokenOnly": true,
+    "freshComputeAfterOriginalSample": true,
+    "preservesOriginalProbabilitySnapshot": true,
+    "extraComputeAndSynchronization": true,
+    "timingAndAllocationMayDiffer": true,
+    "laterTokensMayDiffer": true,
+    "noJournalWrites": true
+  },
+  "modelBufferObservations": [
+    {
+      "kind": "first-live-versus-owned-softmax",
+      "firstTokenOnly": true,
+      "comparisonCompleted": true,
+      "replacesOriginalSample": false,
+      "timingAndAllocationMayChange": true,
+      "buffers": {
+        "liveLogits": {
+          "shape": [
+            1,
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 610304,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "liveProbabilities": {
+          "shape": [
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 77791232,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "liveTemperature": {
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 4,
+          "backingBytes": 4,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "freshLogits": {
+          "shape": [
+            1,
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 607744,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "freshTemperature": {
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 4,
+          "backingBytes": 4,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "freshProbabilities": {
+          "shape": [
+            1,
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 77791232,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        }
+      },
+      "gpuErrors": {
+        "validation": null,
+        "uncaptured": []
+      },
+      "error": null,
+      "ok": false,
+      "cleanup": {
+        "tensorsAllocated": 8,
+        "tensorsDisposed": 8,
+        "synchronized": true,
+        "listenerRemoved": true,
+        "errors": []
+      },
+      "originalSampledToken": 0,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      },
+      "actualFloat32Temperature": 0.699999988079071,
+      "originalTemperatureDirectVsToArray": {
+        "matches": true,
+        "expectedBytes": 4,
+        "actualBytes": 4,
+        "mismatchedBytes": 0,
+        "firstDifferenceByte": null,
+        "firstDifferenceElement": null,
+        "expectedByte": null,
+        "actualByte": null
+      },
+      "live": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 0,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "liveDirect": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 0,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "liveDirectVsToArray": {
+        "matches": true,
+        "expectedBytes": 607744,
+        "actualBytes": 607744,
+        "mismatchedBytes": 0,
+        "firstDifferenceByte": null,
+        "firstDifferenceElement": null,
+        "expectedByte": null,
+        "actualByte": null
+      },
+      "inputRoundtrip": {
+        "direct": {
+          "matches": true,
+          "expectedBytes": 607744,
+          "actualBytes": 607744,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        },
+        "toArray": {
+          "matches": true,
+          "expectedBytes": 607744,
+          "actualBytes": 607744,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        }
+      },
+      "temperatureRoundtrip": {
+        "direct": {
+          "matches": true,
+          "expectedBytes": 4,
+          "actualBytes": 4,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        },
+        "toArray": {
+          "matches": true,
+          "expectedBytes": 4,
+          "actualBytes": 4,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        }
+      },
+      "fresh": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 3,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 1.401298464324817e-45
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 2.802596928649634e-45
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 4.203895392974451e-45
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "freshDirect": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 3,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 1.401298464324817e-45
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 2.802596928649634e-45
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 4.203895392974451e-45
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "freshDirectVsToArray": {
+        "matches": true,
+        "expectedBytes": 607744,
+        "actualBytes": 607744,
+        "mismatchedBytes": 0,
+        "firstDifferenceByte": null,
+        "firstDifferenceElement": null,
+        "expectedByte": null,
+        "actualByte": null
+      },
+      "liveVsFresh": {
+        "matches": false,
+        "expectedBytes": 607744,
+        "actualBytes": 607744,
+        "mismatchedBytes": 3,
+        "firstDifferenceByte": 4,
+        "firstDifferenceElement": 1,
+        "expectedByte": 0,
+        "actualByte": 1
+      },
+      "elapsedMs": 25352
+    }
+  ],
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen3-4B-q4f16_1-MLC",
+    "modelRevision": "a5c9fab855e3ccbdfed2e7e69683d75f30332161",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "rawMaxTokens": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 900000,
+    "weightBytes": 2262920192,
+    "artifactBytes": 2280372422,
+    "maximumArtifactBytes": 2500000000,
+    "registryVramMB": 3431.59,
+    "registryContextWindow": 4096,
+    "license": "Apache-2.0",
+    "enableThinking": false
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-candidate-config.mjs",
+      "bytes": 1538,
+      "sha256": "b29dd0e4f849c97037f75fb59de1a5a2817ebbcee2ae2858a52febad8041e610"
+    },
+    {
+      "file": "webgpu-candidate-adapter.mjs",
+      "bytes": 2326,
+      "sha256": "d421753360d33b13c6aa1fbc483875c14ca9bbcac111668304258dd1c2b70cfe"
+    },
+    {
+      "file": "webgpu-sampling-diagnostics.mjs",
+      "bytes": 10954,
+      "sha256": "5e5d3b0ad33f971440f1fc7cefc0423e6f284d36e20959c1ce57e3b0929b4f89"
+    },
+    {
+      "file": "webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json",
+      "bytes": 78529,
+      "sha256": "7604b7bca25a5b5664c872f61e058ff56e36efcb74e51899c4a2291fddf3fdbf"
+    },
+    {
+      "file": "webgpu-transfer-diagnostics.mjs",
+      "bytes": 5612,
+      "sha256": "694a5c14df46766e48fc4b85ceaf0c219016206b7593c3da3168fcc251b4dafb"
+    },
+    {
+      "file": "webgpu-compute-diagnostics.mjs",
+      "bytes": 9424,
+      "sha256": "f616d1ce77d126b8688d09701f05503a78400db272a5c6e60ec520c139b38a02"
+    },
+    {
+      "file": "webgpu-model-buffer-diagnostics.mjs",
+      "bytes": 12452,
+      "sha256": "399ec33e199275e5ae04e8871318453b4191a182103f19d7d8f1d88310420107"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 11791,
+      "sha256": "1dad7e12c45cbb94eacbe39e2bbfabc4c3e47688b5f9c13ec498c2ed984f34ae"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 28318,
+      "sha256": "8607fb3767435f006b89a5c1dddadafdc38b785abdbe0a8ff7ea428d3a8fae75"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 11507,
+      "sha256": "acc06e68aaa13f4c77a759367a1ccec1e497225863458b32f7d5848875becd02"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-client.ts",
+      "bytes": 9734,
+      "sha256": "4d859b2d54231d6595fb09be2e4baf1a2a33b78116e7d4f19523e8fef4dbbd9e"
+    },
+    {
+      "file": "../../src/narrator/creative-writer.worker.ts",
+      "bytes": 9356,
+      "sha256": "cc51fac8e9c28d9845e9ff7502c3b6aa8e285b4a571ef4f160db373acdba9580"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "../../src/narrator/creative-direction-logits.ts",
+      "bytes": 1125,
+      "sha256": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479"
+    },
+    {
+      "file": "../../src/narrator/creative-story-sentences.ts",
+      "bytes": 2458,
+      "sha256": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-diagnostics.ts",
+      "bytes": 2160,
+      "sha256": "3724fb4808dee7945791395a8456aea3ad724729b5481dd9b574a543cca5f5e1"
+    },
+    {
+      "file": "webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json",
+      "bytes": 63235,
+      "sha256": "4e08e0ed232fade182f31e57c53a30e65141b04f28231da3a6031c60f5470a25"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 15140,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 15401,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-B_vB9wYD.js"
+    },
+    {
+      "elapsedMs": 17276,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/creative-writer.worker-BOuNEJo3.js"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 18649,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23869,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26645,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27014,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27347,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27757,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28064,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28473,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28852,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29202,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29517,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29928,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30363,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30763,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31120,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31523,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31939,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32310,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32752,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33089,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33544,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33945,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34409,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34810,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35255,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35633,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36070,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36381,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36803,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 37292,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 37868,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38257,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38731,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39100,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39507,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39938,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40277,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40692,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41097,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41485,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41836,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42323,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42717,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43206,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43564,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 44085,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 44422,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45004,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45354,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45709,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46115,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46543,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46839,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47266,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47623,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47997,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48353,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48741,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49140,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49662,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49993,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 50356,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 50728,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51114,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51401,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51728,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52064,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52691,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53040,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53342,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53719,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 54208,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 54531,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 54815,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 55166,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 55609,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 56045,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 56050,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    }
+  ],
+  "generatedChunks": [],
+  "inputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "promptMode": "exact-recorded-production-messages",
+      "writerPath": "production-client-and-worker-with-candidate-adapter",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker",
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "diagnosticReplay": true
+    }
+  ],
+  "outputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "promptMode": "exact-recorded-production-messages",
+      "writerPath": "production-client-and-worker-with-candidate-adapter",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker",
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "diagnosticReplay": true,
+      "status": "failed",
+      "raw": null,
+      "cleaned": null,
+      "usage": null,
+      "firstTokenMs": null,
+      "finishReason": null,
+      "partialOutputAvailable": false,
+      "generationMs": 65965,
+      "error": "Error: Creative writer could not finish. Load it again to retry."
+    }
+  ],
+  "approvals": [],
+  "errors": [
+    {
+      "type": "console-error",
+      "message": "Device was lost. This can happen due to insufficient memory or other GPU constraints. Detailed error: [object GPUDeviceLostInfo]. Please try to reload WebLLM with a less resource-intensive model."
+    },
+    {
+      "phase": "scene-1",
+      "message": "Error: Error: Creative writer could not finish. Load it again to retry."
+    }
+  ],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/qwen3-4b-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": true
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [
+    {
+      "name": "webllm/config",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/mlc-chat-config.json"
+      ]
+    },
+    {
+      "name": "webllm/wasm",
+      "urls": [
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm"
+      ]
+    },
+    {
+      "name": "webllm/model",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tokenizer.json",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tensor-cache.json",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_36.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_54.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_18.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_37.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_55.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_19.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_38.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_56.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_20.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_39.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_21.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_57.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_40.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_58.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_22.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_0.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_41.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_59.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_23.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_1.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_42.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_60.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_24.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_2.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_43.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_61.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_25.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_3.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_44.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_62.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_26.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_4.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_45.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_63.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_27.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_5.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_46.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_64.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_28.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_6.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_47.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_65.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_29.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_7.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_48.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_66.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_30.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_8.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_49.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_67.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_31.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_9.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_50.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_68.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_32.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_10.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_51.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_69.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_33.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_52.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_11.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_70.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_34.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_12.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_53.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_71.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_35.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_13.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_72.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_14.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_73.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_15.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_16.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_17.bin"
+      ]
+    }
+  ],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 38774,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 123953
+}

@@ -632,6 +632,71 @@ post-forward execution state. Do not claim either cause before measuring it.
 Final **36 focused tests**, syntax and boundary checks pass. No third GPU run,
 new CI matrix, runtime upgrade or live model switch; v0.5.132 stays unchanged.
 
+## Post-V1 — live versus owned buffer comparison
+
+Reused `deja "Qwen3"` session `01a06835-15f`, the `e87687b` handoff and the
+standalone/presort receipts above. The exact narrow recall query found no further
+session. The manual runner now accepts `--inspect-model-buffer` only alongside
+`--run --candidate-diagnostic --cache-only`, excluding `--observe-pre-sort`.
+
+The first eligible prefill installs bounded native GPU-error capture and a
+validation scope. Postprocessor CPU logits are copied; live tensor metadata,
+temperature and probabilities are captured before sorting. Only after the
+original sampled token and its existing diagnostic are read does the helper
+compute softmax using fresh owned logits and temperature tensors. It compares
+both results with the same Float64 reference, checks exact roundtrips/direct
+CPU bytes, synchronizes and disposes all extra tensors, and removes its listener.
+Source markers fail closed. Extra copying/compute can affect timing, allocation
+and subsequent tokens; the helper never substitutes a result into the sampler.
+
+[Actual receipt `2fd91ae0`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T01-37-00-799Z-2fd91ae0.json)
+contains one completed comparison for the exact `700078b2` request:
+
+| First-token allocation | Logical bytes | Backing bytes | Offset | In bounds |
+| --- | ---: | ---: | ---: | --- |
+| Live logits | 607,744 | 610,304 | 0 | Yes |
+| Fresh logits | 607,744 | 607,744 | 0 | Yes |
+| Live probabilities | 607,744 | 77,791,232 | 0 | Yes |
+| Fresh probabilities | 607,744 | 77,791,232 | 0 | Yes |
+| Each temperature | 4 | 4 | 0 | Yes |
+
+Original logits are all zero; the expected probability is 1/151936. Live
+probabilities are all zero. The fresh result has only three nonzero values,
+with first float bit patterns 0, 1, 2, 3, then zeros in the displayed examples.
+Neither distribution is normalized or matches the reference. Input/temperature
+roundtrips and direct CPU versus `toArray()` comparisons are bit-exact. The
+actual Float32 temperature is 0.699999988079071. All eight owned tensors were
+synchronized/disposed; the validation scope returned null and the bounded
+uncaptured-error list was empty during this first comparison. Its 25.352s
+elapsed time includes prefill and original sampling, **not just helper overhead**.
+
+The later request reports GPU device loss and fails after 62 observed sampling
+steps. No raw completed story is available; no Journal entry is written. The
+generic loss message does not distinguish memory pressure from another device
+constraint. The first-token error scope does not cover this later failure.
+Cached load 38.774s, failed write 65.965s, total 123.953s. Only three localhost
+bootstrap requests occurred, none were blocked, and worker/browser/server
+cleanup completed. The receipt correctly remains `complete: false` despite
+`comparisonCompleted: true` inside its diagnostic. No second GPU run this slice.
+
+Independent provenance review fetched the
+[exact npm 0.2.85 tarball](https://registry.npmjs.org/@mlc-ai/web-llm/-/web-llm-0.2.85.tgz)
+into memory and verified its SHA-512 against `package-lock.json`. Upstream,
+installed root and staged `lib/index.js` are byte-identical, 6,586,947 bytes,
+SHA-256 `341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c`.
+The observed command batching/uniform pool and direct-memory APIs are in that
+upstream artifact. No runtime install or package change was performed.
+
+Conclusion: fresh input alone does not repair this post-forward failure. Valid
+bounds do not prove valid storage lifetime; large backing allocations and the
+later device loss do not establish a specific allocator, shader, driver or
+out-of-memory cause. The next bounded check should stop at the first-token
+boundary and inspect dispatch/binding/storage behavior, with detailed device
+loss evidence, rather than repeating a full known-bad generation or speculatively
+clearing shared allocator state. All **43 focused tests**, syntax, whitespace and
+canonical-boundary checks pass. No production changes, candidate promotion,
+new model download or CI matrix; live v0.5.132 remains unchanged.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

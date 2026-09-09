@@ -2,7 +2,33 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — standalone computation passes; live probabilities fail before sorting
+## Current slice — fresh input does not repair post-forward computation
+
+The queued first-token comparison is implemented as the opt-in, cache-only
+`--inspect-model-buffer` diagnostic. Actual `2fd91ae0` completed the comparison:
+both live and fresh-owned-input softmax results are invalid after model execution,
+despite exact input/temperature transfers, matching direct CPU bytes and valid
+logical-versus-backing buffer bounds. Both probability allocations are 77,791,232
+bytes for 607,744 logical bytes; this is an observation, not proof of an allocator
+bug. The first-token validation scope and uncaptured-error list are empty.
+
+The later request lost its GPU device after 62 observed samples and returned no
+completed story. Cached load 38.774s, failed write 65.965s, total 123.953s. The
+receipt remains **complete: false**, with all owned resources closed and no
+external requests or Journal writes. No second GPU run was attempted this slice.
+Copying input alone is not a remedy; the precise runtime/device cause is unknown.
+Independent provenance checks verify both installed runtime copies exactly match
+the pinned npm artifact. All **43 focused tests** pass; live v0.5.132 is unchanged.
+[Evidence and interpretation](docs/STORYTELLING_FINISH.md#post-v1--live-versus-owned-buffer-comparison)
+retain the failed request separately from its completed comparison.
+
+**Next:** investigate the post-forward execution/storage path with a bounded
+first-token-only check, including dispatch/binding evidence and detailed device
+loss reporting. Do not repeat a full known-bad 64-token generation, clear shared
+allocator state speculatively, or switch the live model. Stronger prose is still
+unfinished; P1-B/P2/P3 remain deferred.
+
+## Previous slice — standalone computation passes; live probabilities fail before sorting
 
 Known-input softmax check `7b932262` passes both full-vocabulary cases: uniform
 and nonuniform logits, correct normalization and maxima, exact input/temperature
