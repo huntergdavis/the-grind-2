@@ -29,10 +29,14 @@ Immediate queue:
    travelling companion and recorded former companions easier to inspect with
    compact bond/victory evidence and journey history. Reuse canonical facts;
    do not pretend that a bond number is an inferred private emotion.
-4. **Now — V04.16d1c, paid inn rest (v0.5.142).** A recorded town inn becomes a
+4. **Delivered — V04.16d1c, paid inn rest (v0.5.142).** A recorded town inn becomes a
    real autonomous service: five gold for full health/mana when a fit solo hero
    has depleted mana. Quiet, building-specific staging; no new panel or menu.
-5. **Afterward — deeper autonomous encounters and changing places.** Council selects
+5. **Next — V04.2b subset, Read the Guard.** Make the actor's finishing-blow
+   estimate respect visible Guard and the existing damage/status rules. Reuse
+   combat animation, status cues and decision records; no RNG foresight, new
+   panel, save field or ledger event. Reproduce false-finisher cases first.
+6. **Afterward — deeper autonomous encounters and changing places.** Council selects
    the smallest playable mechanics from the existing candidates, meeting actual
    save/event dependencies as part of each slice, not as a separate research
    programme. Chronicle Plates, field research, mastery sidegrades, settlement
@@ -192,7 +196,25 @@ building-bound staging, paused-save immutability and real reload pass. The next
 actual automatic command incurs no repeat charge and clears the inn markers.
 No inference, external requests or browser errors. Root and council reviewed
 1280/320 Focus captures: lit recorded inn, bed sign, resting equipped hero, full
-health/mana and no panel obscuring the scene. Public deployment is pending.
+health/mana and no panel obscuring the scene. Feature commit `3d31d3e` passed
+the full check/build/deploy run `34399669958` in 5m6s. Public v0.5.142, its service
+worker and all six inn-related depth/core/render source modules match the commit.
+
+### Next slice — Read the Guard (V04.2b subset)
+
+The council identifies a gap between the actor's simplified finishing-blow
+estimate and existing combat damage rules. Share a conservative public damage
+range with the actual arithmetic, accounting for Guard, Weakening, ability level,
+piercing and start-turn status changes. Never inspect future seeded variance.
+
+Acceptance: a guarded false finisher no longer overrides appropriate recovery
+or a lawful alternative; a real guaranteed finisher still works. The existing
+shield cue, Status/Chronicle decision explanation and actual HP receipt must
+agree. Preserve deterministic reload and bounded encounters. Expected scope:
+`src/depth/combat-damage.ts`, `src/core/actor-policy.ts`, focused unit checks and
+one real battle browser journey. This is public-state tactics, not learned
+weaknesses, Familiar Opening or the larger field-research system. Reproduce the
+specific mismatch before implementation; no protected ledger edits are needed.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
