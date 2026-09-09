@@ -6,6 +6,76 @@ The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
 
+## Post-V1 — grounded connected-budget qualification
+
+The explicit tool-only `--connected-budget` mode combines the reviewed compact
+grounded instruction with the completed-sentence budget across road → arrival
+→ farewell. The production-selected 0/1/2 memories come only from accepted
+prose generated in this run. Current action/consequence and memory messages
+remain verbatim; original production messages and reconstructed model turns
+stay in the receipt. This is a changed prompt/stopping trial, not an unchanged
+rerun of `85f1c932` or a promotion into live v0.5.133.
+
+Each write has numbered raw/budget/timing/settlement evidence, an 80s cooperative
+soft stop and the existing 90s hard deadline. One cached worker, at most three
+individually reviewed scenes and 10min total; no download or persistent Journal
+read/write. The first 64 worker sampling observations remain a global prefix,
+not all-token numerical coverage; native timing/counts cover each write.
+Default one-scene timing and budget transforms remain byte-identical to
+`d4bfd7e`. All 160 focused tests pass; seven affected checks pass again after
+binding submitted memory strings directly to verified continuity entries.
+
+The actual [7d4f2532 receipt](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T12-40-54-707Z-7d4f2532.json)
+finishes all three scenes and closes after review. Cached load takes 37.754s.
+
+| Scene | Actual earlier passages | Write | Completion |
+| --- | --- | --- | --- |
+| Road | 0 | 71.702s | Natural completion; two sentences |
+| Arrival | 1 | 73.813s | Natural completion; one sentence |
+| Farewell | 2 | 80.971s | Completed-sentence budget; one retained sentence |
+
+Independent receipt audit passes all **48 source hashes**, connected-memory
+provenance and numbered per-write evidence. Native prefill grows from
+142 / 243 / 348 input tokens (23.034s / 33.696s / 50.933s); completed decode
+steps are 51 / 46 / 36. The farewell stops at 80.823s and retains exactly
+99 characters, discarding only the 65-character unfinished continuation:
+` Her gaze lingers on the hollow where his hand once rested on her`.
+The raw stream is not truncated in the receipt.
+
+The global sampling prefix observes 64 of 136 native samples: 52 road, 12
+arrival and no farewell samples. Nine strict above-one probability warnings
+remain visible (maximum 1.0000028610229492); observed samples have no nonfinite
+values or out-of-range tokens. This does not qualify unobserved samples.
+External/blocked requests, runtime errors and device losses are all zero.
+
+Exact completed model prose, without corrections:
+
+**Road:** “Mara slows her step, hand brushing Rowan’s wrist, her breath hitching
+as if to hold back a question she can’t voice. Rowan’s fingers curl into the
+sleeve of their cloak, a silent plea for more than the next mile.”
+
+**Arrival:** “Mara’s fingers tighten around the strap of her satchel, her jaw
+softening as she turns to Rowan, whose hand still rests on her arm, a whisper
+of reassurance even through the ache in his bones.”
+
+**Farewell:** “Mara’s thumb traces the scar on Rowan’s forearm, a quiet
+acknowledgment of the road they’ve walked.”
+
+Council verdict: **execution passes; narrative qualification does not**.
+Concern → reassurance → remembrance is readable, but repeated hand gestures
+do not sufficiently develop the relationship. Cloak and satchel are unsupported
+props; “still rests” implies prior contact not established by the road passage.
+The scar invents injury history, not an explicit recovery. Farewell scarcely
+conveys separation, and both milestones depend on surrounding scene context.
+Continuing after the first grounding miss tested the remaining sequence; it did
+not approve that miss or turn the run into promotion evidence.
+
+Worker, context, browser and local server all close successfully. No entries
+appear in the matching 12:40:40–12:49:20 UTC kernel window. The live v0.5.133
+writer is unchanged. Next: one live farewell payoff tying remembered concern
+to letting go, with visible canonical departure staging—not another candidate
+model/prompt sweep.
+
 ## Post-V1 — live completed-sentence fallback
 
 **v0.5.133** ports the selector and successful interrupt/drain behavior proven

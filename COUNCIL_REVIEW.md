@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — connected execution succeeds, narrative qualification does not
+
+Reuses `8baf543`/`d4bfd7e`, the original `85f1c932` connected flow and the actual
+`66028840` stopping-policy proof. Local recall found no additional matching
+connected-budget session. Independent prompt/memory and runtime reviewers pass
+the new explicit mode, numbered per-scene evidence and unchanged old modes.
+One review gap—submitted memory strings not directly bound to verified earlier
+prose—was fixed and regression-tested before the GPU trial. All 160 focused
+checks pass; seven affected checks pass again after that correction.
+
+Actual `7d4f2532` finishes all three scenes with current-run 0/1/2 memories and
+successful per-write settlement. The first two results finish naturally; the
+farewell uses the completed-sentence budget. This is execution/provenance
+success, not a claim of natural EOS for every scene, a two-sentence pass, or
+all-token numerical qualification.
+
+Literary verdict: **do not promote**. Concern → reassurance → remembrance is
+readable, but repeated hand gestures stand in for a developed relationship.
+Cloak/satchel are unsupported props; “still rests” implies an unestablished
+earlier contact. The scar invents injury history, without explicitly asserting
+healing. Arrival and farewell depend heavily on the surrounding scene to convey
+their milestones. These misses remain visible in the
+[exact passages and receipt](docs/STORYTELLING_FINISH.md#post-v1--grounded-connected-budget-qualification).
+
+Next: a visible live-writer farewell payoff that develops remembered concern
+into letting go and clearly stages the canonical companion departure. Keep the
+current model; do not turn this result into another model/prompt/device matrix.
+
 ## Post-V1 council — live completed-sentence fallback (v0.5.133)
 
 Reuses `8baf543` and its actual `66028840` cached-model receipt; a fresh local

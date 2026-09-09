@@ -72,6 +72,37 @@ export function createWriteTimingDiagnostics(
   };
 }
 
+/** Each connected write owns a fresh bounded clock; GPU sampling remains globally capped. */
+export function createConnectedWriteTimingDiagnostics(
+  emit = record => console.debug('TG2_WRITE_TIMING ' + JSON.stringify(record)),
+  now = () => performance.now(), dispatchCount = () => null,
+  createTiming = createWriteTimingDiagnostics,
+) {
+  let story = 0, active = null, failed = false;
+  return {
+    worker(phase, text, error) {
+      if (phase === 'write-start') {
+        if (failed || active !== null || story >= 3) {
+          const failure = new Error('Connected timing permits only three sequential successful writes');
+          active?.worker('observer-error', undefined, failure);
+          failed = true;
+          throw failure;
+        }
+        const index = ++story;
+        active = createTiming(record => emit({ ...record, story: index }), now, dispatchCount);
+      }
+      if (active === null || failed) return;
+      active.worker(phase, text, error);
+      if (phase === 'write-success' || phase === 'write-error') {
+        failed = phase === 'write-error';
+        active = null;
+      }
+    },
+    begin(phase, pipeline) { if (!failed) active?.begin(phase, pipeline); },
+    end(phase, pipeline) { if (!failed) active?.end(phase, pipeline); },
+  };
+}
+
 /** Missing observer hooks or observer failures do not replace the real worker's result/error. */
 export function noteWriteTimingWorker(phase, text, error, host = globalThis) {
   try { Reflect.get(host, '__tg2WriteTiming')?.worker(phase, text, error); }
@@ -117,7 +148,7 @@ export function isCompleteWriteTiming(records) {
       && returned[0].sequence > interrupt[0].sequence && returned[0].sequence < drained.sequence));
 }
 
-export function instrumentWriteTimingRuntime(source) {
+export function instrumentWriteTimingRuntime(source, { connected = false } = {}) {
   const prefill = 'yield __await(this.prefill(request, pipeline, chatConfig, genConfig));';
   const decode = 'yield __await(this.decode(pipeline, genConfig));';
   if (!source.includes('const __tg2ShaderRepair =') || !source.includes('const __tg2CompleteStory =')
@@ -127,8 +158,10 @@ export function instrumentWriteTimingRuntime(source) {
   for (const marker of [prefill, decode]) {
     if (source.split(marker).length !== 2) throw new Error('Write timing runtime source no longer matches');
   }
-  const setup = `const __tg2WriteTiming = (${createWriteTimingDiagnostics.toString()})(undefined, undefined,
-  () => __tg2SubmissionDiagnostics.snapshot().encodedDispatches);
+  const factory = connected ? createConnectedWriteTimingDiagnostics : createWriteTimingDiagnostics;
+  const dependency = connected ? `, (${createWriteTimingDiagnostics.toString()})` : '';
+  const setup = `const __tg2WriteTiming = (${factory.toString()})(undefined, undefined,
+  () => __tg2SubmissionDiagnostics.snapshot().encodedDispatches${dependency});
 if (Reflect.has(globalThis, '__tg2WriteTiming')) throw new Error('Write timing runtime hook already exists');
 Reflect.set(globalThis, '__tg2WriteTiming', __tg2WriteTiming);
 `;
@@ -168,12 +201,12 @@ export function instrumentWriteTimingWorker(source) {
     .replace(markers[9], 'if (request.type === "write") { __tg2NoteWriteTiming("write-error", undefined, error); __tg2FinishCompleteStoryWorker(false, error); }');
 }
 
-export function writeTimingPlugin(repo, runtimePaths) {
+export function writeTimingPlugin(repo, runtimePaths, options) {
   const runtimes = new Set(runtimePaths), worker = resolve(repo, 'src/narrator/creative-writer.worker.ts');
   return { name: 'tg2-isolated-write-timing', enforce: 'pre',
     transform(source, id) {
       const path = id.split('?')[0];
-      if (runtimes.has(path)) return { code: instrumentWriteTimingRuntime(source), map: null };
+      if (runtimes.has(path)) return { code: instrumentWriteTimingRuntime(source, options), map: null };
       return path === worker ? { code: instrumentWriteTimingWorker(source), map: null } : null;
     } };
 }

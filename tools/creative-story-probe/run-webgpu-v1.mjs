@@ -26,6 +26,8 @@ import { arrivalOutputShapePolicy, inspectArrivalOutputShape } from './arrival-o
 import { arrivalGrammarPlugin, instrumentArrivalGrammarRuntime, isCompleteArrivalGrammarEvidence } from './arrival-grammar-adapter.mjs';
 import { sentenceBudgetPolicy } from './sentence-budget.mjs';
 import { sentenceBudgetPlugin, isCompleteSentenceBudgetEvidence } from './sentence-budget-adapter.mjs';
+import { connectedBudgetPolicy, buildConnectedBudgetMessages } from './connected-budget.mjs';
+import { hasCompleteConnectedBudgetEvidence } from './connected-budget-evidence.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -46,6 +48,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const connectedBudget = args.includes('--connected-budget');
   const sentenceBudget = args.includes('--sentence-budget');
   const sentenceGrammar = args.includes('--sentence-grammar');
   const groundedArrival = args.includes('--grounded-arrival');
@@ -81,6 +84,7 @@ export function parseWebgpuV1Arguments(args) {
     || completeStory && !submitEachDispatch
     || repairSoftmaxRace && !completeStory
     || connectedStory && !repairSoftmaxRace
+    || connectedBudget && (!connectedStory || replayArrival || sentenceBudget || sentenceGrammar)
     || replayArrival && (!repairSoftmaxRace || connectedStory)
     || compactArrival && !replayArrival
     || groundedArrival && !compactArrival
@@ -89,24 +93,30 @@ export function parseWebgpuV1Arguments(args) {
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--replay-arrival', '--compact-arrival', '--grounded-arrival', '--sentence-grammar', '--sentence-budget', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story | --replay-arrival [--compact-arrival [--grounded-arrival [--sentence-grammar | --sentence-budget]]]]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--connected-budget', '--replay-arrival', '--compact-arrival', '--grounded-arrival', '--sentence-grammar', '--sentence-budget', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story [--connected-budget] | --replay-arrival [--compact-arrival [--grounded-arrival [--sentence-grammar | --sentence-budget]]]]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
   return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory,
-    replayArrival, compactArrival, groundedArrival, sentenceGrammar, sentenceBudget, cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
+    replayArrival, compactArrival, groundedArrival, sentenceGrammar, sentenceBudget, ...(connectedBudget ? { connectedBudget: true } : {}), cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 /** Stop before authorizing another scene if admission or current-run memory provenance is missing. */
-export function hasConnectedStoryProgress(outputs) {
+export function hasConnectedStoryProgress(outputs, { connectedBudget = false } = {}) {
   if (!Array.isArray(outputs) || outputs.length < 1 || outputs.length > 3) return false;
   return outputs.every((output, index) => {
     if (output?.status !== 'completed' || output.acceptedNewStory !== true || output.archived !== true
       || output.characterAnchorPreserved !== true || output.connectedSequence !== true
       || output.journalScope !== 'owned-memory-only' || output.journal?.persistent !== false
-      || output.promptMode !== 'unmodified-production-builder' || output.productionChatReset !== true
+      || output.promptMode !== (connectedBudget ? 'grounded-connected-budget' : 'unmodified-production-builder') || output.productionChatReset !== true
       || typeof output.cleaned !== 'string' || output.cleaned.length === 0
       || output.expectedActualMemories !== index || output.continuity?.length !== index
       || output.actualMemorySourceEventIds?.length !== index || output.journal.entries?.length !== index + 1) return false;
+    if (connectedBudget) {
+      try {
+        if (JSON.stringify(output.connectedBudgetPolicy) !== JSON.stringify(connectedBudgetPolicy)
+          || JSON.stringify(output.messages) !== JSON.stringify(buildConnectedBudgetMessages(output, output.originalMessages))) return false;
+      } catch { return false; }
+    }
     for (let earlier = 0; earlier < index; earlier++) {
       const previous = outputs[earlier], memory = output.continuity[earlier];
       if (!memory || memory.sourceEventId !== previous.job?.eventId
@@ -115,6 +125,9 @@ export function hasConnectedStoryProgress(outputs) {
         || memory.scene?.location !== previous.facts?.location || memory.scene?.headline !== previous.facts?.headline
         || typeof memory.text !== 'string' || memory.text.length === 0
         || !previous.cleaned.replace(/[\r\n\t]+/gu, ' ').trim().includes(memory.text)) return false;
+      if (connectedBudget && output.originalMessages[earlier + 1]?.content !==
+        'Earlier imagined passage (not game facts):\n' + JSON.stringify({ text: memory.text.trim(),
+          scene: { location: memory.scene.location, headline: memory.scene.headline } })) return false;
     }
     return outputs.slice(0, index + 1).every(previous => output.journal.entries.some(entry =>
       entry.sourceEventId === previous.job?.eventId && entry.campaignId === previous.job?.campaignId
@@ -146,8 +159,10 @@ export function hasCompleteSentenceBudgetArrivalEvidence(report) {
 }
 
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, replayArrival, compactArrival, groundedArrival, sentenceGrammar, sentenceBudget, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, replayArrival, compactArrival, groundedArrival, sentenceGrammar, sentenceBudget, connectedBudget = false, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
+  const useSentenceBudget = sentenceBudget || connectedBudget;
+  const observeWriteTiming = replayArrival || connectedBudget;
   const requestedArrivalPolicy = groundedArrival ? arrivalGroundingPolicy : arrivalContextPolicy;
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
@@ -164,7 +179,7 @@ async function run() {
     cacheOnlyRestore: cacheOnly,
     ...(compactArrival ? { arrivalContextPolicy } : {}),
     ...(groundedArrival ? { arrivalGroundingPolicy } : {}),
-    ...(sentenceBudget ? { sentenceBudgetPolicy, sentenceBudgetObservations: [],
+    ...(useSentenceBudget ? { sentenceBudgetPolicy, sentenceBudgetObservations: [],
       sentenceBudgetComparison: { unconstrained: 'webgpu-candidate-report-2026-09-09T08-35-32-034Z-b9cd592b.json',
         rejectedGrammar: 'webgpu-candidate-report-2026-09-09T09-41-28-959Z-870ed082.json' } } : {}),
     ...(sentenceGrammar ? { arrivalOutputShapePolicy, arrivalGrammarObservations: [],
@@ -175,7 +190,8 @@ async function run() {
       receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', scene: 2,
       lifecycle: compactArrival ? requestedArrivalPolicy.lifecycle : 'fresh-worker-exact-messages-not-original-sequence',
       history: 'actual-recorded-road-prose', noJournalWrites: true,
-    }, writeTimingPolicy: { maximumRecords: 128, maximumRecordChars: 4000,
+    } } : {}),
+    ...(observeWriteTiming ? { writeTimingPolicy: { maximumRecords: connectedBudget ? 384 : 128, maximumRecordChars: 4000,
       boundaries: 'worker-reset-prefill-decode-interrupt-drain-settlement',
       extraGpuSynchronization: false, changesPromptOrSampling: false,
       partialProgressIsNotCompletedProse: true, timingMayDiffer: true,
@@ -183,13 +199,16 @@ async function run() {
     ...(connectedStory ? { connectedSequence: { scenes: ['road', 'arrival', 'farewell'],
       maximumScenes: 3, modelLoads: 1, requiresIndividualApproval: true,
       history: 'actual-current-run-accepted-prose', journalScope: 'owned-memory-only',
-      productionMessagesUnchanged: true, numericalEvidenceScope: 'first-comparison-and-first-64-worker-samples' } } : {}),
+      productionMessagesUnchanged: !connectedBudget, numericalEvidenceScope: 'first-comparison-and-first-64-worker-samples' } } : {}),
+    ...(connectedBudget ? { connectedBudgetPolicy, connectedBudgetComparison: {
+      unfinishedSequence: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json',
+      retainedArrival: 'webgpu-candidate-report-2026-09-09T10-46-00-615Z-66028840.json' } } : {}),
     ...(repairSoftmaxRace ? { shaderRepairPolicy: { kind: 'single-writer-shared-scalars',
       changesShaders: true, exactSourceRequired: true, scalarStoreGuardsChanged: 2,
       changesPromptOrSampling: false, changesModelArtifacts: false, productionDefaultUnchanged: true },
       shaderRepairObservations: [] } : {}),
     ...(completeStory ? { completeStoryObservations: [], fullStoryTrial: { maximumScenes: connectedStory ? 3 : 1,
-      automaticFirstTokenStop: false, originalPromptAndSampling: !compactArrival, noJournalWrites: !connectedStory,
+      automaticFirstTokenStop: false, originalPromptAndSampling: !compactArrival && !connectedBudget, noJournalWrites: !connectedStory,
       ...(connectedStory ? { journalScope: 'owned-memory-only' } : {}) } } : {}),
     ...(submitEachDispatch ? { submissionPolicy: { kind: 'per-dispatch', changesShaders: false,
       changesScores: false, changesQueueBoundaries: true }, submissionObservations: [] } : {}),
@@ -204,7 +223,7 @@ async function run() {
       emptyThinkingHeaderTokenIds: webgpuV1.emptyThinkingHeaderTokenIds,
       productionDefaultUnchanged: true }, candidateRawOutputs: [] } : {}),
     ...(candidateDiagnostic ? { samplingDiagnostic: {
-      ...(connectedStory ? { requestOrigin: 'unmodified-production-builder-with-current-run-history',
+      ...(connectedStory ? { requestOrigin: connectedBudget ? 'grounded-compact-builder-with-current-run-history' : 'unmodified-production-builder-with-current-run-history',
         scope: 'first-64-worker-samples' } : replayArrival
         ? { receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', scene: 2,
           ...(compactArrival ? { promptVariant: requestedArrivalPolicy.variant } : {}) }
@@ -228,6 +247,7 @@ async function run() {
   if (groundedArrival) report.mode = 'qwen3-grounded-arrival-timing-cache-only';
   if (sentenceGrammar) report.mode = 'qwen3-grammar-grounded-arrival-cache-only';
   if (sentenceBudget) report.mode = 'qwen3-sentence-budget-grounded-arrival-cache-only';
+  if (connectedBudget) report.mode = 'qwen3-grounded-connected-budget-cache-only';
   const started = Date.now();
   await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
   let writes = Promise.resolve();
@@ -258,9 +278,12 @@ async function run() {
       'webgpu-submission-diagnostics.mjs',
       'webgpu-complete-story.mjs',
       ...(replayArrival ? ['webgpu-write-timing.mjs', 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json'] : []),
+      ...(connectedBudget ? ['connected-budget.mjs', 'connected-budget-evidence.mjs', 'webgpu-write-timing.mjs',
+        'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json',
+        'webgpu-candidate-report-2026-09-09T10-46-00-615Z-66028840.json'] : []),
       ...(compactArrival ? ['arrival-context.mjs'] : []),
       ...(groundedArrival ? ['arrival-grounding.mjs', 'webgpu-candidate-report-2026-09-09T07-48-52-881Z-c1a6da44.json'] : []),
-      ...(sentenceBudget ? ['sentence-budget.mjs', 'sentence-budget-adapter.mjs',
+      ...(useSentenceBudget ? ['sentence-budget.mjs', 'sentence-budget-adapter.mjs',
         'webgpu-candidate-report-2026-09-09T08-35-32-034Z-b9cd592b.json',
         'webgpu-candidate-report-2026-09-09T09-41-28-959Z-870ed082.json'] : []),
       ...(sentenceGrammar ? ['arrival-output-shape.mjs', 'arrival-grammar-adapter.mjs',
@@ -288,9 +311,9 @@ async function run() {
       if (candidateTransferCheck) adaptedWorker = transferDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
       if (candidateComputeCheck) adaptedWorker = computeDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
       if (completeStory) adaptedWorker = completeStoryPlugin(repo, []).transform(adaptedWorker, workerPath).code;
-      if (replayArrival) adaptedWorker = writeTimingPlugin(repo, []).transform(adaptedWorker, workerPath).code;
+      if (observeWriteTiming) adaptedWorker = writeTimingPlugin(repo, [], { connected: connectedBudget }).transform(adaptedWorker, workerPath).code;
       if (sentenceGrammar) adaptedWorker = arrivalGrammarPlugin(repo).transform(adaptedWorker, workerPath).code;
-      if (sentenceBudget) adaptedWorker = sentenceBudgetPlugin(repo).transform(adaptedWorker, workerPath).code;
+      if (useSentenceBudget) adaptedWorker = sentenceBudgetPlugin(repo, { connected: connectedBudget }).transform(adaptedWorker, workerPath).code;
       report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(adaptedWorker).digest('hex');
     }
     const diagnosticRuntimePaths = [resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(runtime, 'lib/index.js')];
@@ -304,7 +327,7 @@ async function run() {
       if (submitEachDispatch) diagnosticRuntime = instrumentSubmissionRuntime(diagnosticRuntime);
       if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime, { connected: connectedStory });
       if (repairSoftmaxRace) diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime);
-      if (replayArrival) diagnosticRuntime = instrumentWriteTimingRuntime(diagnosticRuntime);
+      if (observeWriteTiming) diagnosticRuntime = instrumentWriteTimingRuntime(diagnosticRuntime, { connected: connectedBudget });
       if (sentenceGrammar) diagnosticRuntime = instrumentArrivalGrammarRuntime(diagnosticRuntime);
       report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
     }
@@ -321,9 +344,9 @@ async function run() {
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
-        ...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(observeWriteTiming ? [writeTimingPlugin(repo, diagnosticRuntimePaths, { connected: connectedBudget })] : []),
         ...(sentenceGrammar ? [arrivalGrammarPlugin(repo, diagnosticRuntimePaths)] : []),
-        ...(sentenceBudget ? [sentenceBudgetPlugin(repo)] : []),
+        ...(useSentenceBudget ? [sentenceBudgetPlugin(repo, { connected: connectedBudget })] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
       worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
@@ -333,9 +356,9 @@ async function run() {
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
-        ...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(observeWriteTiming ? [writeTimingPlugin(repo, diagnosticRuntimePaths, { connected: connectedBudget })] : []),
         ...(sentenceGrammar ? [arrivalGrammarPlugin(repo, diagnosticRuntimePaths)] : []),
-        ...(sentenceBudget ? [sentenceBudgetPlugin(repo)] : []),
+        ...(useSentenceBudget ? [sentenceBudgetPlugin(repo, { connected: connectedBudget })] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
@@ -376,9 +399,9 @@ async function run() {
         ...(submitEachDispatch ? [['TG2_SUBMISSION_DIAGNOSTIC ', 'submissionObservations', 1, 4000]] : []),
         ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', connectedStory ? 3 : 1, 4000]] : []),
         ...(repairSoftmaxRace ? [['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]] : []),
-        ...(replayArrival ? [['TG2_WRITE_TIMING ', 'writeTimingObservations', 128, 4000]] : []),
+        ...(observeWriteTiming ? [['TG2_WRITE_TIMING ', 'writeTimingObservations', connectedBudget ? 384 : 128, 4000]] : []),
         ...(sentenceGrammar ? [['TG2_ARRIVAL_GRAMMAR ', 'arrivalGrammarObservations', 2, 2000]] : []),
-        ...(sentenceBudget ? [['TG2_SENTENCE_BUDGET ', 'sentenceBudgetObservations', 2, 8000]] : []),
+        ...(useSentenceBudget ? [['TG2_SENTENCE_BUDGET ', 'sentenceBudgetObservations', connectedBudget ? 3 : 2, 8000]] : []),
       ].find(([prefix]) => text.startsWith(prefix));
       if (dispatchEvent) {
         const [prefix, field, limit, maximumLength] = dispatchEvent;
@@ -425,7 +448,7 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (sentenceBudget ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1&sentence-budget=1' : sentenceGrammar ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1&sentence-grammar=1' : groundedArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1' : compactArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1' : replayArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1' : connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+    await page.goto(origin + (connectedBudget ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1&connected-budget=1' : sentenceBudget ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1&sentence-budget=1' : sentenceGrammar ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1&sentence-grammar=1' : groundedArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1' : compactArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1' : replayArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1' : connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
       { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
@@ -465,8 +488,8 @@ async function run() {
           usage: null, firstTokenMs: null, finishReason: null,
           generationMs: Date.now() - writeStarted, partialOutputAvailable: !productionMode, partialOutputOnly: !productionMode }));
       if (sentenceGrammar) report.outputShape = inspectArrivalOutputShape(result.raw);
-      if (sentenceBudget) {
-        const settlement = report.sentenceBudgetObservations[0];
+      if (useSentenceBudget) {
+        const settlement = report.sentenceBudgetObservations[connectedBudget ? index : 0];
         result.sentenceBudgetOutcome = { mode: settlement?.mode ?? 'unsettled',
           sentenceCount: settlement?.sentenceCount ?? null };
       }
@@ -502,10 +525,13 @@ async function run() {
       if (sentenceBudget && !hasCompleteSentenceBudgetArrivalEvidence(report)) {
         throw new Error('Sentence-budget arrival requires an unchanged completed prefix and successful stop/drain evidence');
       }
+      if (connectedBudget && !hasCompleteConnectedBudgetEvidence(report, index + 1)) {
+        throw new Error('Connected budget requires numbered per-scene timing, raw-prefix and settlement evidence');
+      }
       if (replayArrival && !isCompleteWriteTiming(report.writeTimingObservations)) {
         throw new Error('Arrival replay lacks complete write timing; partial progress is not settlement');
       }
-      if (connectedStory && !hasConnectedStoryProgress(report.outputs)) {
+      if (connectedStory && !hasConnectedStoryProgress(report.outputs, { connectedBudget })) {
         throw new Error('Connected story requires accepted current-run prose and exact memory provenance');
       }
       if (completeStory) report.dispatchDiagnostic.completedStory = true;

@@ -18,10 +18,18 @@ import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.
 import { groundArrivalMessages, arrivalGroundingPolicy } from './arrival-grounding.mjs';
 import { arrivalOutputShapePolicy, inspectArrivalOutputShape } from './arrival-output-shape.mjs';
 import { sentenceBudgetPolicy } from './sentence-budget.mjs';
+import { buildConnectedBudgetMessages, connectedBudgetPolicy } from './connected-budget.mjs';
 
 const parameters = new URLSearchParams(location.search);
 const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
 const connectedSequence = parameters.get('connected-story') === '1';
+const connectedBudget = parameters.get('connected-budget') === '1';
+if (connectedBudget && (!connectedSequence || !candidateDiagnostic || parameters.get('cache-only') !== '1'
+  || ['candidate-scenes', 'production-scenes', 'production-solo', 'replay-sequence', 'replay-farewell',
+    'replay-arrival', 'compact-arrival', 'grounded-arrival', 'sentence-grammar', 'sentence-budget']
+    .some((mode) => parameters.get(mode) === '1'))) {
+  throw new Error('Connected budget requires the isolated cache-only connected candidate, exclusive of other scene modes');
+}
 const replayArrival = parameters.get('replay-arrival') === '1';
 const compactArrival = parameters.get('compact-arrival') === '1';
 const groundedArrival = parameters.get('grounded-arrival') === '1';
@@ -128,15 +136,17 @@ globalThis.webgpuV1Probe = {
     if (continuity.length !== expectedMemories) throw new Error(`Expected ${expectedMemories} actual production-selected memories, received ${continuity.length}`);
     const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint: fixture.viewpoint, focus: fixture.focus });
     const productionMessages = buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus, continuity);
-    const messages = productionMode ? productionMessages
+    const messages = connectedBudget ? buildConnectedBudgetMessages(fixture, productionMessages) : productionMode ? productionMessages
       : buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus, productionMessages.slice(1, -1));
     prepared = { ...fixture, seed, continuity,
       ...(connectedSequence ? { connectedSequence: true, journalScope: 'owned-memory-only',
         expectedActualMemories: expectedMemories,
         actualMemorySourceEventIds: continuity.map((memory) => memory.sourceEventId) } : {}),
-      promptMode: productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
+      ...(connectedBudget ? { connectedBudgetPolicy, originalMessages: productionMessages } : {}),
+      promptMode: connectedBudget ? 'grounded-connected-budget' : productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
       writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
-      rawOutputKind: productionMode ? 'client-result-after-worker-sentence-stop' : 'full-proxy-stream',
+      rawOutputKind: connectedBudget ? 'client-result-after-cooperative-sentence-budget'
+        : productionMode ? 'client-result-after-worker-sentence-stop' : 'full-proxy-stream',
       isolatedSolo: productionSolo,
       // Actual worker conversation/overflow handling is not exposed by the client protocol.
       modelMessagesOrigin: candidateScenes ? 'reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker'

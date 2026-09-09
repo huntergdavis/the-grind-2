@@ -238,7 +238,7 @@ test('connected story requires the repaired cache-only chain and three individua
   }
   const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
   assert.ok(runner.includes('isCompleteConnectedStoryEvidence(report.completeStoryObservations, index + 1)'));
-  assert.ok(runner.includes('connectedStory && !hasConnectedStoryProgress(report.outputs)'));
+  assert.ok(runner.includes('connectedStory && !hasConnectedStoryProgress(report.outputs, { connectedBudget })'));
   assert.ok(runner.includes('connectedStory && report.outputs.length !== plannedScenes'));
   assert.ok(runner.includes("report.phase = 'closed-before-connected-sequence'"));
   assert.ok(runner.includes('/?candidate-diagnostic=1&cache-only=1&connected-story=1'));
@@ -257,10 +257,10 @@ test('arrival replay requires the repaired offline chain and preserves a single-
   }
   assert.equal(webgpuCandidate.generationDeadlineMs, 90_000);
   const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
-  assert.equal(runner.split('...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : [])').length - 1, 2);
-  assert.ok(runner.includes('if (replayArrival) adaptedWorker = writeTimingPlugin(repo, []).transform(adaptedWorker, workerPath).code;'));
-  assert.ok(runner.includes('if (replayArrival) diagnosticRuntime = instrumentWriteTimingRuntime(diagnosticRuntime);'));
-  assert.ok(runner.includes("['TG2_WRITE_TIMING ', 'writeTimingObservations', 128, 4000]"));
+  assert.equal(runner.split('...(observeWriteTiming ? [writeTimingPlugin(repo, diagnosticRuntimePaths, { connected: connectedBudget })] : [])').length - 1, 2);
+  assert.ok(runner.includes('if (observeWriteTiming) adaptedWorker = writeTimingPlugin(repo, [], { connected: connectedBudget }).transform(adaptedWorker, workerPath).code;'));
+  assert.ok(runner.includes('if (observeWriteTiming) diagnosticRuntime = instrumentWriteTimingRuntime(diagnosticRuntime, { connected: connectedBudget });'));
+  assert.ok(runner.includes("['TG2_WRITE_TIMING ', 'writeTimingObservations', connectedBudget ? 384 : 128, 4000]"));
   assert.ok(runner.includes('isCompleteWriteTiming(report.writeTimingObservations)'));
   assert.ok(runner.includes('/?candidate-diagnostic=1&cache-only=1&replay-arrival=1'));
   assert.ok(runner.includes("'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json'"));

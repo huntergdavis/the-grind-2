@@ -39,7 +39,7 @@ export function isCompleteSentenceBudgetEvidence(records, output, candidateRawOu
 }
 
 export function instrumentSentenceBudgetWorker(source,
-  repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..')) {
+  repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..'), { connected = false } = {}) {
   const markers = [
     'let boundedMessages = messages;',
     'let text = "", interrupted = false;',
@@ -62,7 +62,7 @@ import { completedCreativeStorySentences as __tg2CompletedBudgetSentences } from
 const __tg2EmitSentenceBudgetDecision = ${emitSentenceBudgetDecision.toString()};
 let __tg2SentenceBudgetDecision = null;
 `;
-  return imports + source
+  let transformed = imports + source
     .replace(markers[0], `const __tg2SentenceBudgetStarted = performance.now();
   __tg2SentenceBudgetDecision = null;
   ` + markers[0])
@@ -98,12 +98,23 @@ let __tg2SentenceBudgetDecision = null;
         stopDiscardedCharacters: __tg2SentenceBudgetSelection?.discardedCharacters ?? null,
       };`)
     .replace(markers[7], markers[7] + '\n      __tg2EmitSentenceBudgetDecision(__tg2SentenceBudgetDecision);\n      __tg2SentenceBudgetDecision = null;');
+  if (connected) {
+    transformed = transformed
+      .replace('let __tg2SentenceBudgetDecision = null;', 'let __tg2SentenceBudgetDecision = null, __tg2SentenceBudgetStory = 0;')
+      .replace('const __tg2SentenceBudgetStarted = performance.now();', `if (__tg2SentenceBudgetStory >= 3) throw new Error("Connected sentence budget permits only three writes");
+  const __tg2CurrentBudgetStory = ++__tg2SentenceBudgetStory;
+  const __tg2SentenceBudgetStarted = performance.now();`)
+      .replace('JSON.stringify({ raw: __tg2SentenceBudgetRaw,', 'JSON.stringify({ story: __tg2CurrentBudgetStory, raw: __tg2SentenceBudgetRaw,')
+      .replace("kind: 'sentence-budget-decision', stage: 'worker-success-after-stream-drain',",
+        "kind: 'sentence-budget-decision', story: __tg2CurrentBudgetStory, stage: 'worker-success-after-stream-drain',");
+  }
+  return transformed;
 }
 
-export function sentenceBudgetPlugin(repo) {
+export function sentenceBudgetPlugin(repo, options) {
   const worker = resolve(repo, 'src/narrator/creative-writer.worker.ts');
   return { name: 'tg2-isolated-cooperative-sentence-budget', enforce: 'pre',
     transform(source, id) {
-      return id.split('?')[0] === worker ? { code: instrumentSentenceBudgetWorker(source, repo), map: null } : null;
+      return id.split('?')[0] === worker ? { code: instrumentSentenceBudgetWorker(source, repo, options), map: null } : null;
     } };
 }

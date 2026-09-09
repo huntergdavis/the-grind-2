@@ -16,6 +16,9 @@ const adapted = instrumentWriteTimingWorker(instrumentCompleteStoryWorker(adaptC
 const transformed = instrumentSentenceBudgetWorker(adapted);
 const compiled = (await transformWithOxc(transformed.replaceAll('import.meta.env.VITE_CREATIVE_WRITER_DIAGNOSTICS', '"0"'),
   workerPath)).code.replace(/^import .+;\n/gmu, '');
+const connectedTransformed = instrumentSentenceBudgetWorker(adapted, process.cwd(), { connected: true });
+const connectedCompiled = (await transformWithOxc(connectedTransformed.replaceAll('import.meta.env.VITE_CREATIVE_WRITER_DIAGNOSTICS', '"0"'),
+  workerPath)).code.replace(/^import .+;\n/gmu, '');
 const header = '<think>\n\n</think>\n\n';
 let server, production;
 before(async () => {
@@ -26,7 +29,7 @@ before(async () => {
 });
 after(async () => { await server?.close(); });
 
-function fakeWorker({ attempts, resetDelays = [], interruptError = false, settlementError = false } = {}) {
+function fakeWorker({ attempts, resetDelays = [], interruptError = false, settlementError = false, connected = false } = {}) {
   const events = [], replies = [], requests = [], calls = { interrupts: 0, drains: 0, resets: 0, selectors: 0 };
   let clock = 0, handler, requestCount = 0;
   const workerScope = { addEventListener(_type, callback) { handler = callback; }, postMessage(reply) { replies.push(reply); } };
@@ -46,8 +49,9 @@ function fakeWorker({ attempts, resetDelays = [], interruptError = false, settle
       }
     } },
   };
-  assert.doesNotMatch(compiled, /^import /mu);
-  const controller = new Function(...Object.keys(bindings), compiled + '\nreturn { setModel(value) { model = value; } };')(...Object.values(bindings));
+  const code = connected ? connectedCompiled : compiled;
+  assert.doesNotMatch(code, /^import /mu);
+  const controller = new Function(...Object.keys(bindings), code + '\nreturn { setModel(value) { model = value; } };')(...Object.values(bindings));
   const model = { async resetChat() { clock += resetDelays[calls.resets++] ?? 0; },
     async interruptGenerate() { calls.interrupts++; if (interruptError) throw Error('Original interrupt failure'); },
     chat: { completions: { async create(request) {
@@ -96,6 +100,43 @@ test('real transformed worker crosses 79999/80000 once, freezes the prefix, and 
     { rawTruncated: true }, { discardedCharacters: 0 }, { stopOriginalCharacters: 1 }]) {
     assert.equal(isCompleteSentenceBudgetEvidence([{ ...decision, ...change }], output, worker.raw()), false);
   }
+});
+
+test('connected budget numbers three writes and raw captures consistently without counting direct requests', async () => {
+  const passages = ['Mara steadied Rowan.', 'Mara reached Greyford.', 'Mara let Rowan go.'];
+  const worker = fakeWorker({ connected: true, attempts: passages.map(text => [
+    { advance: 80000, text: header + text + ' Anxious' }, { advance: 100, text: ' thoughts lingered.' },
+  ]) });
+  for (let index = 0; index < 3; index++) {
+    await worker.write(undefined, index + 1); await worker.direct();
+    const decision = worker.decisions()[index], raw = worker.raw()[index];
+    assert.equal(decision.story, index + 1); assert.equal(raw.story, index + 1);
+    assert.equal(decision.elapsedMs, 80100); assert.equal(decision.stopElapsedMs, 80000);
+    assert.equal(isCompleteSentenceBudgetEvidence([decision], { status: 'completed', raw: passages[index] }, [raw]), true);
+  }
+  assert.equal(worker.calls.interrupts, 3); assert.equal(worker.calls.drains, 3);
+  const requestCount = worker.requests.length, resetCount = worker.calls.resets;
+  await worker.write(undefined, 4);
+  assert.equal(worker.replies.at(-1).type, 'error');
+  assert.equal(worker.requests.length, requestCount); assert.equal(worker.calls.resets, resetCount);
+  assert.equal(worker.decisions().length, 3); assert.equal(worker.raw().length, 3);
+  assert.equal(sentenceBudgetPlugin(process.cwd(), { connected: true }).transform(adapted, workerPath).code, connectedTransformed);
+  assert.equal(instrumentSentenceBudgetWorker(adapted, process.cwd(), { connected: false }), transformed);
+});
+
+test('connected budget preserves write ordinals across context retries and never emits success for failed drainage', async () => {
+  const overflow = Object.assign(Error('Context does not fit'), { name: 'ContextWindowSizeExceededError' });
+  const worker = fakeWorker({ connected: true, resetDelays: [50000, 30000], attempts: [overflow,
+    [{ text: header + 'Mara steadied Rowan. Anxious' }, { advance: 100, text: ' thoughts lingered.' }],
+    [{ advance: 80000, text: header + 'Mara reached Greyford. Anxious' }, { error: 'Original drain failure' }],
+  ] });
+  await worker.write([{ role: 'system', content: 'Current facts win.' },
+    { role: 'user', content: production.creativeStoryMemoryPrefix + '"Earlier prose."' },
+    { role: 'user', content: 'Current scene.' }]);
+  assert.equal(worker.decisions()[0].story, 1); assert.equal(worker.raw()[0].story, 1);
+  await worker.write(undefined, 2);
+  assert.equal(worker.replies.at(-1).type, 'error');
+  assert.equal(worker.decisions().length, 1); assert.equal(worker.raw().length, 1);
 });
 
 test('normal two-sentence and maximum-length stops take priority over the optional selector', async () => {

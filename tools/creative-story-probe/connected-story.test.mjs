@@ -6,6 +6,7 @@ import { createServer } from 'vite';
 import { createWebgpuV1ProductionCases } from './webgpu-v1-cases.mjs';
 import { createSuccessiveStoryCases, isExactRecalledPassage } from './successive-story-cases.mjs';
 import { buildEmotionalSceneMessages } from './emotional-scene-messages.mjs';
+import { buildConnectedBudgetMessages, connectedBudgetPolicy } from './connected-budget.mjs';
 import { webgpuV1 as baselineWebgpuV1 } from './webgpu-v1-config.mjs';
 import { webgpuCandidate, creativeWriterModelId, creativeWriterModelRevision,
   creativeWriterModelUrl, creativeWriterModelLib } from './webgpu-candidate-config.mjs';
@@ -16,6 +17,7 @@ const source = await readFile(probeUrl, 'utf8');
 const failedCandidate = JSON.parse(await readFile(new URL('./webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', import.meta.url), 'utf8'));
 const failedSequence = JSON.parse(await readFile(new URL('./webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json', import.meta.url), 'utf8'));
 const connectedQuery = '?candidate-diagnostic=1&cache-only=1&connected-story=1';
+const connectedBudgetQuery = connectedQuery + '&connected-budget=1';
 // Mocked worker replies are unit-test data, never candidate quality evidence or probe templates.
 const replies = [
   'Mara watched Rowan with quiet concern. Hope kept her beside him on the road.',
@@ -40,7 +42,8 @@ function createProbe(query = connectedQuery, responses = replies) {
   const calls = { loads: [], writes: [], workers: 0, terminated: 0 };
   const bindings = {
     ...production, createWebgpuV1ProductionCases, createSuccessiveStoryCases, isExactRecalledPassage,
-    buildEmotionalSceneMessages, baselineWebgpuV1, webgpuCandidate, creativeWriterModelId,
+    buildEmotionalSceneMessages, buildConnectedBudgetMessages, connectedBudgetPolicy,
+    baselineWebgpuV1, webgpuCandidate, creativeWriterModelId,
     creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib, failedCandidate, failedSequence,
     location: { search: query }, globalThis: sandbox,
     caches: { keys: async () => [] },
@@ -79,6 +82,76 @@ test('connected mode requires the isolated cached candidate and excludes other s
       'production-solo', 'replay-sequence', 'replay-farewell'].map((mode) => `${connectedQuery}&${mode}=1`)]) {
     assert.throws(() => createProbe(query), /require|exclusive/u, query);
   }
+});
+
+test('connected budget requires all isolated candidate flags and excludes every other scene or budget mode', () => {
+  for (const required of ['candidate-diagnostic', 'cache-only', 'connected-story']) {
+    assert.throws(() => createProbe(connectedBudgetQuery.replace(required + '=1', required + '=0')), /require|exclusive/u, required);
+  }
+  for (const conflicting of ['candidate-scenes', 'production-scenes', 'production-solo', 'replay-sequence',
+    'replay-farewell', 'replay-arrival', 'compact-arrival', 'grounded-arrival', 'sentence-grammar', 'sentence-budget']) {
+    assert.throws(() => createProbe(`${connectedBudgetQuery}&${conflicting}=1`), /require|exclusive/u, conflicting);
+  }
+});
+
+test('grounded connected budget keeps 0 -> 1 -> 2 actual production-selected memories and exact original-message provenance', async () => {
+  const { probe, calls } = createProbe(connectedBudgetQuery);
+  await probe.load();
+  const fixtures = createWebgpuV1ProductionCases().slice(0, 3);
+  const outputs = [];
+  for (const [index, fixture] of fixtures.entries()) {
+    const prepared = probe.prepare(index);
+    assert.equal(prepared.promptMode, 'grounded-connected-budget');
+    assert.equal(prepared.rawOutputKind, 'client-result-after-cooperative-sentence-budget');
+    assert.deepEqual(prepared.connectedBudgetPolicy, connectedBudgetPolicy);
+    assert.equal(prepared.connectedSequence, true);
+    assert.equal(prepared.expectedActualMemories, index);
+    assert.equal(prepared.journalScope, 'owned-memory-only');
+    assert.deepEqual(prepared.continuity.map(({ text }) => text), outputs.map(({ cleaned }) => cleaned));
+    assert.deepEqual(prepared.actualMemorySourceEventIds, fixtures.slice(0, index).map(({ job }) => job.eventId));
+    const original = production.buildCreativeStoryMessages(fixture.job, prepared.seed, fixture.viewpoint, fixture.focus, prepared.continuity);
+    assert.deepEqual(prepared.originalMessages, original);
+    assert.deepEqual(prepared.messages, buildConnectedBudgetMessages(fixture, original));
+    assert.deepEqual(prepared.messages.slice(1, -1), original.slice(1, -1));
+    assert.deepEqual(prepared.modelMessages.slice(1, -1), production.buildCreativeWriterConversation(original).slice(1, -1));
+    const output = await probe.write(index);
+    assert.equal(output.raw, replies[index]);
+    assert.equal(output.acceptedNewStory, true);
+    assert.equal(output.archived, true);
+    assert.equal(output.journal.persistent, false);
+    assert.deepEqual(output.journal.entries.map(({ text }) => text), replies.slice(0, index + 1).reverse());
+    outputs.push(output);
+  }
+  assert.deepEqual(calls.loads, [{ cacheOnly: true }]);
+  assert.equal(calls.workers, 1);
+  assert.deepEqual(calls.writes, outputs.map(({ messages }) => messages));
+  assert.throws(() => probe.prepare(3), /selected ordered/u);
+  await assert.rejects(probe.write(3), /Prepare each scene once/u);
+  probe.dispose();
+  assert.equal(calls.terminated, 1);
+  const fresh = createProbe(connectedBudgetQuery);
+  await fresh.probe.load();
+  assert.deepEqual(fresh.probe.prepare(0).continuity, []);
+  assert.equal(fresh.calls.writes.length, 0);
+  fresh.probe.dispose();
+});
+
+test('grounded connected budget cannot replace a failed, unanchored, or repeated memory with saved prose', async () => {
+  for (const response of [new Error('Mocked worker failure'), 'A stranger watched the road.']) {
+    const { probe } = createProbe(connectedBudgetQuery, [response]);
+    await probe.load(); probe.prepare(0);
+    const output = await probe.write(0);
+    assert.ok(output.status === 'failed' || !output.acceptedNewStory);
+    assert.throws(() => probe.prepare(1), /Expected 1 actual production-selected memories, received 0/u);
+    probe.dispose();
+  }
+  const { probe } = createProbe(connectedBudgetQuery, [replies[0], replies[0]]);
+  await probe.load(); probe.prepare(0); await probe.write(0); probe.prepare(1);
+  const repeated = await probe.write(1);
+  assert.equal(repeated.recalledPassageRepeat, true);
+  assert.equal(repeated.archived, false);
+  assert.throws(() => probe.prepare(2), /Expected 2 actual production-selected memories, received 1/u);
+  probe.dispose();
 });
 
 test('three actual current-run replies supply 0 -> 1 -> 2 production memories, never a fourth scene', async () => {

@@ -2,7 +2,31 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — completed-sentence fallback in the live narrator (v0.5.133)
+## Current slice — connected sequence completes; stronger writer not promoted
+
+The new opt-in `--connected-budget` mode combines compact grounded prompts with
+the completed-sentence budget on one cached worker. Actual `7d4f2532` completes
+road → arrival → farewell in **71.702s / 73.813s / 80.971s**, feeding its actual
+0 → 1 → 2 earlier passages forward. Farewell retains one completed sentence
+through the soft-budget fallback. **160 focused checks pass**; the final seven
+affected checks pass again after a council-requested memory-provenance fix.
+
+This is a successful connected execution, **not literary qualification**.
+Concern develops into reassurance and remembrance, but cloak/satchel/scar
+details are unsupported, and farewell barely communicates separation. The scar
+does not explicitly claim healing; it invents injury history. No model promotion,
+new download, live gameplay change or persistent archive write. The complete
+receipt preserves all three actual passages, per-scene timing and final cleanup.
+[Exact output, evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--grounded-connected-budget-qualification).
+
+**Next shipping slice:** one meaningful farewell payoff in the **existing live
+narrator and intermission**: turn remembered worry into letting go, with staging
+that clearly communicates the recorded companion departure. Keep the current
+facts and No LLM behavior intact; use focused fixtures, not another model/prompt
+matrix. Park stronger-model promotion until it offers a demonstrated narrative
+improvement. Approved V1 remains complete; P1-B/P2/P3 remain deferred.
+
+## Previous slice — completed-sentence fallback in the live narrator (v0.5.133)
 
 The existing Qwen2.5 writer now uses the reviewed `8baf543` stopping behavior.
 Quick stories finish as before. A slow stream may preserve an exact, completed

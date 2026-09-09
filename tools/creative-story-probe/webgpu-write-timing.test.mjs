@@ -10,19 +10,20 @@ import { instrumentSubmissionRuntime } from './webgpu-submission-diagnostics.mjs
 import { instrumentCompleteStoryRuntime, instrumentCompleteStoryWorker } from './webgpu-complete-story.mjs';
 import { instrumentShaderRepairRuntime } from './webgpu-shader-repair.mjs';
 import { adaptCandidateWorker } from './webgpu-candidate-adapter.mjs';
-import { createWriteTimingDiagnostics, noteWriteTimingWorker, isCompleteWriteTiming,
+import { createWriteTimingDiagnostics, createConnectedWriteTimingDiagnostics, noteWriteTimingWorker, isCompleteWriteTiming,
   instrumentWriteTimingRuntime, instrumentWriteTimingWorker, writeTimingPlugin } from './webgpu-write-timing.mjs';
 
-function fixture() {
+function fixture({ connected = false } = {}) {
   const records = [], native = { prefillTokens: 0, prefillMs: 0, decodeTokens: 0, decodeMs: 0 };
   let clock = 1000, dispatches = 0;
   const pipeline = { getCurRoundPrefillTotalTokens: () => native.prefillTokens,
     getCurRoundPrefillTotalTime: () => native.prefillMs / 1000,
     getCurRoundDecodingTotalTokens: () => native.decodeTokens,
     getCurRoundDecodingTotalTime: () => native.decodeMs / 1000 };
-  const helper = createWriteTimingDiagnostics(r => records.push(r), () => clock, () => dispatches);
+  const helper = (connected ? createConnectedWriteTimingDiagnostics : createWriteTimingDiagnostics)(r => records.push(r), () => clock, () => dispatches);
   const advance = ms => { clock += ms; dispatches++; };
   const start = () => {
+    Object.assign(native, { prefillTokens: 0, prefillMs: 0, decodeTokens: 0, decodeMs: 0 });
     helper.worker('write-start'); helper.worker('reset-start'); advance(2); helper.worker('reset-end');
     helper.worker('create-start'); advance(3); helper.worker('create-end'); helper.begin('prefill', pipeline);
   };
@@ -56,6 +57,48 @@ test('fake-clock trace separates reset, prefill, each decode, interrupt, drainag
   assert.equal(f.records.at(-1).decodedSteps, 9);
   const count = f.records.length; f.helper.worker('write-success'); f.helper.worker('chunk', 'late');
   assert.equal(f.records.length, count);
+});
+
+test('three connected writes each get a fresh clock, native decode count, and explicit scene ordinal', () => {
+  const f = fixture({ connected: true });
+  f.helper.begin('prefill', f.pipeline); f.helper.worker('chunk', 'warmup');
+  assert.deepEqual(f.records, []);
+  for (let story = 1; story <= 3; story++) {
+    f.start(); f.prefill();
+    for (let step = 0; step < story; step++) f.decode();
+    f.finish(); f.advance(5000);
+    const records = f.records.filter(record => record.story === story);
+    assert.equal(isCompleteWriteTiming(records), true);
+    assert.equal(records[0].elapsedMs, 0);
+    assert.equal(records.at(-1).elapsedMs, 30005 + story * 700);
+    assert.equal(records.at(-1).decodedSteps, story);
+  }
+  assert.deepEqual(f.records.filter(record => record.phase === 'write-success').map(record => record.story), [1, 2, 3]);
+  assert.throws(() => f.helper.worker('write-start'), /three sequential successful writes/u);
+});
+
+test('connected timing rejects overlap and continuation after failure, and retains the 128-per-write bound', () => {
+  const overlap = fixture({ connected: true }); overlap.start();
+  assert.throws(() => overlap.helper.worker('write-start'), /three sequential successful writes/u);
+  assert.equal(overlap.records.at(-1).phase, 'observer-error');
+  overlap.finish(); assert.equal(isCompleteWriteTiming(overlap.records), false);
+  const failed = fixture({ connected: true }); failed.start();
+  failed.helper.worker('write-error', undefined, Error('original failed write'));
+  assert.equal(failed.records.at(-1).story, 1);
+  assert.throws(() => failed.helper.worker('write-start'), /three sequential successful writes/u);
+  assert.doesNotThrow(() => noteWriteTimingWorker('write-start', undefined, undefined, { __tg2WriteTiming: failed.helper }));
+  const bounded = fixture({ connected: true });
+  for (let story = 1; story <= 3; story++) {
+    bounded.start(); bounded.prefill();
+    for (let step = 0; step < 200; step++) bounded.decode();
+    bounded.finish();
+    const records = bounded.records.filter(record => record.story === story);
+    assert.equal(records.length, 128); assert.ok(records.at(-1).droppedEvents > 0);
+    assert.equal(isCompleteWriteTiming(records), false);
+  }
+  assert.equal(bounded.records.length, 384);
+  assert.throws(() => bounded.helper.worker('write-start'), /three sequential successful writes/u);
+  assert.equal(bounded.records.length, 384);
 });
 
 test('timeout evidence remains partial and failed or malformed traces never count as completion', () => {
@@ -106,6 +149,12 @@ test('serialized helper is self-contained and ignores non-write warmup boundarie
   assert.deepEqual(records, []);
   noteWriteTimingWorker('write-start', undefined, undefined, { __tg2WriteTiming: helper });
   assert.equal(records[0].phase, 'write-start');
+  const connectedFactory = new Function(`return (${createConnectedWriteTimingDiagnostics.toString()});`)();
+  const connected = connectedFactory(record => records.push(record), () => 10, () => 0, factory);
+  connected.begin('prefill', {});
+  connected.worker('write-start'); connected.worker('write-success');
+  connected.worker('write-start'); connected.worker('write-success');
+  assert.deepEqual(records.slice(1).map(record => record.story), [1, 1, 2, 2]);
 });
 
 test('exact runtime and worker hooks preserve generation, settings, interruption, and error replies', () => {
@@ -116,10 +165,16 @@ test('exact runtime and worker hooks preserve generation, settings, interruption
     instrumentDispatchRuntime(instrumentModelBufferRuntime(instrumentSamplingRuntime(runtime))))));
   const adaptedWorker = instrumentCompleteStoryWorker(adaptCandidateWorker(originalWorker));
   const transformed = instrumentWriteTimingRuntime(source), worker = instrumentWriteTimingWorker(adaptedWorker);
+  assert.equal(instrumentWriteTimingRuntime(source, { connected: false }), transformed);
+  const connected = instrumentWriteTimingRuntime(source, { connected: true });
+  assert.ok(connected.includes('function createConnectedWriteTimingDiagnostics'));
+  assert.ok(connected.includes('function createWriteTimingDiagnostics'));
+  assert.equal(writeTimingPlugin(process.cwd(), [runtimePath], { connected: true }).transform(source, runtimePath).code, connected);
   for (const marker of ['yield __await(this.prefill(request, pipeline, chatConfig, genConfig));',
     'yield __await(this.decode(pipeline, genConfig));', 'yield this.device.sync();',
     'this.device.queue.onSubmittedWorkDone()', 'compute.dispatchWorkgroups(', 'this.tvm.uniform([1], 0.0, 1.0, this.device)']) {
     assert.equal(transformed.split(marker).length, source.split(marker).length, marker);
+    assert.equal(connected.split(marker).length, source.split(marker).length, marker);
   }
   for (const marker of ['stream: true, max_tokens: 68, temperature: 0.7, top_p: 0.85, seed: 7',
     'await model.interruptGenerate();', 'for await (const chunk of chunks)',
@@ -131,6 +186,8 @@ test('exact runtime and worker hooks preserve generation, settings, interruption
   assert.ok(worker.includes('__tg2NoteWriteTiming("write-error", undefined, error); __tg2FinishCompleteStoryWorker(false, error);'));
   const checked = spawnSync(process.execPath, ['--input-type=module', '--check'], { input: transformed, encoding: 'utf8' });
   assert.equal(checked.status, 0, checked.stderr);
+  const checkedConnected = spawnSync(process.execPath, ['--input-type=module', '--check'], { input: connected, encoding: 'utf8' });
+  assert.equal(checkedConnected.status, 0, checkedConnected.stderr);
   const plugin = writeTimingPlugin(process.cwd(), [runtimePath]);
   assert.equal(plugin.transform(source, runtimePath + '?worker_file').code, transformed);
   assert.equal(plugin.transform(adaptedWorker, workerPath).code, worker);

@@ -174,6 +174,50 @@ arrival samples are captured after the 40 road samples; they are finite/in-range
 but include three small above-one values. Do not replay the full unchanged
 sequence or raise the deadline. [Targeted next step and evidence](../../docs/STORYTELLING_FINISH.md#post-v1--connected-story-sequence).
 
+### Grounded connected stories with the completed-sentence budget
+
+After the isolated compact/grounded arrival and sentence-budget checks, add
+`--connected-budget` to the original connected command for one new full sequence:
+
+```sh
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-diagnostic --cache-only --inspect-model-buffer --inspect-dispatch --submit-each-dispatch --complete-story --repair-softmax-race --connected-story --connected-budget
+```
+
+This is an explicitly changed prompt/stopping candidate, not an unchanged rerun
+of `85f1c932`. Each fixed road → arrival → farewell scene uses the previously
+reviewed grounded instruction and compact action/consequence/identity/emotion
+message. The production-selected 0 → 1 → 2 memory messages remain byte-for-byte
+intact, and come only from accepted prose generated in this run. Original
+production messages and reconstructed model conversation are retained separately.
+No saved response is substituted, and failed/repeated output cannot advance.
+
+Every write uses the cooperative 80s completed-prefix fallback and unchanged
+90s hard deadline. Timing, raw text and budget decisions carry matching story
+numbers; each trace retains the same 128-record bound (384 across three writes).
+One loaded cached worker, three individual reviews and 10min total remain the
+limits. Enter `next` only after reviewing each of the first two passages; enter
+`quit` after the third, or stop earlier if the story fails. There are no persistent
+Journal reads/writes. Global sampling still covers only the first 64 worker
+samples, not every token in every scene; native counts cover each timed write.
+
+Old connected, isolated arrival, grammar and sentence-budget modes retain their
+original behavior. The new flag cannot be combined with arrival replay/grammar
+or downloads. Passing execution/provenance checks is not literary approval or
+promotion into the live v0.5.133 narrator.
+
+Actual `7d4f2532` completes all three writes with current-run 0/1/2 memories;
+the farewell retains a completed sentence at the soft budget. All 48 source
+hashes match. **Execution passes, narrative qualification does not:** invented
+props/injury history and a weak separation beat prevent promotion. This run
+closes the bounded trial; do not repeat it as a matrix or raise its deadline.
+[Exact passages, timings and limitations](../../docs/STORYTELLING_FINISH.md#post-v1--grounded-connected-budget-qualification).
+
+Run the focused connected-budget regressions without loading a model:
+
+```sh
+node --test tools/creative-story-probe/{connected-budget,connected-budget-evidence,connected-budget-integration,connected-story,sentence-budget-adapter,webgpu-write-timing,webgpu-candidate}.test.mjs
+```
+
 Add `--replay-arrival` instead of `--connected-story` to the repaired, cache-only
 command to investigate the saved arrival timeout without regenerating the road:
 
