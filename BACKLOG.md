@@ -36,9 +36,9 @@ Immediate queue:
    estimate respect visible Guard and the existing damage/status rules. Reuse
    combat animation, status cues and decision records; no RNG foresight, new
    panel, save field or ledger event. Reproduce false-finisher cases first.
-6. **In progress — V04.9b6a, Millrace Reversal (v0.5.144).** Council recommends one earned
+6. **Delivered — V04.9b6a, Millrace Reversal (v0.5.144).** One earned
    Miller/hero joint strike: a witnessed Millstone Drag opening enables one
-   piercing weapon attack, with restoration taking priority. This requires a
+   piercing weapon attack, with restoration taking priority. Includes a
    versioned combat runtime and exact earn/spend/expiry receipts. Dependency
    review confirms live saves persist the world/combat event stream independently
    of the compact ledger, which no production consumer invokes. Preserve the
@@ -47,6 +47,14 @@ Immediate queue:
    complete codec coverage. No second profession or generic combo
    framework is included. Chronicle Plates, field research, mastery sidegrades,
    settlement chains and alternate encounters remain queued afterward.
+7. **Next — V04.16i1a, town-visit Chronicle Plates.** Preserve a small illustrated
+   landmark reconstruction in a collapsed Adventure journal section after a
+   durably saved town visit. Reuse the validated event-time town itinerary;
+   retain exact place, tick and visit/reputation facts in a bounded 48-entry,
+   byte-capped presentation archive. No inferred meetings, historical equipment,
+   weather or actor poses; no permanent Watch panel or narrator change. Full
+   multi-event curation, automatic reviews and ledger-backed rebuilding remain
+   deferred, so this is explicitly only the first V04.16i subset.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -286,7 +294,7 @@ produce "chose to Hero uses ...", and an expanded Status record repeats some
 reason text. Keep a later presentation-only cleanup scoped to those duplicates;
 do not rewrite canonical history or restore more panels.
 
-### V04.9b6a — Millrace Reversal (v0.5.144, in progress)
+### V04.9b6a — Millrace Reversal (v0.5.144)
 
 Reuses the existing council proposal recovered with `deja "Millrace Reversal"`
 from Codex session 09. This is one earned cooperation payoff for the shipped
@@ -319,8 +327,11 @@ the real automatic Miller→enemy→hero chain, earned save/reload, exact source
 receipts, one damage/weapon credit, native fallback, next-turn teardown and four
 responsive layouts, with no inference, external requests or page errors.
 The final sword-pose correction passes the same 1.4-minute browser journey;
-desktop/mobile captures were visually reviewed. Deployment verification remains
-pending.
+desktop/mobile captures were visually reviewed. Commit `b1a2de8` passed Pages
+run `34410185789` in 4m58s, including all 3,236 release tests. Public v0.5.144
+and its service worker are verified; entry `index-FxDosoSi.js` and simulation
+worker `simulation.worker-BGOV4Q-y.js` contain 17 exact committed source copies
+across the ten checked feature modules. The feature is live on hunterdavis.com.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

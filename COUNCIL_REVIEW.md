@@ -41,7 +41,24 @@ fallback and next-turn teardown in four responsive layouts, with no inference,
 external requests or page errors. Visual review found a backward low-mastery
 sword pose; the corrected positive impact pose passes all thirty-three rendering
 checks, the build and the same 1.4-minute browser journey. Final desktop/mobile
-captures are clear. Deployment verification remains pending.
+captures are clear. Final council integration review found no release blocker.
+Commit `b1a2de8` passed Pages run `34410185789` in 4m58s, with all 3,236
+release tests passing. Public v0.5.144, service worker and all 17 bundled source
+copies across ten feature modules match the released commit.
+
+### Next-slice recommendation — town-visit Chronicle Plates
+
+Read-only dependency review reuses `deja "Chronicle Plates"`, session
+`01a06835-15f`, and the earlier warning about missing event-time visual facts.
+The existing validated `TownItineraryPacketV1` supplies exact campaign/event/tick,
+town, district, building and visit/reputation outcomes after a saved transition.
+A landmark-only illustrated reconstruction in Adventure can retain those facts
+without narrator or compact-ledger changes. Cap the archive at 48 recipes and an
+explicit byte budget; require dedupe, reload retention, campaign separation and
+honest storage-failure behavior. Do not claim personal meetings or reconstruct
+old gear, weather or poses from current state. Balanced multi-event curation,
+automatic reviews, catch-up and ledger rebuilding remain outside this first
+V04.16i1a subset. This is queued work, not a delivered feature.
 
 ## Gameplay-first council — Read the Guard (v0.5.143)
 
