@@ -638,8 +638,8 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    // Recurring oaths and their safe mentor-visit priority change this journey's saved state.
-    expect(canonicalHash(state), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("c007f0c65244169f");
+    // Level/Guard-aware combat changes this journey's ordering, not the phase or no-power contracts.
+    expect(canonicalHash(state), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("20e74690fa8f178d");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);

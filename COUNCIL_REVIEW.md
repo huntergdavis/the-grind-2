@@ -2,6 +2,38 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — Read the Guard (v0.5.143)
+
+Reuses the V04.2b public-state tactics recommendation recovered from Codex session
+09. A baseline regression independently showed the actor calling a guarded
+nine-HP foe a safe finisher: the old estimate was nine, while the actual damage
+range was four to six. That incorrectly outranked an available emergency tonic.
+
+The forecast and resolver now share the existing damage arithmetic, including
+Guard, Weakening, piercing and ability level. Forecasts use public variance
+bounds, not the future seeded roll. Exact old damage objects across all five
+variances are retained. Final status damage still happens before an action;
+Weakening at duration one expires, but the target's Guard stays until its owner
+acts. A dead actor cannot provide a guaranteed finishing strike.
+
+Final code review is clear. Finishing priority uses the minimum resolved damage;
+the visible range alone is clamped to remaining HP. Guard-aware explanation and
+considered strikes use the existing Status/Chronicle records. No profile, legal
+command, damage balance, save schema, ledger event or Watch panel changes.
+
+Twelve arithmetic checks, nine targeted policy/status cases and thirteen existing
+actor-policy cases pass. The representative fixture includes a genuine enemy
+Guard resolver event, with an explicit legacy-unrated binding for its isolated
+combat. It passes unchanged save validation; no forged visual flags or weakened
+validator is used. The 1.7-minute real browser transition and desktop/phone
+captures pass without a new panel or visual blocker. All ten seeded campaign
+goldens pass after first-divergence comparison with the committed v0.5.142 actor
+policy; only the nine explained expectations change. No budget changes. Detailed
+transition and release evidence is recorded in the backlog. The existing mentor
+acceptance completes earlier at T6147/visit 22 and passes its full no-power,
+no-repeat and reload contract after one audited terminal-hash update. No limits
+or assertions were removed to accommodate the new combat ordering.
+
 ## Gameplay-first council — paid inn rest (v0.5.142)
 
 Promotes the one-stop inn-service proposal recovered from Codex session 06.

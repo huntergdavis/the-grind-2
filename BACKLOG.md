@@ -32,7 +32,7 @@ Immediate queue:
 4. **Delivered — V04.16d1c, paid inn rest (v0.5.142).** A recorded town inn becomes a
    real autonomous service: five gold for full health/mana when a fit solo hero
    has depleted mana. Quiet, building-specific staging; no new panel or menu.
-5. **Next — V04.2b subset, Read the Guard.** Make the actor's finishing-blow
+5. **Now — V04.2b subset, Read the Guard (v0.5.143).** Make the actor's finishing-blow
    estimate respect visible Guard and the existing damage/status rules. Reuse
    combat animation, status cues and decision records; no RNG foresight, new
    panel, save field or ledger event. Reproduce false-finisher cases first.
@@ -200,7 +200,7 @@ health/mana and no panel obscuring the scene. Feature commit `3d31d3e` passed
 the full check/build/deploy run `34399669958` in 5m6s. Public v0.5.142, its service
 worker and all six inn-related depth/core/render source modules match the commit.
 
-### Next slice — Read the Guard (V04.2b subset)
+### Read the Guard (V04.2b subset, v0.5.143)
 
 The council identifies a gap between the actor's simplified finishing-blow
 estimate and existing combat damage rules. Share a conservative public damage
@@ -215,6 +215,51 @@ agree. Preserve deterministic reload and bounded encounters. Expected scope:
 one real battle browser journey. This is public-state tactics, not learned
 weaknesses, Familiar Opening or the larger field-research system. Reproduce the
 specific mismatch before implementation; no protected ledger edits are needed.
+
+The independent baseline regression reproduces a critical hero selecting a
+supposed battle-ending attack over an available tonic: power 10 against armor 2
+and nine guarded HP was estimated as nine damage, but the actual range is four
+to six. Unguarded nine-HP and guarded four-HP genuine finishers remain controls.
+Reuses the council recommendation recovered by `deja "Read the Guard"` from
+Codex session 09, and the existing combat/actor fixture pattern.
+
+The new public forecast shares the existing damage arithmetic across variance
+zero through four, including ability level, piercing armor and Weakening. It
+never reads the next seeded roll. It respects start-of-turn status damage and
+Weakening expiry; a dying actor cannot be credited with a finishing strike.
+The target's Guard does not expire on somebody else's turn. Actual damage rules,
+event packets, item legality, actor profiles and commands remain unchanged.
+
+Guard-aware choices and bounded damage appear in existing Status/Chronicle
+decision records. The existing shield and healing/damage cues carry the result;
+Watch gains no panel. Focused verification and release checks are in progress.
+
+All twelve shared-arithmetic tests, nine new policy/status cases and thirteen
+existing actor-policy cases pass, with clean version/boundary/TypeScript/build
+checks. One 1.7-minute browser journey uses a validated staged combat with a real
+prior enemy Guard action, then allows the game to select its own next action.
+The hero uses one tonic (stock 3→2, HP 1→13); the guarded foe stays at nine HP.
+The exact four-to-six damage alternative and Guard-aware recovery reason appear
+in Status, with no new Watch panel. Paused save bytes, actual JSON reload, zero
+inference/external requests and browser error checks pass. Desktop and 320px
+Focus/Status captures were reviewed by root and council without a visual blocker.
+
+All ten seeded campaign goldens pass. Nine changed expectations were compared
+against the committed v0.5.142 policy at their first public divergence, not blindly
+refreshed: seed 0 gains a correct level-aware finishing classification; seed 1
+gains a Guard label clamped to its target's four remaining HP; seeds 2/3/6/8/9
+choose guaranteed basic strikes with less overkill; seeds 4/7 correct piercing
+and level-aware technique ranking. Seed 5 is unchanged. Actual seeded damage
+objects and test budgets remain unchanged. The existing mentor acceptance also
+passes: promise/return/farewell completes at T6147, visit 22, with unchanged
+no-power/isolation checks, 200 further turns without repetition and exact JSON
+upgrade. Only its audited terminal campaign hash changes; the 12,000-step limit
+is untouched. Public deployment verification is pending.
+
+Visual-review follow-up, not a release blocker: the older rationale template can
+produce "chose to Hero uses ...", and an expanded Status record repeats some
+reason text. Keep a later presentation-only cleanup scoped to those duplicates;
+do not rewrite canonical history or restore more panels.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

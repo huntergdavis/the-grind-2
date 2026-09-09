@@ -13,6 +13,42 @@ export interface CombatDamageV1 {
   readonly preventedDamage: number;
 }
 
+export interface CombatDamageRangeV1 {
+  readonly minimumDamage: number;
+  readonly maximumDamage: number;
+}
+
+function resolveDamageArithmetic(
+  actor: Pick<CombatantState, "id" | "power">,
+  target: Pick<CombatantState, "id" | "health" | "armor">,
+  ability: Pick<AbilityState, "effect" | "potency" | "level"> | null,
+  weakenedPotency: number,
+  guarded: boolean,
+  variance: number,
+): Pick<CombatDamageV1, "armorReduction" | "rawDamage" | "resolvedDamage"> {
+  const armorReduction = ability?.effect === "piercing"
+    ? Math.floor(target.armor / 5)
+    : Math.floor(target.armor / 2);
+  const rawDamage = actor.power + variance - weakenedPotency +
+    (ability === null ? 0 : ability.potency + ability.level) - armorReduction;
+  const resolvedDamage = Math.max(1, Math.floor(rawDamage * (guarded ? 0.5 : 1)));
+  return { armorReduction, rawDamage, resolvedDamage };
+}
+
+/** All possible resolved damage, before target-health clamping and without rolling variance. */
+export function combatDamageRangeV1(
+  actor: Pick<CombatantState, "id" | "power">,
+  target: Pick<CombatantState, "id" | "health" | "armor">,
+  ability: Pick<AbilityState, "effect" | "potency" | "level"> | null,
+  weakenedPotency: number,
+  guarded: boolean,
+): CombatDamageRangeV1 {
+  return Object.freeze({
+    minimumDamage: resolveDamageArithmetic(actor, target, ability, weakenedPotency, guarded, 0).resolvedDamage,
+    maximumDamage: resolveDamageArithmetic(actor, target, ability, weakenedPotency, guarded, 4).resolvedDamage,
+  });
+}
+
 export function combatDamageV1(
   seed: string,
   combatId: string,
@@ -24,13 +60,10 @@ export function combatDamageV1(
   guarded: boolean,
 ): CombatDamageV1 {
   const variance = randomInt(5, seed, "combat-resolution", combatId, turn, `${actor.id}:${target.id}`);
-  const armorReduction = ability?.effect === "piercing"
-    ? Math.floor(target.armor / 5)
-    : Math.floor(target.armor / 2);
-  const rawDamage = actor.power + variance - weakenedPotency +
-    (ability === null ? 0 : ability.potency + ability.level) - armorReduction;
+  const { armorReduction, rawDamage, resolvedDamage } = resolveDamageArithmetic(
+    actor, target, ability, weakenedPotency, guarded, variance,
+  );
   const unguardedDamage = Math.max(1, rawDamage);
-  const resolvedDamage = Math.max(1, Math.floor(rawDamage * (guarded ? 0.5 : 1)));
   const unguardedAppliedDamage = Math.min(target.health, unguardedDamage);
   const appliedDamage = Math.min(target.health, resolvedDamage);
   return Object.freeze({

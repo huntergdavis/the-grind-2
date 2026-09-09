@@ -30,19 +30,19 @@ describe("canonical state serialization", () => {
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
       return canonicalHash(world);
     });
-    // Seeds 1, 4, 7 and 9 include audited later oaths under the recurring-road policy.
-    // Seed 7 also takes its first paid inn rest at tick 73: gold 37→32, HP 22→42, MP 8→26, no XP.
+    // v143 first divergences: seed 0's finisher classification and seed 1's Guard label;
+    // seeds 2/3/6/8/9 choose lower overkill, while 4/7 use level/piercing-aware ranking. Seed 5 is unchanged.
     expect(hashes).toEqual([
-      "d90ededf2cf41c69",
-      "b03e6e80fe1a700e",
-      "ab9dcfd357743bc6",
-      "af0fd4281b4989f5",
-      "2046c4f33d10814c",
+      "394de1e505301842",
+      "47b637af68787d22",
+      "ba0d4264eead3321",
+      "5c5c8688e19cb27a",
+      "672919acfce595e9",
       "2264f83afc160819",
-      "96731e0b317bf13e",
-      "bcd0f4591b5600b2",
-      "01dc2d277705ae70",
-      "435e61b9d70fdda6",
+      "61a0a96f1e265fa0",
+      "6b7b03f8bd44558b",
+      "0b9fd43581446b8e",
+      "806e68b79e682047",
     ]);
   }, 80_000);
 });

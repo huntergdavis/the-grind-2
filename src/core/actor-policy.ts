@@ -11,6 +11,7 @@ import {
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
+import { projectCombatActionForecast } from "./combat-action-forecast";
 import type {
   ActorChoice,
   ActorDecisionConsideration,
@@ -91,24 +92,24 @@ function combatFacts(state: WorldState, candidate: DepthCommandCandidate): {
   target: NonNullable<WorldState["depth"]["combat"]>["combatants"][number] | undefined;
   ability: AbilityState | undefined;
   projectedDamage: number;
+  forecast: ReturnType<typeof projectCombatActionForecast> | null;
   finishesTarget: boolean;
   boundedFinish: boolean;
 } {
   if (candidate.command.type !== "combat-action" || state.depth.combat === null) {
-    return { actor: undefined, target: undefined, ability: undefined, projectedDamage: 0, finishesTarget: false, boundedFinish: false };
+    return { actor: undefined, target: undefined, ability: undefined, projectedDamage: 0, forecast: null, finishesTarget: false, boundedFinish: false };
   }
   const action = candidate.command.action;
   const actor = state.depth.combat.combatants.find((entry) => entry.id === action.actorId);
   const target = state.depth.combat.combatants.find((entry) => entry.id === action.targetId);
   const ability = actor?.abilities.find((entry) => entry.id === action.abilityId);
-  const projectedDamage = action.type === "guard" || action.type === "item" || action.type === "companion-action"
-    ? 0
-    : Math.max(1, (actor?.power ?? 1) + (ability?.potency ?? 0) - Math.floor((target?.armor ?? 0) / 2));
-  const finishesTarget = target !== undefined && projectedDamage >= target.health;
+  const forecast = projectCombatActionForecast(state.depth.combat, action);
+  const projectedDamage = forecast.minimumDamage;
+  const finishesTarget = forecast.canAct && target !== undefined && target.health > 0 && projectedDamage >= target.health;
   const opposingSurvivors = actor === undefined
     ? 0
     : state.depth.combat.combatants.filter((entry) => entry.side !== actor.side && entry.health > 0).length;
-  return { actor, target, ability, projectedDamage, finishesTarget, boundedFinish: finishesTarget && opposingSurvivors === 1 };
+  return { actor, target, ability, projectedDamage, forecast, finishesTarget, boundedFinish: finishesTarget && opposingSurvivors === 1 };
 }
 
 function dungeonMoveKnowledge(
@@ -130,7 +131,7 @@ function scoreCandidate(
   let reason = "it is the clearest legal next step";
 
   if (command.type === "combat-action" && state.depth.combat !== null) {
-    const { actor, target, ability, projectedDamage, finishesTarget } = combatFacts(state, candidate);
+    const { actor, target, ability, projectedDamage, finishesTarget, forecast } = combatFacts(state, candidate);
     const lowHealth = actor !== undefined && actor.health * 3 <= actor.maxHealth;
     if (command.action.type === "item") {
       const item = state.depth.hero.inventory.find((entry) => entry.id === command.action.itemId);
@@ -153,7 +154,7 @@ function scoreCandidate(
       score = command.action.type === "ability" ? 28 + (ability?.potency ?? 0) : 18;
       if (finishesTarget) {
         score += 45 - Math.max(0, projectedDamage - (target?.health ?? 0));
-        reason = `${ability?.name ?? "the strike"} can finish ${target?.name ?? "the target"} with little waste`;
+        reason = `${ability?.name ?? "the strike"} can finish ${target?.name ?? "the target"}${forecast?.guarded === true ? " through Guard" : ""} with little waste`;
       } else if (ability !== undefined) {
         reason = actor?.side === "enemies"
           ? `${ability.name} is the strongest available signature technique`
@@ -393,13 +394,20 @@ function presentationLabels(
       const actor = state.depth.combat?.combatants.find((entry) => entry.id === command.action.actorId);
       const target = state.depth.combat?.combatants.find((entry) => entry.id === command.action.targetId);
       const ability = actor?.abilities.find((entry) => entry.id === command.action.abilityId);
+      const forecast = combatFacts(state, candidate).forecast;
+      const minimumLoss = Math.min(target?.health ?? 0, forecast?.minimumDamage ?? 0);
+      const maximumLoss = Math.min(target?.health ?? 0, forecast?.maximumDamage ?? 0);
+      const damageLabel = minimumLoss === maximumLoss ? String(minimumLoss) : `${minimumLoss}–${maximumLoss}`;
+      const targetLabel = forecast?.guarded === true && forecast.canAct
+        ? `${target?.name ?? "foe"} · Guard · ${damageLabel} damage`
+        : target?.name ?? "foe";
       return command.action.type === "guard"
         ? { actionLabel: "guards", targetLabel: "self" }
         : command.action.type === "item"
           ? { actionLabel: `uses ${state.depth.hero.inventory.find((entry) => entry.id === command.action.itemId)?.name ?? "a restorative"}`, targetLabel: "self · emergency HP ≤ ⅓" }
         : command.action.type === "companion-action"
           ? { actionLabel: `uses ${companionActionDefinition(command.action.companionActionId).name}`, targetLabel: target?.name ?? "target" }
-          : { actionLabel: command.action.type === "ability" ? `uses ${ability?.name ?? "a technique"}` : "attacks", targetLabel: target?.name ?? "foe" };
+          : { actionLabel: command.action.type === "ability" ? `uses ${ability?.name ?? "a technique"}` : "attacks", targetLabel };
     }
     case "counter-duel-action": return {
       actionLabel: `reads ${counterDuelStanceLabel(command.prediction)}`,
@@ -471,9 +479,21 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
   const forwardReason = opportunity.forwardMotionReason === null || destinationName === null
     ? null
     : describeForwardMotionReason(opportunity.forwardMotionReason, destinationName);
-  const reasons = [forwardReason ?? selected.reason];
+  const guardedAlternative = !combatFacts(state, selected.candidate).boundedFinish
+    ? ranked.find((entry) => {
+      const facts = combatFacts(state, entry.candidate);
+      return facts.actor !== undefined && facts.target !== undefined && facts.target.health > 0
+        && facts.forecast?.canAct === true && facts.forecast.guarded
+        && facts.forecast.unguardedMinimumDamage >= facts.target.health && !facts.finishesTarget
+        && state.depth.combat?.combatants.filter((unit) => unit.side !== facts.actor!.side && unit.health > 0).length === 1;
+    })
+    : undefined;
+  const selectedReason = guardedAlternative === undefined
+    ? selected.reason
+    : `${combatFacts(state, guardedAlternative.candidate).target?.name ?? "The foe"}'s Guard prevents a guaranteed finish; ${selected.reason}`;
+  const reasons = [forwardReason ?? selectedReason];
   const rationale = forwardReason === null
-    ? `${actor.name} chose to ${selected.candidate.label} because ${selected.reason}.`
+    ? `${actor.name} chose to ${selected.candidate.label} because ${selectedReason}.`
     : `${actor.name} chose to ${selected.candidate.label} because ${forwardReason}.`;
   return {
     commandId: selectedTrace.commandId,
