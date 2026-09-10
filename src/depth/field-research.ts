@@ -1,11 +1,14 @@
 import { isValidCombatState, maximumCombatEventsPerTurn } from "./combat";
-import type { CombatState, CombatTurnEvent, FalseTreasureApplicationV1, FieldResearchStateV1, FieldResearchStateV2,
+import type { CombatState, CombatTurnEvent, CopperhornApplicationV1, CopperhornBurningTickV1, CopperhornFinalEmberV1,
+  CopperhornResearchStateV1, FalseTreasureApplicationV1, FieldResearchStateV1, FieldResearchStateV2, FieldResearchStateV3,
   MoonhowlApplicationV1, MoonhowlResearchStateV1, MoonhowlStrikeV1 } from "./types";
 
 export const inkcapResearchClue = "False Treasure inflicts poison; its lingering harm occurs before the victim acts.";
 export const moonhowlResearchClue = "Moonhowl weakens the hero; while it lingers, the hero strikes with reduced raw power. Weakening itself does not drain health.";
+export const copperhornResearchClue = "Bellmetal Charge inflicts burning; its final fading turn still damages the hero before action resolution.";
 const abilityId = "secret:inkcap-mimic:false-treasure";
 const moonhowlAbilityId = "secret:lantern-wolf:moonhowl";
+const copperhornAbilityId = "secret:copperhorn:bellmetal-charge";
 const applicationKeys = ["speciesId", "abilityId", "combatId", "sourceEventId", "sourceTick", "sourceTurn", "actorId", "targetId", "potency", "duration", "targetHealthAfter"];
 const aftereffectKeys = ["combatId", "sourceEventId", "sourceTick", "sourceTurn", "applicationEventId", "targetId", "potency", "durationBefore", "durationAfter", "healthBefore", "amount", "healthAfter"];
 
@@ -160,30 +163,84 @@ function createMoonhowlResearchState(): MoonhowlResearchStateV1 {
   return Object.freeze({ taskId: "lantern-wolf:moonhowl@1", application: null, aftereffect: null });
 }
 
-export function createFieldResearchState(): FieldResearchStateV2 {
-  return Object.freeze({ schemaVersion: 2, inkcap: createInkcapResearchState(), moonhowl: createMoonhowlResearchState() });
+function validCopperhornApplication(value: unknown, heroId: string, currentTick: number): value is CopperhornApplicationV1 {
+  return record(value) && exact(value, applicationKeys) && source(value, currentTick)
+    && value.speciesId === "copperhorn" && value.abilityId === copperhornAbilityId
+    && [`${value.combatId}:enemy:0`, `${value.combatId}:enemy:1`].includes(value.actorId as string)
+    && value.actorId !== heroId && value.targetId === heroId && integer(value.potency, 1)
+    && value.duration === 2 && integer(value.targetHealthAfter, 1);
 }
 
-export function isValidFieldResearchState(value: unknown, heroId: string, currentTick: number): value is FieldResearchStateV2 {
+function validCopperhornTick(value: unknown, application: CopperhornApplicationV1, currentTick: number, final: boolean): boolean {
+  return record(value) && exact(value, final ? [...aftereffectKeys, "firstTickEventId", "intentEventId"] : aftereffectKeys)
+    && source(value, currentTick) && value.combatId === application.combatId && value.targetId === application.targetId
+    && value.applicationEventId === application.sourceEventId && value.potency === application.potency
+    && (value.sourceTick as number) > application.sourceTick && (value.sourceTurn as number) > application.sourceTurn
+    && (value.sourceTick as number) - application.sourceTick >= (value.sourceTurn as number) - application.sourceTurn
+    && value.durationBefore === (final ? 1 : 2) && value.durationAfter === (final ? 0 : 1)
+    && integer(value.healthBefore, 1) && integer(value.amount, 1) && integer(value.healthAfter)
+    && value.amount === Math.min(value.healthBefore as number, application.potency)
+    && value.healthAfter === (value.healthBefore as number) - (value.amount as number);
+}
+
+export function isValidCopperhornResearchState(value: unknown, heroId: string, currentTick: number): value is CopperhornResearchStateV1 {
+  if (!record(value) || !exact(value, ["taskId", "application", "firstTick", "aftereffect"])
+    || value.taskId !== "copperhorn:final-ember@1" || !text(heroId) || !integer(currentTick)) return false;
+  if (value.application === null) return value.firstTick === null && value.aftereffect === null;
+  if (!validCopperhornApplication(value.application, heroId, currentTick)) return false;
+  if (value.firstTick === null) return value.aftereffect === null;
+  if (!validCopperhornTick(value.firstTick, value.application, currentTick, false)) return false;
+  if (value.aftereffect === null) return true;
+  const first = value.firstTick as CopperhornBurningTickV1;
+  const final = value.aftereffect;
+  return record(final) && validCopperhornTick(final, value.application, currentTick, true)
+    && first.healthAfter > 0 && final.firstTickEventId === first.sourceEventId
+    && final.intentEventId === `${final.combatId}:${final.sourceTurn}:0`
+    && (final.sourceTick as number) > first.sourceTick && (final.sourceTurn as number) > first.sourceTurn
+    && (final.sourceTick as number) - first.sourceTick >= (final.sourceTurn as number) - first.sourceTurn;
+}
+
+function createCopperhornResearchState(): CopperhornResearchStateV1 {
+  return Object.freeze({ taskId: "copperhorn:final-ember@1", application: null, firstTick: null, aftereffect: null });
+}
+
+export function createFieldResearchState(): FieldResearchStateV3 {
+  return Object.freeze({ schemaVersion: 3, inkcap: createInkcapResearchState(), moonhowl: createMoonhowlResearchState(), copperhorn: createCopperhornResearchState() });
+}
+
+function isValidFieldResearchV2(value: unknown, heroId: string, currentTick: number): value is FieldResearchStateV2 {
   return record(value) && exact(value, ["schemaVersion", "inkcap", "moonhowl"]) && value.schemaVersion === 2
     && isValidInkcapResearchState(value.inkcap, heroId, currentTick)
     && isValidMoonhowlResearchState(value.moonhowl, heroId, currentTick);
 }
 
+export function isValidFieldResearchState(value: unknown, heroId: string, currentTick: number): value is FieldResearchStateV3 {
+  return record(value) && exact(value, ["schemaVersion", "inkcap", "moonhowl", "copperhorn"]) && value.schemaVersion === 3
+    && isValidInkcapResearchState(value.inkcap, heroId, currentTick)
+    && isValidMoonhowlResearchState(value.moonhowl, heroId, currentTick)
+    && isValidCopperhornResearchState(value.copperhorn, heroId, currentTick);
+}
+
 /** Upgrade only validated evidence; old lore/retained combat history never earns a new observation. */
-export function upgradeFieldResearchState(value: unknown, heroId: string, currentTick: number): FieldResearchStateV2 {
+export function upgradeFieldResearchState(value: unknown, heroId: string, currentTick: number): FieldResearchStateV3 {
   const valid = isValidFieldResearchState(value, heroId, currentTick) ? value
-    : isValidInkcapResearchState(value, heroId, currentTick)
-      ? { schemaVersion: 2 as const, inkcap: value, moonhowl: createMoonhowlResearchState() }
+    : isValidFieldResearchV2(value, heroId, currentTick)
+      ? { ...value, schemaVersion: 3 as const, copperhorn: createCopperhornResearchState() }
+      : isValidInkcapResearchState(value, heroId, currentTick)
+      ? { schemaVersion: 3 as const, inkcap: value, moonhowl: createMoonhowlResearchState(), copperhorn: createCopperhornResearchState() }
       : null;
   if (valid === null) throw new TypeError("Field research evidence is malformed or from the future");
-  return Object.freeze({ schemaVersion: 2,
+  return Object.freeze({ schemaVersion: 3,
     inkcap: Object.freeze({ ...valid.inkcap,
       application: valid.inkcap.application === null ? null : Object.freeze({ ...valid.inkcap.application }),
       aftereffect: valid.inkcap.aftereffect === null ? null : Object.freeze({ ...valid.inkcap.aftereffect }) }),
     moonhowl: Object.freeze({ ...valid.moonhowl,
       application: valid.moonhowl.application === null ? null : Object.freeze({ ...valid.moonhowl.application }),
       aftereffect: valid.moonhowl.aftereffect === null ? null : Object.freeze({ ...valid.moonhowl.aftereffect }) }),
+    copperhorn: Object.freeze({ ...valid.copperhorn,
+      application: valid.copperhorn.application === null ? null : Object.freeze({ ...valid.copperhorn.application }),
+      firstTick: valid.copperhorn.firstTick === null ? null : Object.freeze({ ...valid.copperhorn.firstTick }),
+      aftereffect: valid.copperhorn.aftereffect === null ? null : Object.freeze({ ...valid.copperhorn.aftereffect }) }),
   });
 }
 
@@ -246,13 +303,89 @@ function advanceMoonhowlResearch(research: MoonhowlResearchStateV1, before: Comb
   return isValidMoonhowlResearchState(completed, heroId, depthTick) ? completed : research;
 }
 
-/** Observe both fixed tasks from this one real, newly resolved combat packet. */
-export function advanceFieldResearch(research: FieldResearchStateV2, before: CombatState, after: CombatState,
-  context: { readonly heroId: string; readonly depthTick: number }): FieldResearchStateV2 {
+function qualifyingCopperhorn(combat: CombatState, event: CombatTurnEvent, heroId: string): event is Extract<CombatTurnEvent, { kind: "status-applied" }> {
+  if (event.kind !== "status-applied" || event.status !== "burning" || event.abilityId !== copperhornAbilityId
+    || event.targetId !== heroId || event.durationAfter !== 2 || event.potencyAfter < 1) return false;
+  const enemy = combat.combatants.find((actor) => actor.id === event.actorId);
+  return enemy?.side === "enemies" && enemy.speciesId === "copperhorn"
+    && enemy.abilities.some((ability) => ability.id === copperhornAbilityId && ability.effect === "burning");
+}
+
+function advanceCopperhornResearch(research: CopperhornResearchStateV1, before: CombatState, after: CombatState,
+  context: { readonly heroId: string; readonly depthTick: number }): CopperhornResearchStateV1 {
+  if (research.aftereffect !== null) return research;
+  const { heroId, depthTick } = context;
+  const packet = after.eventStream.events.filter((event) => event.turn === after.turn);
+  const applied = packet.find((event) => event.kind === "status-applied" && event.status === "burning" && event.targetId === heroId);
+  const tick = packet.find((event) => (event.kind === "status-tick" || event.kind === "status-expired")
+    && event.status === "burning" && event.actorId === heroId && event.targetId === heroId && event.amount > 0);
+  if (applied === undefined && tick === undefined) return research;
+  if (!isValidCombatState(before) || !isValidCombatState(after)
+    || !after.combatants.some((actor) => actor.id === heroId && actor.side === "heroes")) return research;
+  if (applied !== undefined) {
+    if (!qualifyingCopperhorn(after, applied, heroId)) {
+      return research.firstTick === null ? research : Object.freeze({ ...research, firstTick: null });
+    }
+    const damage = packet.find((event) => event.kind === "damage" && event.actorId === applied.actorId
+      && event.targetId === heroId && event.abilityId === copperhornAbilityId && event.ordinal < applied.ordinal);
+    if (damage?.kind !== "damage" || damage.healthAfter <= 0) return research;
+    if (research.application?.sourceEventId === applied.id && research.application.combatId === after.id) return research;
+    const application: CopperhornApplicationV1 = Object.freeze({ speciesId: "copperhorn", abilityId: copperhornAbilityId,
+      combatId: after.id, sourceEventId: applied.id, sourceTick: depthTick, sourceTurn: applied.turn,
+      actorId: applied.actorId, targetId: heroId, potency: applied.potencyAfter, duration: 2, targetHealthAfter: damage.healthAfter });
+    return Object.freeze({ ...research, application, firstTick: null });
+  }
+  const application = research.application;
+  if (application === null || application.combatId !== after.id || application.sourceTick >= depthTick
+    || tick === undefined || (tick.kind !== "status-tick" && tick.kind !== "status-expired")
+    || tick.potency !== application.potency || after.eventStream.firstRecordedTurn > application.sourceTurn
+    || !before.combatants.find((actor) => actor.id === heroId)?.statuses.some((status) => status.kind === "burning"
+      && status.potency === tick.potency && status.duration === tick.durationBefore)) return research;
+  // The full two-turn chain must remain observable; identical later fire still replaces ownership.
+  const latest = [...after.eventStream.events].reverse().find((event) => event.turn < tick.turn
+    && event.kind === "status-applied" && event.status === "burning" && event.targetId === heroId);
+  if (latest === undefined || !qualifyingCopperhorn(after, latest, heroId)
+    || latest.id !== application.sourceEventId || latest.turn !== application.sourceTurn || latest.actorId !== application.actorId
+    || latest.potencyAfter !== application.potency || latest.durationAfter !== 2) return research;
+  const chain = after.eventStream.events.filter((event) => event.turn > application.sourceTurn && event.turn <= tick.turn);
+  const burns = chain.filter((event) => (event.kind === "status-tick" || event.kind === "status-expired")
+    && event.status === "burning" && event.actorId === heroId && event.targetId === heroId);
+  const intents = chain.filter((event) => event.kind === "intent" && event.actorId === heroId);
+  const snapshot = { combatId: after.id, sourceEventId: tick.id, sourceTick: depthTick, sourceTurn: tick.turn,
+    applicationEventId: application.sourceEventId, targetId: heroId, potency: tick.potency,
+    healthBefore: tick.healthBefore, amount: tick.amount, healthAfter: tick.healthAfter };
+  if (tick.kind === "status-tick" && tick.durationBefore === 2 && tick.durationAfter === 1) {
+    if (research.firstTick !== null || burns.length !== 1 || burns[0]?.id !== tick.id
+      || intents.length !== 1 || intents[0]?.id !== `${after.id}:${tick.turn}:0`
+      || !after.combatants.find((actor) => actor.id === heroId)?.statuses.some((status) => status.kind === "burning"
+        && status.duration === 1 && status.potency === application.potency)) return research;
+    const firstTick: CopperhornBurningTickV1 = Object.freeze({ ...snapshot, durationBefore: 2, durationAfter: 1 });
+    const observed = Object.freeze({ ...research, firstTick });
+    return isValidCopperhornResearchState(observed, heroId, depthTick) ? observed : research;
+  }
+  const first = research.firstTick;
+  const actualFirst = burns[0];
+  if (tick.kind !== "status-expired" || tick.durationBefore !== 1 || tick.durationAfter !== 0 || first === null
+    || burns.length !== 2 || burns[1]?.id !== tick.id || actualFirst?.kind !== "status-tick"
+    || actualFirst.id !== first.sourceEventId || actualFirst.turn !== first.sourceTurn
+    || actualFirst.durationBefore !== 2 || actualFirst.durationAfter !== 1 || actualFirst.potency !== first.potency
+    || actualFirst.healthBefore !== first.healthBefore || actualFirst.amount !== first.amount || actualFirst.healthAfter !== first.healthAfter
+    || intents.length !== 2 || intents[0]?.id !== `${after.id}:${first.sourceTurn}:0` || intents[1]?.id !== `${after.id}:${tick.turn}:0`
+    || after.combatants.find((actor) => actor.id === heroId)?.statuses.some((status) => status.kind === "burning")) return research;
+  const aftereffect: CopperhornFinalEmberV1 = Object.freeze({ ...snapshot, durationBefore: 1, durationAfter: 0,
+    firstTickEventId: first.sourceEventId, intentEventId: `${after.id}:${tick.turn}:0` });
+  const completed = Object.freeze({ ...research, application: Object.freeze({ ...application }), firstTick: Object.freeze({ ...first }), aftereffect });
+  return isValidCopperhornResearchState(completed, heroId, depthTick) ? completed : research;
+}
+
+/** Observe three fixed tasks from this one real, newly resolved combat packet. */
+export function advanceFieldResearch(research: FieldResearchStateV3, before: CombatState, after: CombatState,
+  context: { readonly heroId: string; readonly depthTick: number }): FieldResearchStateV3 {
   if (!isValidFieldResearchState(research, context.heroId, context.depthTick)
     || before.id !== after.id || after.turn !== before.turn + 1 || after.turn > context.depthTick) return research;
   const inkcap = advanceInkcapResearch(research.inkcap, before, after, context);
   const moonhowl = advanceMoonhowlResearch(research.moonhowl, before, after, context);
-  return inkcap === research.inkcap && moonhowl === research.moonhowl ? research
-    : Object.freeze({ schemaVersion: 2, inkcap, moonhowl });
+  const copperhorn = advanceCopperhornResearch(research.copperhorn, before, after, context);
+  return inkcap === research.inkcap && moonhowl === research.moonhowl && copperhorn === research.copperhorn ? research
+    : Object.freeze({ schemaVersion: 3, inkcap, moonhowl, copperhorn });
 }

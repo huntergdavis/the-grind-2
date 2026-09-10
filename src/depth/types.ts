@@ -498,6 +498,58 @@ export interface FieldResearchStateV2 {
   readonly moonhowl: MoonhowlResearchStateV1;
 }
 
+export interface CopperhornApplicationV1 {
+  readonly speciesId: "copperhorn";
+  readonly abilityId: "secret:copperhorn:bellmetal-charge";
+  readonly combatId: string;
+  readonly sourceEventId: string;
+  readonly sourceTick: number;
+  readonly sourceTurn: number;
+  readonly actorId: string;
+  readonly targetId: string;
+  readonly potency: number;
+  readonly duration: 2;
+  readonly targetHealthAfter: number;
+}
+
+export interface CopperhornBurningTickV1 {
+  readonly combatId: string;
+  readonly sourceEventId: string;
+  readonly sourceTick: number;
+  readonly sourceTurn: number;
+  readonly applicationEventId: string;
+  readonly targetId: string;
+  readonly potency: number;
+  readonly durationBefore: 2;
+  readonly durationAfter: 1;
+  readonly healthBefore: number;
+  readonly amount: number;
+  readonly healthAfter: number;
+}
+
+export interface CopperhornFinalEmberV1 extends Omit<CopperhornBurningTickV1, "durationBefore" | "durationAfter"> {
+  readonly durationBefore: 1;
+  readonly durationAfter: 0;
+  readonly firstTickEventId: string;
+  /** The attempted action's intent; fatal burning need not allow it to resolve. */
+  readonly intentEventId: string;
+}
+
+export interface CopperhornResearchStateV1 {
+  readonly taskId: "copperhorn:final-ember@1";
+  readonly application: CopperhornApplicationV1 | null;
+  /** Intermediate provenance, not a third progress mark. */
+  readonly firstTick: CopperhornBurningTickV1 | null;
+  readonly aftereffect: CopperhornFinalEmberV1 | null;
+}
+
+export interface FieldResearchStateV3 {
+  readonly schemaVersion: 3;
+  readonly inkcap: FieldResearchStateV1;
+  readonly moonhowl: MoonhowlResearchStateV1;
+  readonly copperhorn: CopperhornResearchStateV1;
+}
+
 export interface DetailedHeroState {
   id: string;
   name: string;
@@ -1106,7 +1158,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 24;
+  schemaVersion: 25;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -1114,7 +1166,7 @@ export interface DepthState {
   companions: CompanionRosterState;
   dungeon: DungeonState | null;
   hero: DetailedHeroState;
-  fieldResearch: FieldResearchStateV2;
+  fieldResearch: FieldResearchStateV3;
   heroGrowth: HeroGrowthState;
   quest: QuestState;
   completedQuests: readonly CompletedQuestSummary[];

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createCombat, isValidCombatState, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState, upgradeFieldResearchState } from "./field-research";
 import { createDepthState, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
-import type { CombatAction, CombatState, DepthState, FieldResearchStateV2 } from "./types";
+import type { CombatAction, CombatState, DepthState, FieldResearchStateV3 } from "./types";
 
 const seed = "browser-moonhowl-research:39";
 const heroId = "hero:campaign:browser-moonhowl-research";
@@ -62,7 +62,7 @@ function controlledPair(otherWeaken = false): CombatState {
   return result;
 }
 
-function resolve(research: FieldResearchStateV2, before: CombatState, action: CombatAction) {
+function resolve(research: FieldResearchStateV3, before: CombatState, action: CombatAction) {
   const after = resolveCombatTurn(before, action, seed);
   expect(isValidCombatState(after)).toBe(true);
   return { combat: after, research: advanceFieldResearch(research, before, after, { heroId, depthTick: after.turn + 10 }) };

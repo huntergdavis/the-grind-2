@@ -2,6 +2,58 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — Copperhorn final-ember research (v0.5.154)
+
+Reuses the prior Copperhorn proposal recalled from sessions03/06 and BACKLOG
+item17. The first frozen-v153 sample (golden0–5, 400 turns each) found 16
+Copperhorn combat identities, nine burning applications and one first burn,
+but no final expiry. The lone golden2 sequence ended in a lethal reapplication
+after the hero used a tonic; it was not a tracker failure. No implementation
+was promoted from that negative sample.
+
+A separately bounded golden6–37, maximum120 turns each, stopped at golden27
+T89 after 2,609 turns. Tinker Aster Starling receives Bellmetal Charge at T86
+(HP54→30, burning2, potency2), suffers its first tick at T87 (30→28, 2→1),
+uses Springbolt to leave the foe at six HP, witnesses an actual enemy Guard at
+T88, then suffers final expiry T89 (28→26, 1→0) before a basic-strike victory.
+All actions came from uninterrupted createWorld/advanceWorld autoplay. The
+lossless source archive is in ignored scratch/copperhorn-natural-witness-v153.json;
+the separate negative report and causal trace are preserved. This is an
+occurrence witness, not a claim of frequent or all-class completion.
+
+The fixed research task keeps application, supporting first-tick and final
+expiry receipts. The supporting receipt does not create a third progress step.
+Require an uninterrupted source-linked status chain; unrelated/overwritten fire
+or missing packets cannot complete it. Final damage may interrupt an attempted
+action, so the clue must not promise survival or an executed move. ResearchV3
+and depth25 preserve existing Inkcap/Moonhowl evidence and initialize Copperhorn
+empty for old saves. Reuse Codex evidence disclosure; no new panel, reward,
+combat policy, narrator or compact-ledger work.
+
+The engine and UI implementations are frozen. Independent read-only save/engine
+review found no blockers. All 29 fixed-research engine tests, 33 research/view
+projection tests and 60 save-migration/depth-state tests pass; the fatal-final-
+burn test also verifies that an intent is not falsely described as an executed
+action. TypeScript, version, boundary and production-build checks pass.
+The existing ten-seed, 1,000-turn replay's normalized v153 hashes are unchanged;
+only the full-state snapshots change for researchV3/depth25. This uses the
+existing replay loop, not an added duration matrix. The natural No-LLM browser
+journey passes first-run in 117.4s (2.3m runner, unchanged 120s budget): real
+T85→T89 saves match advanceWorld exactly, 0/1/1/1/2 progress, actual Guard and
+winning strike, positive final HP loss, native disclosure/focus, 1280/320
+captures and actual reload. Zero browser errors, inference or external requests;
+both captures reviewed and owned preview19880 closed. The existing mobile Codex
+column is narrow and scrolls vertically, but has no horizontal overflow.
+
+The broader local simulation/canonical run finished with 52 passes, nine stale
+depth-version assertion failures and two existing timeout failures: the
+20,000-turn progression test took83.6s against60s, and the save/replay test
+took22.7s against20s while other host workloads were active. All affected
+legacy expectations were corrected; their targeted rerun passes11/11. The
+ten golden full-state and normalized gameplay assertions pass. Do not increase
+timeouts or claim the complete local suite passed; existing clean-run deployment
+CI must resolve those two timing checks before marking this release delivered.
+
 ## Gameplay-first council — mobile Map toolbar clearance (v0.5.153)
 
 Reuses session09's v152 browser finding and recorded BACKLOG item16: the

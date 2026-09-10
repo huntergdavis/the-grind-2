@@ -182,7 +182,7 @@ Immediate queue:
     public version/cache 0.5.153, entry `index-BFnQOE02.js`, stylesheet
     `index-C9e4LhCm.css`, unchanged simulation worker and committed source/build
     comparisons pass. Protected ledger work and parked drafts remain untouched.
-17. **Next gameplay slice — V04.16e3, Copperhorn: study the final ember.**
+17. **In implementation — V04.16e3, Copperhorn: study the final ember (v0.5.154).**
     Newly promote one bounded subset of the existing monster field-research
     backlog: witness actual Bellmetal Charge apply burning, then witness that
     same application lose its final duration while still damaging the hero
@@ -196,6 +196,23 @@ Immediate queue:
     Copperhorn empty, with no retrospective aggregate-lore credit. Reuse the
     existing Codex disclosure and No-LLM autoplay; no reward, policy change,
     new Watch panel, generic research framework or compact-ledger dependency.
+    Natural gate met on committed v153: golden27 T86 actual Bellmetal Charge
+    applies burning 2 (HP54→30); T87 burns 30→28 and Springbolt lowers the foe
+    to six HP; T88 the enemy Guards; T89 burning expires 1→0 with HP28→26
+    before the hero's genuine basic-strike victory. No stats, abilities, action
+    order or commands were fabricated. The initial 2,400-turn sample found no
+    final expiry; a separately bounded early-seed follow-up stopped at its first
+    witness after 2,609 turns. This proves occurrence, not common/all-class pacing.
+    Implementation and independent engine/save/UI reviews are complete. The
+    Codex reuses its existing two-mark progress bar and collapsed source
+    disclosure; the intervening first burn is supporting evidence, not a third
+    mark. All 29 engine, 33 view, 60 migration/depth and 11 corrected legacy-save
+    checks pass, as do type/version/boundary/build checks and the normalized
+    ten-seed gameplay hashes. One natural No-LLM browser journey passes first-run
+    in 117.4s under its unchanged 120s budget: exact T85→T89 saves and progress,
+    native disclosure/focus, 1280/320 captures, actual reload and zero browser
+    errors, inference or external requests. Both captures reviewed; no new
+    Watch panel or CSS change. Full CI and public deployment remain pending.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

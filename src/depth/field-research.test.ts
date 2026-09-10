@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createCombat, isValidCombatState, resolveCombatTurn } from "./combat";
 import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState, upgradeFieldResearchState } from "./field-research";
 import { createDepthState, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
-import type { CombatAction, CombatState, DepthState, FieldResearchStateV2 } from "./types";
+import type { CombatAction, CombatState, DepthState, FieldResearchStateV3 } from "./types";
 
 const seed = "browser-field-research:0";
 const heroId = "hero:campaign:browser-field-research";
@@ -58,7 +58,7 @@ function controlledPair(otherPoison = false): CombatState {
   return result;
 }
 
-function resolve(research: FieldResearchStateV2, before: CombatState, action: CombatAction) {
+function resolve(research: FieldResearchStateV3, before: CombatState, action: CombatAction) {
   const after = resolveCombatTurn(before, action, seed);
   expect(isValidCombatState(after)).toBe(true);
   return { combat: after, research: advanceFieldResearch(research, before, after, { heroId, depthTick: after.turn + 10 }) };
@@ -105,7 +105,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const finished = complete();
     const { fieldResearch: _research, ...previous } = finished;
     const upgraded = upgradeDepthState({ ...previous, schemaVersion: 21 }, seed, heroId, "Mara");
-    expect(upgraded.schemaVersion).toBe(24);
+    expect(upgraded.schemaVersion).toBe(25);
     expect(upgraded.fieldResearch).toEqual(createFieldResearchState());
     expect(upgraded.hero.monsterLore).toEqual(finished.hero.monsterLore);
     expect(upgraded.combat).toEqual(finished.combat);
@@ -124,7 +124,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     expect(Object.isFrozen(upgraded.inkcap.aftereffect)).toBe(true);
     expect(upgradeFieldResearchState(JSON.parse(JSON.stringify(upgraded)), heroId, finished.tick)).toEqual(upgraded);
     const loaded = upgradeDepthState({ ...finished, schemaVersion: 23, fieldResearch: legacy }, seed, heroId, "Mara");
-    expect(loaded.schemaVersion).toBe(24);
+    expect(loaded.schemaVersion).toBe(25);
     expect(loaded.fieldResearch).toEqual(upgraded);
     for (const invalid of [null, { ...legacy, schemaVersion: 3 }, { ...upgraded, extra: true },
       { ...upgraded, moonhowl: null }, { ...upgraded, schemaVersion: 1 },
@@ -170,7 +170,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const before = applied.combat!;
     const after = resolveCombatTurn(before, guard(before), seed);
     const application = applied.fieldResearch.inkcap.application!;
-    const variations: FieldResearchStateV2[] = [
+    const variations: FieldResearchStateV3[] = [
       createFieldResearchState(),
       { ...applied.fieldResearch, inkcap: { ...applied.fieldResearch.inkcap, application: { ...application, sourceEventId: `${before.id}:1:4` } } },
       { ...applied.fieldResearch, inkcap: { ...applied.fieldResearch.inkcap, application: { ...application, actorId: `${before.id}:enemy:1` } } },

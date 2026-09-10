@@ -3737,6 +3737,8 @@ function presentViewScreens(): void {
       const records = document.createElement("ol");
       for (const [kind, fact, text] of [
         ["application", research.application, research.applicationText],
+        ...(research.taskId === "copperhorn:final-ember@1"
+          ? [["first-tick", research.firstTick, research.firstTickText] as const] : []),
         ["aftereffect", research.aftereffect, research.aftereffectText],
       ] as const) {
         if (fact === null || text === null) continue;
@@ -3756,8 +3758,9 @@ function presentViewScreens(): void {
           record.dataset.healthAfter = String(fact.healthAfter);
           record.dataset.durationBefore = String(fact.durationBefore);
           record.dataset.durationAfter = String(fact.durationAfter);
+          if ("intentEventId" in fact) record.dataset.intentEvent = fact.intentEventId;
+          if ("firstTickEventId" in fact) record.dataset.firstTickEvent = fact.firstTickEventId;
           if ("damageEventId" in fact) {
-            record.dataset.intentEvent = fact.intentEventId;
             record.dataset.damageEvent = fact.damageEventId;
             record.dataset.strikeTargetId = fact.strikeTargetId;
             record.dataset.strikeAction = fact.action;

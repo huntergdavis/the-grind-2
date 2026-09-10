@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { createWorld } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { createCombat, monsterAbilityForLevel, monsterDefinition, resolveCombatTurn } from "../depth/combat";
-import { advanceFieldResearch, createFieldResearchState, inkcapResearchClue, moonhowlResearchClue } from "../depth/field-research";
+import { advanceFieldResearch, copperhornResearchClue, createFieldResearchState, inkcapResearchClue, moonhowlResearchClue } from "../depth/field-research";
 import { observeMonsters } from "../depth/rpg";
-import type { CombatState, FieldResearchStateV2 } from "../depth/types";
-import { projectCodexView, projectInkcapFieldResearch, projectMoonhowlFieldResearch } from "./view-projection";
+import type { CombatState, FieldResearchStateV3 } from "../depth/types";
+import { projectCodexView, projectCopperhornFieldResearch, projectInkcapFieldResearch, projectMoonhowlFieldResearch } from "./view-projection";
 
-function researchJourney(species: "inkcap-mimic" | "lantern-wolf" = "inkcap-mimic") {
+function researchJourney(species: "inkcap-mimic" | "lantern-wolf" | "copperhorn" = "inkcap-mimic") {
   const base = createWorld("field-research-view", "campaign:field-research-view");
   const definition = monsterDefinition(species)!;
   const created = createCombat(base.seed, base.depth.hero, `encounter:field-research-view:${species}`, 1);
@@ -27,10 +27,24 @@ function researchJourney(species: "inkcap-mimic" | "lantern-wolf" = "inkcap-mimi
   const first = advanceFieldResearch(createFieldResearchState(), combat, applied, { heroId: base.hero.id, depthTick: 10 });
   const acted = resolveCombatTurn(applied, { type: "attack", actorId: base.hero.id, targetId: enemyId, abilityId: null, itemId: null }, base.seed);
   const complete = advanceFieldResearch(first, applied, acted, { heroId: base.hero.id, depthTick: 11 });
-  function world(state: CombatState | null, fieldResearch: FieldResearchStateV2, tick: number): WorldState {
+  function world(state: CombatState | null, fieldResearch: FieldResearchStateV3, tick: number): WorldState {
     return { ...base, tick, depth: { ...base.depth, tick, combat: state, fieldResearch } };
   }
   return { base, combat, applied, acted, first, complete, world };
+}
+
+function copperhornJourney() {
+  const journey = researchJourney("copperhorn");
+  const enemyId = journey.acted.combatants.find((unit) => unit.side === "enemies")!.id;
+  const guarded = resolveCombatTurn(journey.acted, { type: "guard", actorId: enemyId,
+    targetId: null, abilityId: null, itemId: null }, journey.base.seed);
+  const retained = advanceFieldResearch(journey.complete, journey.acted, guarded,
+    { heroId: journey.base.hero.id, depthTick: 12 });
+  const faded = resolveCombatTurn(guarded, { type: "attack", actorId: journey.base.hero.id,
+    targetId: enemyId, abilityId: null, itemId: null }, journey.base.seed);
+  const final = advanceFieldResearch(retained, guarded, faded,
+    { heroId: journey.base.hero.id, depthTick: 13 });
+  return { ...journey, guarded, faded, final };
 }
 
 describe("Inkcap Mimic field research Codex projection", () => {
@@ -155,7 +169,7 @@ describe("Lantern Wolf field research Codex projection", () => {
   it("keeps both fixed studies through JSON reload and removed combat history without granting abilities or victories", () => {
     const inkcap = researchJourney();
     const wolf = researchJourney("lantern-wolf");
-    const research: FieldResearchStateV2 = { schemaVersion: 2, inkcap: inkcap.complete.inkcap, moonhowl: wolf.complete.moonhowl };
+    const research: FieldResearchStateV3 = { ...createFieldResearchState(), inkcap: inkcap.complete.inkcap, moonhowl: wolf.complete.moonhowl };
     const state = wolf.world(null, research, 200);
     const serialized = JSON.stringify(state);
     const codex = projectCodexView(state);
@@ -170,11 +184,11 @@ describe("Lantern Wolf field research Codex projection", () => {
     expect(JSON.stringify(state)).toBe(serialized);
   });
 
-  it("validates the entire two-task state before showing future, foreign, or mismatched-source proof", () => {
+  it("validates the entire research state before showing future, foreign, or mismatched-source proof", () => {
     const journey = researchJourney("lantern-wolf");
     const future = journey.world(null, journey.complete, 10);
     expect(projectCodexView(future).monsters).toEqual([]);
-    const invalid: FieldResearchStateV2[] = [
+    const invalid: FieldResearchStateV3[] = [
       { ...journey.complete, moonhowl: { ...journey.complete.moonhowl,
         application: { ...journey.complete.moonhowl.application!, targetId: "hero:other" } } },
       { ...journey.complete, moonhowl: { ...journey.complete.moonhowl,
@@ -190,5 +204,106 @@ describe("Lantern Wolf field research Codex projection", () => {
     const inkcap = researchJourney();
     const corruptOtherTask = { ...invalid[0]!, inkcap: inkcap.complete.inkcap };
     expect(projectInkcapFieldResearch(journey.world(null, corruptOtherTask, 11))).toMatchObject({ progress: 0, clue: null });
+  });
+});
+
+describe("Copperhorn field research Codex projection", () => {
+  it("keeps unseen Copperhorn hidden and adds only its directly witnessed 0/2 study", () => {
+    const journey = copperhornJourney();
+    expect(projectCodexView(journey.base).monsters).toEqual([]);
+    expect(projectCopperhornFieldResearch(journey.base)).toMatchObject({
+      title: "Study Final Ember", progress: 0, clue: null, application: null, firstTick: null, aftereffect: null,
+      applicationText: null, firstTickText: null, aftereffectText: null,
+    });
+    const before = journey.world(journey.combat, createFieldResearchState(), 9);
+    const serialized = JSON.stringify(before);
+    expect(projectCodexView(before).monsters).toEqual([expect.objectContaining({
+      monsterId: "copperhorn", monsterName: "Copperhorn", encounters: 0, victories: 0, insight: 0,
+      observedOnly: true, habit: null, technique: null, discoveryOutcome: null,
+      fieldResearch: expect.objectContaining({ taskId: "copperhorn:final-ember@1", progress: 0, clue: null }),
+    })]);
+    const observed = { ...before, depth: { ...before.depth, hero: observeMonsters(before.depth.hero, journey.combat.combatants) } };
+    expect(projectCodexView(observed).monsters[0]).toMatchObject({ encounters: 1, victories: 0, fieldResearch: { progress: 0 } });
+    expect(projectCodexView(observed).monsters[0]!.observedOnly).toBeUndefined();
+    expect(JSON.stringify(before)).toBe(serialized);
+  });
+
+  it("retains the first burn as supporting evidence without revealing the final-expiry clue", () => {
+    const journey = copperhornJourney();
+    const application = journey.first.copperhorn.application!;
+    expect(application).not.toBeNull();
+    const applied = projectCopperhornFieldResearch(journey.world(journey.applied, journey.first, 10));
+    expect(applied).toMatchObject({ progress: 1, clue: null, application, firstTick: null, aftereffect: null });
+    expect(applied.applicationText).toBe(`T10 · Combat turn 1: Bellmetal Charge applied burning to the hero · potency ${application.potency} · 2 turns · Hero HP ${application.targetHealthAfter} after application.`);
+    const firstTick = journey.complete.copperhorn.firstTick!;
+    expect(firstTick).not.toBeNull();
+    const supporting = projectCopperhornFieldResearch(journey.world(journey.acted, journey.complete, 11));
+    expect(supporting).toMatchObject({ progress: 1, clue: null, application, firstTick, aftereffect: null, aftereffectText: null });
+    expect(firstTick).toMatchObject({ durationBefore: 2, durationAfter: 1,
+      applicationEventId: application.sourceEventId, amount: firstTick.healthBefore - firstTick.healthAfter });
+    expect(firstTick.amount).toBeGreaterThan(0);
+    expect(supporting.firstTickText).toBe(`T11 · Combat turn 2: the first burn harmed the hero before action resolution · Hero HP ${firstTick.healthBefore}→${firstTick.healthAfter} (−${firstTick.amount}) · duration 2→1. Supporting evidence, not another progress mark.`);
+  });
+
+  it("reveals 2/2 only for the recorded final burn with exact HP and both earlier source links", () => {
+    const journey = copperhornJourney();
+    const proof = journey.final.copperhorn;
+    expect(proof.aftereffect).not.toBeNull();
+    const aftereffect = proof.aftereffect!;
+    const completed = projectCopperhornFieldResearch(journey.world(journey.faded, journey.final, 13));
+    expect(completed).toMatchObject({ progress: 2, clue: copperhornResearchClue,
+      application: proof.application, firstTick: proof.firstTick, aftereffect });
+    expect(aftereffect).toMatchObject({ durationBefore: 1, durationAfter: 0,
+      firstTickEventId: proof.firstTick!.sourceEventId, applicationEventId: proof.application!.sourceEventId });
+    expect(aftereffect.amount).toBeGreaterThan(0);
+    expect(aftereffect.healthAfter).toBe(aftereffect.healthBefore - aftereffect.amount);
+    expect(completed.aftereffectText).toBe(`T13 · Combat turn 4: the final burn expired but still harmed the hero before action resolution · Hero HP ${aftereffect.healthBefore}→${aftereffect.healthAfter} (−${aftereffect.amount}) · duration 1→0.`);
+    expect(completed.aftereffectText).not.toContain("An observed combatant");
+    expect(completed.aftereffectText).not.toContain(aftereffect.targetId);
+    expect(journey.faded.eventStream.events.find((event) => event.id === aftereffect.sourceEventId)).toMatchObject({ kind: "status-expired", status: "burning", amount: aftereffect.amount });
+    expect(journey.faded.eventStream.events.find((event) => event.id === aftereffect.intentEventId)?.kind).toBe("intent");
+  });
+
+  it("retains all three studies through JSON reload without combat history, rewards or save mutation", () => {
+    const inkcap = researchJourney();
+    const wolf = researchJourney("lantern-wolf");
+    const copperhorn = copperhornJourney();
+    const research: FieldResearchStateV3 = { ...copperhorn.final, inkcap: inkcap.complete.inkcap, moonhowl: wolf.complete.moonhowl };
+    const state = copperhorn.world(null, research, 200);
+    const serialized = JSON.stringify(state);
+    const codex = projectCodexView(state);
+    expect(codex).toMatchObject({ recordedCount: 3, learnedCount: 0 });
+    expect(codex.monsters.map((card) => [card.monsterId, card.fieldResearch?.progress, card.fieldResearch?.clue])).toEqual([
+      ["copperhorn", 2, copperhornResearchClue], ["inkcap-mimic", 2, inkcapResearchClue], ["lantern-wolf", 2, moonhowlResearchClue],
+    ]);
+    expect(codex.monsters.every((card) => card.encounters === 0 && card.victories === 0 && card.insight === 0
+      && card.technique === null && card.discoveryOutcome === null && card.habit === null)).toBe(true);
+    expect(projectCodexView(JSON.parse(serialized))).toEqual(codex);
+    expect(state.depth.hero).toEqual(copperhorn.base.depth.hero);
+    expect(JSON.stringify(state)).toBe(serialized);
+  });
+
+  it("redacts future, foreign and mismatched intermediate/final proof across the entire state", () => {
+    const journey = copperhornJourney();
+    expect(projectCodexView(journey.world(null, journey.final, 12)).monsters).toEqual([]);
+    const invalid: FieldResearchStateV3[] = [
+      { ...journey.final, copperhorn: { ...journey.final.copperhorn,
+        application: { ...journey.final.copperhorn.application!, targetId: "hero:other" } } },
+      { ...journey.final, copperhorn: { ...journey.final.copperhorn, firstTick: null } },
+      { ...journey.final, copperhorn: { ...journey.final.copperhorn,
+        firstTick: { ...journey.final.copperhorn.firstTick!, applicationEventId: "unrelated:1:0" } } },
+      { ...journey.final, copperhorn: { ...journey.final.copperhorn,
+        aftereffect: { ...journey.final.copperhorn.aftereffect!, firstTickEventId: "unrelated:2:1" } } },
+    ];
+    for (const research of invalid) {
+      const state = journey.world(null, research, 13);
+      expect(projectCodexView(state).monsters).toEqual([]);
+      expect(projectCopperhornFieldResearch(state)).toMatchObject({ progress: 0, clue: null,
+        application: null, firstTick: null, aftereffect: null,
+        applicationText: null, firstTickText: null, aftereffectText: null });
+    }
+    const inkcap = researchJourney();
+    const corruptOtherTask = { ...invalid[0]!, inkcap: inkcap.complete.inkcap };
+    expect(projectInkcapFieldResearch(journey.world(null, corruptOtherTask, 13))).toMatchObject({ progress: 0, clue: null });
   });
 });
