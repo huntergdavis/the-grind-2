@@ -1583,14 +1583,18 @@ function presentHeroInspectionActivity(): void {
   heroActivityHosts.screen.root.hidden = activeView === "adventure";
   if (activeView === "watch" || activeView === "adventure") return;
   const preferredSubjectId = activityFocusByView[activeView];
-  const activity = projectViewHero(state, activeView, preferredSubjectId);
+  const activity = projectViewHero(state, activeView, preferredSubjectId, { paused: isPresentationPaused() });
   if (activity.subjectId === null) delete activityFocusByView[activeView];
   else activityFocusByView[activeView] = activity.subjectId;
   presentHeroActivityHost(activeView === "map" ? heroActivityHosts.map : heroActivityHosts.screen, activity);
 }
 
+function isPresentationPaused(): boolean {
+  return startupHold || paused || presentationSuspended || narrativeReading;
+}
+
 function syncPresentationPaused(): void {
-  const presentationPaused = startupHold || paused || presentationSuspended || narrativeReading;
+  const presentationPaused = isPresentationPaused();
   const now = Date.now();
   if (presentationBusy && presentationPaused && cutawayPausedAtMs === null) {
     cutawayPausedAtMs = now;
@@ -1600,6 +1604,7 @@ function syncPresentationPaused(): void {
   }
   elements.app.dataset.presentationPaused = String(presentationPaused);
   renderer.setPaused(presentationPaused);
+  presentHeroInspectionActivity();
 }
 
 const trapCutawayPhaseOrder: readonly TrapCutawayPhase[] = [
@@ -4044,7 +4049,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false, suppress
   } else {
     elements.viewAnnouncement.textContent = view === "watch"
       ? "Watch view. Live adventure presentation restored."
-    : `${view[0]?.toUpperCase() ?? ""}${view.slice(1)} view. The adventure continues in the background.`;
+    : `${view[0]?.toUpperCase() ?? ""}${view.slice(1)} view. Return to Watch for the adventure.`;
   }
   presentSpectatorInbox();
   presentHeroInspectionActivity();

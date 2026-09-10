@@ -2,6 +2,55 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — truthful inspection status (v0.5.152)
+
+Reuses the v151 Inventory screenshot finding recorded in BACKLOG.md item 15:
+a paused, settled victory still claimed that battle continued off-screen.
+The precise local history query had no result; the council recovered the same
+queued finding from session03. Scope is the existing marginal hint, not a new
+panel or a change to autonomous gameplay.
+
+Read-only council review requires effective host pause state, immediate text
+refresh on Pause/Resume, distinct tactical/Pattern Duel state, and current
+recorded-command binding before naming a settled outcome. A battle backdrop
+alone is not evidence of a running encounter or an old victory. Settled heroes
+return to their ordinary inspection pose; existing paused CSS freezes animation.
+Other significant scenes use neutral moment wording, and adjacent inspection
+headings no longer claim an adventure is moving while paused.
+
+Verification is a focused projection suite, one natural golden 1 T4→T5 browser
+journey with exact saves/reload and 1280/320 captures, release build and normal
+deployment CI. No expanded duration/storage/model matrix or raised timeout.
+
+The 12 inspection regressions and 22 adjacent view/appearance checks pass.
+Actual golden 1 autoplay supplies ongoing and settled tactical witnesses;
+real duel reducers supply bounded projection fixtures, not a claim of a second
+whole-campaign browser journey. Current command identity/turn and stale-source
+branches are covered. Startup review finds no early onHold invocation before
+the inspection hosts exist. Version, canonical boundaries and build pass;
+simulation and narrator worker bundles and CSS retain their v151 hashes.
+
+Root inspected all four 1280/320 Map/Inventory captures. New status text is
+readable and stays within the viewport. The 320px Map capture also exposes
+upper atlas details behind fixed navigation, so this is not a claim of a fully
+clean Map layout; that distinct panel-height/toolbar-clearance fix is queued
+as item 16 rather than hidden by the horizontal-overflow assertion.
+
+The single built-game browser journey passes on its first run in 69.4s / 1.5m
+runner under the unchanged 120s budget. Exact paused T4 save, same-turn native
+Resume/Pause, actual automatic T5 victory, both Map/Inventory hosts, terminal
+inspection pose, exact persisted reload and zero browser errors/inference/
+external requests all pass. Owned preview port 19880 is closed. The untouched
+collapsed mobile Map CSS lacks the toolbar-relative inset/overflow already
+used for its expanded gazetteer; shorter status copy does not introduce that
+existing layout defect. It remains the next distinct UI release.
+
+The final TypeScript pass caught two negative test fixtures assigning explicit
+undefined to an exact-optional command ID. Fixtures now delete a missing field
+or supply an empty invalid ID. This test-only correction leaves production
+and the verified browser build unchanged. Type checking and the 12-case rerun
+both pass before committing (7.94s test runner).
+
 ## Gameplay-first council — efficient finishing strikes (v0.5.151)
 
 The proposed Familiar Opening failed its promotion gate: committed-v150 golden

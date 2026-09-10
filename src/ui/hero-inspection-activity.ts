@@ -190,8 +190,8 @@ function hallSubject(state: WorldState): SubjectProjection {
     subjectId: induction?.id ?? state.hero.id,
     subjectLabel: induction === null ? "Hall of Champions" : `${induction.heroName} · Level ${induction.level}`,
     subjectDetail: induction === null
-      ? `Level ${state.hero.level} of 1000 · the current adventure keeps moving`
-      : `${induction.qualification === "earned" ? "Inducted" : "Recovered"} at T${induction.recordedTick} · the Eternal adventure continues`,
+      ? `Current adventure · Level ${state.hero.level} of 1000`
+      : `${induction.qualification === "earned" ? "Inducted" : "Recovered"} at T${induction.recordedTick} · Eternal adventure`,
     prop: "journal",
     pose: "review",
   };
@@ -206,20 +206,53 @@ function subjectForView(state: WorldState, view: HeroInspectionView, preferredSu
   return spellbookSubject(state, preferredSubjectId);
 }
 
+function inspectionBattle(state: WorldState): { label: string; ongoing: boolean } | null {
+  const duel = state.depth.counterDuel;
+  const combat = state.depth.combat;
+  if (duel?.outcome === "ongoing") return { label: "Duel", ongoing: true };
+  if (combat?.outcome === "ongoing") return { label: "Battle", ongoing: true };
+
+  // A retained battle backdrop alone cannot identify an old result. Bind the
+  // outcome to the current recorded action, keeping the two encounter engines separate.
+  const source = state.chronicle.at(-1);
+  if (source?.tick !== state.tick || source.id !== `${state.campaignId}:${state.tick}`) return null;
+  const prefix = `${state.campaignId}:depth:${state.depth.tick}:`;
+  if (source.commandType === "combat-action") {
+    const completed = state.depth.completedCombats.at(-1);
+    if (completed === undefined || completed.outcome === "ongoing"
+      || !source.commandId?.startsWith(`${prefix}combat:${completed.id}:${completed.turn - 1}:`)) return null;
+    const label = { victory: "Battle won", defeat: "Battle lost", stalemate: "Battle ended in stalemate" }[completed.outcome];
+    return { label, ongoing: false };
+  }
+  if (source.commandType === "counter-duel-action") {
+    const completed = state.depth.completedCounterDuels.at(-1);
+    const round = completed?.history.at(-1)?.round;
+    if (completed === undefined || completed.outcome === "ongoing" || round === undefined
+      || !source.commandId?.startsWith(`${prefix}counter-duel:${completed.id}:${round}:`)) return null;
+    const label = { victory: "Duel won", defeat: "Duel lost", draw: "Duel drawn" }[completed.outcome];
+    return { label, ongoing: false };
+  }
+  return null;
+}
+
 export function projectViewHero(
   state: WorldState,
   view: HeroInspectionView,
   preferredSubjectId?: string,
+  playback: { paused: boolean } = { paused: false },
 ): HeroInspectionActivity {
   const subject = subjectForView(state, view, preferredSubjectId);
   const attention = attentionPolicyForMode(state.scene.mode);
-  const pose: HeroInspectionPose = state.scene.mode === "battle"
+  const battle = state.scene.mode === "battle" ? inspectionBattle(state) : null;
+  const pose: HeroInspectionPose = battle?.ongoing === true
     ? "battle"
-    : attention === "backgroundSafe" ? subject.pose : "alert";
-  const liveNotice = attention === "forbiddenDuringCatchUp"
-    ? "Battle continues off-screen — return to Watch for the full action."
+    : attention === "backgroundSafe" || battle?.ongoing === false ? subject.pose : "alert";
+  const liveNotice = state.scene.mode === "battle"
+    ? `${battle?.label ?? "Battle scene"}${battle?.ongoing === true
+      ? playback.paused ? " paused" : " continues off-screen"
+      : playback.paused ? " · paused" : ""} — return to Watch.`
     : attention === "queueForPresentation"
-      ? "A significant scene continues off-screen — return to Watch for the full action."
+      ? `${playback.paused ? "Scene paused" : "A significant moment"} — return to Watch.`
       : null;
   return {
     view,

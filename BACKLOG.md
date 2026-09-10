@@ -131,10 +131,29 @@ Immediate queue:
     do not fake eligibility by removing abilities or manufacturing mastery.
     The incomplete art draft is preserved, unshipped, in ignored
     `scratch/parked-familiar-opening-unverified-2026-09-09.patch` (base `af5807f`).
-15. **Next UI polish — truthful inspection status.** The verified Inventory
-    capture still says the battle continues off-screen when the adventure is
+15. **Implemented; deployment pending — truthful inspection status (v0.5.152).** The v151 Inventory
+    capture said the battle continued off-screen when the adventure was
     paused on a settled victory. Make that existing hint distinguish playing,
     paused and completed combat, without another panel or gameplay mutation.
+    The existing Map/inspection margin now receives effective playback state
+    and refreshes immediately on Pause/Resume, including a deferred pause.
+    Recorded tactical/Pattern Duel outcomes stay separate and bind to the
+    current encounter command; an unbound old battle backdrop gets neutral copy.
+    Settled heroes resume their inspection pose. Nearby inspection headings,
+    tab announcements and Hall detail no longer promise ongoing movement.
+    No save, combat rule, narrator change or additional always-on panel.
+    All 34 focused unit checks, version/boundary/build checks and council review
+    pass. One actual No-LLM golden 1 T4→T5 browser journey passes in 69.4s
+    (1.5m runner, unchanged 120s budget), including immediate same-tick
+    Pause/Resume, Map/Inventory agreement, 1280/320 captures, exact saved reload
+    and zero browser errors, inference or external requests. New notices fit;
+    a separate existing mobile Map toolbar overlap is explicitly queued below.
+16. **Next UI polish — mobile Map toolbar clearance.** The v152 320px Map
+    capture has readable new status text, but the atlas panel's upper route
+    details can sit behind the fixed toolbar. Bound the existing inspection
+    panel to the usable viewport and keep its content scrollable, without
+    hiding known-place navigation or adding another panel. Verify tall/short
+    content and Pause/resize using the existing Map journey; no gameplay change.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
