@@ -210,6 +210,12 @@ export function isValidItemState(value: unknown): value is ItemState {
   const modifierEntries = Object.entries(value.modifiers);
   const restorative = value.restorative;
   const useMastery = value.useMastery;
+  const dungeonTool = value.dungeonTool;
+  const validDungeonTool = dungeonTool === undefined || (
+    isRecord(dungeonTool) && hasExactKeys(dungeonTool, ["schemaVersion", "kind", "bonus"])
+    && dungeonTool.schemaVersion === 1 && dungeonTool.kind === "disarming-kit" && dungeonTool.bonus === 2
+    && kind === "consumable" && value.quantity === 1 && restorative === null && useMastery === null
+  );
   const validRestorative = restorative === null || (
     isRecord(restorative) &&
     hasExactKeys(restorative, ["schemaVersion", "kind", "target"]) &&
@@ -229,7 +235,7 @@ export function isValidItemState(value: unknown): value is ItemState {
     (kind === "equipment" && slot === "weapon"
       ? isValidWeaponUseMastery(useMastery, value.id as string)
       : useMastery === null) &&
-    validRestorative &&
+    validRestorative && validDungeonTool &&
     (kind === "consumable" || restorative === null) &&
     modifierEntries.every(([modifier, amount]) =>
       itemModifiers.includes(modifier as ItemModifier) && isBoundedInteger(amount, 0, 100)

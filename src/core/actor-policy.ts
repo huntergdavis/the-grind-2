@@ -10,6 +10,8 @@ import {
 } from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { legalMillraceReversal } from "../depth/shared-opening";
+import { selectDisarmingKitPurchase } from "../depth/town-disarming-kit";
+import { selectDisarmingKit } from "../depth/disarming-kit";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -241,6 +243,11 @@ function scoreCandidate(
     reason = restock === null
       ? "the safe-town supply receipt is unavailable"
       : `${restock.townName} safely renews ${restock.itemName} ×${restock.quantityBefore}→×${restock.quantityAfter} for ${restock.goldSpent} gold`;
+  } else if (command.type === "buy-disarming-kit") {
+    const purchase = selectDisarmingKitPurchase(state.depth);
+    score = 100;
+    reason = purchase === null ? "the recorded smith's supply is unavailable"
+      : `${purchase.smithName} offers one disarm assist for ${purchase.goldSpent} gold`;
   } else if (command.type === "move-dungeon") {
     const move = dungeonMoveKnowledge(candidate, knowledge);
     const feature = move?.feature;
@@ -454,6 +461,11 @@ function presentationLabels(
           : `${restock.itemName} ×${restock.quantityBefore}→×${restock.quantityAfter} · gold ${restock.goldBefore}→${restock.goldAfter}`,
       };
     }
+    case "buy-disarming-kit": {
+      const purchase = selectDisarmingKitPurchase(state.depth);
+      return { actionLabel: "buys a Disarming Kit", targetLabel: purchase === null ? command.smithId
+        : `${purchase.smithName} · gold ${purchase.goldBefore}→${purchase.goldAfter}` };
+    }
     case "enter-dungeon": return { actionLabel: "enters the maze", targetLabel: state.scene.location };
     case "invoke-dungeon-shrine": return { actionLabel: "invokes the far-stair shrine", targetLabel: state.scene.location };
     case "move-dungeon": {
@@ -463,7 +475,8 @@ function presentationLabels(
         targetLabel: move?.sightedWayfinderKey === true ? "the sighted Wayfinder Key" : move?.feature ?? state.scene.location,
       };
     }
-    case "disarm-dungeon-trap": return { actionLabel: "attempts to disarm", targetLabel: "the detected mechanism" };
+    case "disarm-dungeon-trap": return { actionLabel: selectDisarmingKit(state.depth.hero) === null
+      ? "attempts to disarm" : "uses a Disarming Kit (+2)", targetLabel: "the detected mechanism" };
     case "search-dungeon": return { actionLabel: "searches from this room", targetLabel: "the unexplored passages" };
     case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };

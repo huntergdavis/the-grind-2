@@ -1655,9 +1655,9 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
       ? "Enter the marked chamber"
       : "Disarm the detected mechanism";
   elements.trapCutawayInspection.textContent = `${mechanism} · ${packet.phaseBefore}`;
-  elements.trapCutawayCheck.textContent = `${packet.attribute} · ${packet.skill} + ${packet.roll} = ${packet.total} vs ${packet.difficulty}`;
+  elements.trapCutawayCheck.textContent = `${packet.attribute} · ${packet.skill} + ${packet.roll}${packet.schemaVersion === 2 ? " + 2 KIT" : ""} = ${packet.total} vs ${packet.difficulty}`;
   elements.trapCutawayResult.textContent = `${outcome.toUpperCase()} · ${packet.phaseBefore} → ${packet.phaseAfter}`;
-  elements.trapCutawayConsequence.textContent = `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? ` (−${packet.damage})` : " (no damage)"}`;
+  elements.trapCutawayConsequence.textContent = `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? ` (−${packet.damage})` : " (no damage)"}${packet.schemaVersion === 2 ? " · Disarming Kit 1 → 0 (consumed)" : ""}`;
   elements.trapCutawayProgress.textContent = `${packet.completedExit ? "Exit reached" : "Maze continues"} · Cross-maze quest ${packet.crossMazeDelta > 0 ? `+${packet.crossMazeDelta}` : "unchanged"} · the viewer cannot alter this resolved result.`;
   elements.trapCutawayOutcome.hidden = false;
   elements.trapCutawayOutcome.disabled = false;
@@ -2452,7 +2452,7 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.trapCutawayOutcome.disabled = true;
       presentTrapCutawayPhase("final");
       const outcome = trapCutawayOutcome(packet).toUpperCase();
-      elements.trapCutawayAnnouncement.textContent = `${outcome}. HP ${packet.healthBefore} to ${packet.healthAfter}. ${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
+      elements.trapCutawayAnnouncement.textContent = `${outcome}. HP ${packet.healthBefore} to ${packet.healthAfter}. ${packet.schemaVersion === 2 ? "Disarming Kit consumed: 1 to 0; +2 to the check. " : ""}${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
     },
   },
   "companion-farewell@1": {
@@ -3204,7 +3204,7 @@ function presentViewScreens(): void {
       equipped.textContent = projected.equippedSlot === null ? "Carried" : `Equipped · ${projected.equippedSlot}`;
       const modifiers = document.createElement("p");
       modifiers.className = "item-modifiers";
-      modifiers.textContent = projected.restorative ?? (projected.modifiers.length === 0
+      modifiers.textContent = projected.dungeonTool ?? projected.restorative ?? (projected.modifiers.length === 0
         ? "No stat modifiers"
         : projected.modifiers.map((modifier) => modifierLabel(modifier.name, modifier.value)).join(" · "));
       const mastery = document.createElement("p");

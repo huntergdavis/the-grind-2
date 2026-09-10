@@ -97,7 +97,12 @@ describe("autonomous paid inn rest world integration", () => {
     expect(selectPaidInnRest(after.depth)).toBeNull();
     expect(campaignDirector(after).candidates.every((candidate) => !candidate.id.includes(":inn-rest:"))).toBe(true);
     const next = advanceWorld(after);
-    expect(next.hero.gold).toBe(7);
+    // A separate smith purchase may follow recovery; the inn never charges twice.
+    expect(next.chronicle.at(-1)?.commandType).toBe("buy-disarming-kit");
+    expect(next.hero.gold).toBe(2);
+    expect(next.depth.latestDisarmingKitPurchase).toMatchObject({ goldBefore: 7, goldSpent: 5, goldAfter: 2 });
+    expect(next.depth.hero.resources).toEqual(after.depth.hero.resources);
+    expect(next.hero.experience).toBe(after.hero.experience);
     expect(next.chronicle.at(-1)?.commandId).not.toContain(":inn-rest:");
     expect(projectPaidInnRestScene(next)).toBeNull();
   });

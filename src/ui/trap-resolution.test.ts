@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { advanceWorld, attentionPolicyForMode, createWorld, eventPolicyForMode } from "../core/simulation";
 import { createHeroGrowthState } from "../core/hero-growth";
 import type { ChronicleEntry, WorldState } from "../core/types";
-import { dungeonTrapAt, generateDungeon, mazeCellId } from "../depth/dungeon";
-import { derivedStats } from "../depth/rpg";
+import { dungeonTrapAt, generateDungeon, mazeCellId, resolveDungeonTrapCheck } from "../depth/dungeon";
+import { selectDisarmingKit } from "../depth/disarming-kit";
+import { derivedStats, effectiveAttribute, heroExperienceFloor, heroMasteryForExperience, heroMechanicalLevel } from "../depth/rpg";
 import { depthCommandCandidates, stepDepth } from "../depth/state";
 import type { DepthCommandCandidate, DepthState, DungeonState, DungeonTrapKind, DungeonTrapPhase } from "../depth/types";
-import { projectTrapResolution } from "./trap-resolution";
-import { projectCutawayCandidates } from "../render/cutaway-registry";
+import { isTrapResolutionPacket, projectTrapResolution } from "./trap-resolution";
+import { cutawayRegistry, projectCutawayCandidates, resolveCutawayCandidate } from "../render/cutaway-registry";
 
 interface TrapWorldOptions {
   kind: DungeonTrapKind;
@@ -15,6 +16,8 @@ interface TrapWorldOptions {
   success: boolean;
   exit: boolean;
   health?: number;
+  aptitude?: number;
+  world?: WorldState;
 }
 
 function clone<T>(value: T): T {
@@ -22,14 +25,14 @@ function clone<T>(value: T): T {
 }
 
 function trapWorld(options: TrapWorldOptions): WorldState {
-  const world = createWorld(`projection-${options.kind}-${options.stage}-${options.success}-${options.exit}`, "campaign:trap-projection");
+  const world = options.world ?? createWorld(`projection-${options.kind}-${options.stage}-${options.success}-${options.exit}`, "campaign:trap-projection");
   const id = "dungeon:trap-projection";
   const trap = mazeCellId(id, 0, 0);
   const entry = mazeCellId(id, 1, 0);
   const ordinaryExit = mazeCellId(id, 1, 1);
   const deadEnd = mazeCellId(id, 0, 1);
   const phase: DungeonTrapPhase = options.stage === "detect" ? "hidden" : "detected";
-  const aptitude = options.success ? 20 : 1;
+  const aptitude = options.aptitude ?? (options.success ? 20 : 1);
   const hero = {
     ...world.depth.hero,
     attributes: {
@@ -213,6 +216,61 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
 }
 
 describe("trap resolution projection", () => {
+  for (const succeeds of [true, false]) {
+    it(`projects a consumed kit separately from the original roll on assisted ${succeeds ? "success" : "failure"}`, () => {
+      const purchased = advanceWorld(createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search"));
+      expect(purchased.chronicle.at(-1)?.commandType).toBe("buy-disarming-kit");
+      // This is an explicit isolated trap layout after a real purchase, not a claimed natural journey.
+      const staged = trapWorld({ kind: "rune-ward", stage: "disarm", success: false, exit: false,
+        aptitude: succeeds ? 9 : 1, world: purchased });
+      const dungeon = staged.depth.dungeon!;
+      const base = resolveDungeonTrapCheck(dungeon, dungeon.currentCellId, "disarm", {
+        agility: effectiveAttribute(staged.depth.hero, "agility"),
+        intellect: effectiveAttribute(staged.depth.hero, "intellect"),
+        spirit: effectiveAttribute(staged.depth.hero, "spirit"), level: staged.depth.hero.level,
+      }, staged.seed);
+      const difficulty = succeeds ? base.total + 1 : 16;
+      expect(difficulty).toBeGreaterThanOrEqual(11);
+      expect(difficulty).toBeLessThanOrEqual(16);
+      const kit = selectDisarmingKit(staged.depth.hero)!;
+      const before: WorldState = { ...staged, depth: { ...staged.depth,
+        dungeon: { ...dungeon, traps: dungeon.traps.map((trap) => ({ ...trap, disarmDifficulty: difficulty })) },
+      } };
+      const saved = JSON.stringify(before);
+      const after = advanceWorld(clone(before));
+      const source = after.chronicle.at(-1)!;
+      const packet = projectTrapResolution(before, after, source);
+      expect(packet).toMatchObject({ schemaVersion: 2, stage: "disarm", success: succeeds,
+        skill: base.skill, roll: base.roll, total: base.total + 2, difficulty,
+        phaseAfter: succeeds ? "disarmed" : "triggered",
+        tool: { itemId: kit.id, bonus: 2, quantityBefore: 1, quantityAfter: 0 },
+      });
+      expect(after.depth.hero.inventory.some((item) => item.id === kit.id)).toBe(false);
+      expect(isTrapResolutionPacket(packet)).toBe(true);
+      expect(projectTrapResolution(clone(before), clone(after), clone(source))).toEqual(packet);
+      const candidate = projectCutawayCandidates(before, after, source).find((entry) => entry.recipeKey === "trap-resolution@1")!;
+      expect(resolveCutawayCandidate(cutawayRegistry, candidate)).toMatchObject({ mode: "animate", reason: "registered" });
+      expect(JSON.stringify(before)).toBe(saved);
+      expect(Object.isFrozen(packet)).toBe(true);
+      if (packet?.schemaVersion !== 2) throw new Error("Expected assisted packet");
+      expect(Object.isFrozen(packet.tool)).toBe(true);
+      for (const changed of [
+        { bonus: 3 }, { quantityAfter: 1 }, { itemId: "foreign" }, { fake: true },
+      ]) expect(isTrapResolutionPacket({ ...packet, tool: { ...packet.tool, ...changed } })).toBe(false);
+      expect(isTrapResolutionPacket({ ...packet, schemaVersion: 3 })).toBe(false);
+      expect(isTrapResolutionPacket({ ...packet, heroId: "x".repeat(401) })).toBe(false);
+      expect(projectTrapResolution(before, { ...after, depth: { ...after.depth,
+        hero: { ...after.depth.hero, inventory: before.depth.hero.inventory },
+      } }, source)).toBeNull();
+      const receipt = after.depth.dungeon!.latestDisarmKitUse!;
+      for (const changed of [{ tick: receipt.tick - 1 }, { skill: receipt.skill + 2 }, { quantityAfter: 1 }, { itemId: "foreign" }]) {
+        expect(projectTrapResolution(before, { ...after, depth: { ...after.depth,
+          dungeon: { ...after.depth.dungeon!, latestDisarmKitUse: { ...receipt, ...changed } as typeof receipt },
+        } }, source)).toBeNull();
+      }
+    });
+  }
+
   it("projects a same-event detected trap before its earned level-up", () => {
     const staged = trapWorld({ kind: "tripwire", stage: "detect", success: true, exit: false });
     const before: WorldState = {
@@ -230,6 +288,31 @@ describe("trap resolution projection", () => {
       "hero-level-up@1",
     ]);
     expect(candidates.map((candidate) => candidate.eventId)).toEqual([source.id, source.id]);
+  });
+
+  it("preserves the capped canonical check for an assisted level-100 mastery hero", () => {
+    const purchased = advanceWorld(createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search"));
+    const staged = trapWorld({ kind: "rune-ward", stage: "disarm", success: true, exit: false, world: purchased });
+    const experience = heroExperienceFloor(100);
+    const levelled = { ...staged.depth.hero, level: 100, experience };
+    const stats = derivedStats(levelled);
+    const hero = { ...levelled, resources: { ...levelled.resources,
+      health: stats.maxHealth, maxHealth: stats.maxHealth, mana: stats.maxMana, maxMana: stats.maxMana,
+    } };
+    const before: WorldState = { ...staged,
+      hero: { ...staged.hero, level: 100, experience, mastery: heroMasteryForExperience(experience),
+        health: stats.maxHealth, maxHealth: stats.maxHealth },
+      depth: { ...staged.depth, hero, heroGrowth: createHeroGrowthState(hero) },
+    };
+    const after = advanceWorld(clone(before));
+    const packet = projectTrapResolution(before, after, after.chronicle.at(-1)!);
+    expect(packet).toMatchObject({ schemaVersion: 2, success: true });
+    if (packet === null) throw new Error("The capped assisted receipt must remain visible");
+    expect(packet.skill).toBe(effectiveAttribute(hero, packet.attribute) + heroMechanicalLevel(100));
+    expect(packet.skill).toBeLessThan(effectiveAttribute(hero, packet.attribute) + 100);
+    expect(packet.total).toBe(packet.skill + packet.roll + 2);
+    expect(after.depth.dungeon!.latestDisarmKitUse).toMatchObject({ skill: packet.skill, total: packet.total });
+    expect(isTrapResolutionPacket(packet)).toBe(true);
   });
 
   for (const kind of ["tripwire", "rune-ward"] as const) {

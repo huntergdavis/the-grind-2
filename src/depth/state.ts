@@ -45,6 +45,9 @@ import {
   projectDungeonTraversal,
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
+  resolveDungeonDisarmCheck,
+  createDungeonDisarmKitUse,
+  isValidDungeonDisarmKitUse,
   searchDungeon,
   unlockDungeonGate,
   withDungeonTrapPhase,
@@ -95,6 +98,8 @@ import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { createLegacyUnratedThreat, isValidEncounterThreatProvenance, type EncounterThreatContext } from "./threat";
 import { generateTown, visitTown } from "./towns";
 import { selectPaidInnRest } from "./town-rest";
+import { createDisarmingKit, selectDisarmingKit, disarmingKitId } from "./disarming-kit";
+import { selectDisarmingKitPurchase, isValidDisarmingKitPurchaseReceipt } from "./town-disarming-kit";
 import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState, upgradeFieldResearchState } from "./field-research";
 import type {
   CombatLogEntry,
@@ -826,9 +831,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -854,6 +859,15 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 25) {
+    // No retrospective supplies or receipts. Preserve present fields so malformed
+    // saved data is rejected rather than silently replaced by an empty history.
+    return upgradeDepthState({ ...value, schemaVersion: 26,
+      latestDisarmingKitPurchase: Object.hasOwn(value, "latestDisarmingKitPurchase") ? value.latestDisarmingKitPurchase : null,
+      dungeon: isRecord(value.dungeon) && !Object.hasOwn(value.dungeon, "latestDisarmKitUse")
+        ? { ...value.dungeon, latestDisarmKitUse: null } : value.dungeon,
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 26) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -868,6 +882,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) ||
+      !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
       (state.dungeon?.search !== undefined && !isValidDungeonSearchState(state.dungeon.search, state.dungeon, state.tick)) ||
       !isValidQuestState(value.quest) ||
@@ -1347,7 +1362,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 25,
+    schemaVersion: 26,
     seed,
     tick: 0,
     atlas,
@@ -1355,6 +1370,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     companions: createEmptyCompanionRoster(),
     dungeon: null,
     hero,
+    latestDisarmingKitPurchase: null,
     fieldResearch: createFieldResearchState(),
     heroGrowth: createHeroGrowthState(hero),
     quest: createQuest(seed),
@@ -1576,6 +1592,15 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         `${plan.itemName} ×${plan.quantityBefore}→×${plan.quantityAfter} (+${plan.quantityBought}) · gold ${plan.goldBefore}→${plan.goldAfter} · ${plan.unitPrice} gold each`,
       );
     }
+    case "buy-disarming-kit": {
+      const plan = selectDisarmingKitPurchase(input);
+      if (plan === null || plan.smithId !== command.smithId) throw new Error("Disarming Kit purchase is unavailable");
+      const receipt = { ...plan, schemaVersion: 1 as const, tick: state.tick };
+      const hero = { ...state.hero, gold: plan.goldAfter,
+        inventory: [...state.hero.inventory, createDisarmingKit(state.hero.id)] };
+      return appendLog({ ...state, hero, latestDisarmingKitPurchase: receipt }, "item",
+        `${plan.smithName} · Disarming Kit ×0→×1 · gold ${plan.goldBefore}→${plan.goldAfter} (−${plan.goldSpent}) · +2 to one disarm attempt`);
+    }
     case "enter-dungeon": {
       const plan = selectDungeonEntryPlan(input);
       if (
@@ -1785,9 +1810,11 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       if (state.dungeon === null || state.dungeon.completed) throw new Error("No active dungeon trap can be disarmed");
       const currentTrap = dungeonTrapAt(state.dungeon, state.dungeon.currentCellId);
       if (currentTrap?.phase !== "detected") throw new Error("There is no detected current trap to disarm");
-      const check = resolveDungeonTrapCheck(state.dungeon, currentTrap.cellId, "disarm", dungeonTrapAptitudes(state.hero), state.seed);
+      const kit = selectDisarmingKit(state.hero);
+      const check = resolveDungeonDisarmCheck(state.dungeon, currentTrap.cellId, dungeonTrapAptitudes(state.hero), state.seed, kit);
       let dungeon = withDungeonTrapPhase(state.dungeon, currentTrap.cellId, check.success ? "disarmed" : "triggered");
-      let hero = state.hero;
+      let hero = kit === null ? state.hero : { ...state.hero, inventory: state.hero.inventory.filter((item) => item.id !== kit.id) };
+      if (kit !== null) dungeon = { ...dungeon, latestDisarmKitUse: createDungeonDisarmKitUse(check, kit, state.tick, dungeon.id) };
       let quest = state.quest;
       let consequence: DungeonTrapConsequence | null = null;
       let shrineUse: DungeonShrineUse | null = null;
@@ -1817,7 +1844,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         : consequence === null
           ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
           : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, dungeon.completed)}`;
-      const message = shrineUse === null
+      const resultMessage = shrineUse === null
         ? trapMessage
         : `${check.success
             ? `${hero.name} unthreads the ${dungeonTrapKindLabel(check.kind)} — ${check.attribute} ${check.total} meets mechanism ${check.difficulty}. The marked trap is disarmed.`
@@ -1825,6 +1852,8 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
               ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
               : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, false)}`
           } ${dungeonShrineMessage(hero.name, shrineUse)} The far stair of ${dungeon.name} is reached.`;
+      const message = kit === null ? resultMessage
+        : `${resultMessage} Disarming Kit ×1→×0 · ${check.skill} + ${check.roll} + 2 kit = ${check.total} vs ${check.difficulty}.`;
       dungeon = appendDungeonTraversalMessage(dungeon, message);
       quest = dungeon.completed && !state.dungeon.completed
         ? applyQuestProgressFact(quest, {
@@ -2327,8 +2356,23 @@ function heldSecretAdmissionCandidate(state: DepthState): SecretDiscoveryOutcome
     )[0];
 }
 
+function isValidDisarmingKitState(state: DepthState): boolean {
+  try {
+    const purchase = state.latestDisarmingKitPurchase;
+    if (!isValidDisarmingKitPurchaseReceipt(purchase, state)) return false;
+    const toolItems = state.hero.inventory.filter((item) => item.dungeonTool !== undefined || item.id === disarmingKitId(state.hero.id));
+    const use = state.dungeon?.latestDisarmKitUse;
+    if (use !== undefined && (!isValidDungeonDisarmKitUse(use, state.dungeon!, state.tick)
+      || use !== null && (use.itemId !== disarmingKitId(state.hero.id) || purchase === null || use.tick === purchase.tick))) return false;
+    if (toolItems.length === 0) return use == null || purchase !== null && purchase.tick < use.tick;
+    return selectDisarmingKit(state.hero) !== null && purchase !== null
+      && (use == null || purchase.tick > use.tick);
+  } catch { return false; }
+}
+
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
+    !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
     (input.dungeon?.search !== undefined && !isValidDungeonSearchState(input.dungeon.search, input.dungeon, input.tick)) ||
     !isValidSecretDiscoveryGraph(input) || !isValidCounterDuelGraph(input) ||
@@ -2338,6 +2382,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
+    !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
     (output.dungeon?.search !== undefined && !isValidDungeonSearchState(output.dungeon.search, output.dungeon, output.tick)) ||
     !isValidSecretDiscoveryGraph(output) || !isValidCounterDuelGraph(output) ||
@@ -2665,7 +2710,7 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       return [commandCandidate(
         state,
         `dungeon:${state.dungeon.id}:disarm:${state.dungeon.currentCellId}`,
-        "disarm the detected trap",
+        selectDisarmingKit(state.hero) === null ? "disarm the detected trap" : "use a Disarming Kit (+2) on the detected trap",
         { type: "disarm-dungeon-trap" },
       )];
     }
@@ -2814,6 +2859,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         },
       )];
     }
+  }
+  const kitPurchase = selectDisarmingKitPurchase(state);
+  if (kitPurchase !== null) {
+    return [commandCandidate(state, `town:${kitPurchase.locationId}:disarming-kit:${kitPurchase.smithId}`,
+      `buy a Disarming Kit at ${kitPurchase.smithName} for ${kitPurchase.goldSpent} gold`,
+      { type: "buy-disarming-kit", smithId: kitPurchase.smithId })];
   }
   const dungeonPlan = selectDungeonEntryPlan(state);
   if (dungeonPlan !== null) {

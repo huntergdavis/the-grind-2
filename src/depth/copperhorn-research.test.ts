@@ -11,8 +11,12 @@ let natural: { before: WorldState; applied: WorldState; first: WorldState; guard
 
 function naturalChain() {
   if (natural !== undefined) return natural;
+  let witnessed = createWorld(seed, "campaign:27");
+  for (let tick = 0; tick < 89; tick += 1) witnessed = advanceWorld(witnessed);
+  const proof = witnessed.depth.fieldResearch.copperhorn;
+  if (proof.application === null || proof.aftereffect === null) throw new Error("Expected the existing bounded natural Copperhorn witness");
   let before = createWorld(seed, "campaign:27");
-  for (let tick = 0; tick < 85; tick += 1) before = advanceWorld(before);
+  while (before.tick < proof.application.sourceTick - 1) before = advanceWorld(before);
   const applied = advanceWorld(before);
   const first = advanceWorld(applied);
   const guarded = advanceWorld(first);
@@ -58,25 +62,26 @@ function cast(combat: CombatState, id = abilityId): Extract<CombatAction, { type
 }
 
 describe("Copperhorn final-ember field research", () => {
-  it("observes unchanged autonomous Golden 27 application, intermediate burn, enemy Guard, then final burn before victory", () => {
+  it("observes autonomous Golden 27 application, intermediate burn, enemy Guard, then final burn before victory", () => {
     const { before, applied, first, guarded, finished } = naturalChain();
-    expect([before.tick, applied.tick, first.tick, guarded.tick, finished.tick]).toEqual([85, 86, 87, 88, 89]);
+    expect([before.tick, applied.tick, first.tick, guarded.tick, finished.tick]).toEqual([4, 5, 6, 7, 8]);
     expect(before.depth.fieldResearch.copperhorn).toEqual({ taskId: "copperhorn:final-ember@1", application: null, firstTick: null, aftereffect: null });
     const application = applied.depth.fieldResearch.copperhorn.application!;
     const combatId = before.depth.combat!.id;
     expect(application).toEqual({ speciesId: "copperhorn", abilityId, combatId,
-      sourceEventId: `${combatId}:2:3`, sourceTick: 86, sourceTurn: 2, actorId: `${combatId}:enemy:0`,
+      sourceEventId: `${combatId}:2:3`, sourceTick: 5, sourceTurn: 2, actorId: `${combatId}:enemy:0`,
       targetId: before.hero.id, potency: 2, duration: 2, targetHealthAfter: 30 });
     expect(applied.depth.fieldResearch.copperhorn.firstTick).toBeNull();
     expect(first.depth.fieldResearch.copperhorn.firstTick).toEqual({ combatId, sourceEventId: `${combatId}:3:1`,
-      sourceTick: 87, sourceTurn: 3, applicationEventId: application.sourceEventId, targetId: before.hero.id,
+      sourceTick: 6, sourceTurn: 3, applicationEventId: application.sourceEventId, targetId: before.hero.id,
       potency: 2, durationBefore: 2, durationAfter: 1, healthBefore: 30, amount: 2, healthAfter: 28 });
     expect(first.depth.fieldResearch.copperhorn.aftereffect).toBeNull();
     expect(guarded.depth.fieldResearch).toBe(first.depth.fieldResearch);
     expect(selectedAction(first).type).toBe("guard");
-    expect(selectedAction(guarded).type).toBe("attack");
+    expect(selectedAction(guarded)).toEqual({ actorId: before.hero.id, type: "ability",
+      targetId: `${combatId}:enemy:0`, abilityId: "technique:springbolt", itemId: null });
     expect(finished.depth.fieldResearch.copperhorn.aftereffect).toEqual({ combatId, sourceEventId: `${combatId}:5:1`,
-      sourceTick: 89, sourceTurn: 5, applicationEventId: application.sourceEventId, targetId: before.hero.id,
+      sourceTick: 8, sourceTurn: 5, applicationEventId: application.sourceEventId, targetId: before.hero.id,
       potency: 2, durationBefore: 1, durationAfter: 0, healthBefore: 28, amount: 2, healthAfter: 26,
       firstTickEventId: `${combatId}:3:1`, intentEventId: `${combatId}:5:0` });
     const raw = resolveCombatTurn(guarded.depth.combat!, selectedAction(guarded), seed);
@@ -85,7 +90,7 @@ describe("Copperhorn final-ember field research", () => {
     expect(finished.depth.hero.resources.health).toBe(26);
     expect(finished.depth.fieldResearch.inkcap).toBe(guarded.depth.fieldResearch.inkcap);
     expect(finished.depth.fieldResearch.moonhowl).toBe(guarded.depth.fieldResearch.moonhowl);
-    expect(isValidFieldResearchState(finished.depth.fieldResearch, before.hero.id, 89)).toBe(true);
+    expect(isValidFieldResearchState(finished.depth.fieldResearch, before.hero.id, finished.tick)).toBe(true);
     const proof = finished.depth.fieldResearch.copperhorn;
     for (const value of [finished.depth.fieldResearch, proof, proof.application, proof.firstTick, proof.aftereffect]) expect(Object.isFrozen(value)).toBe(true);
   });
@@ -117,9 +122,9 @@ describe("Copperhorn final-ember field research", () => {
       { ...proof, copperhorn: { ...copperhorn, application: { ...copperhorn.application!, sourceEventId: `${before.id}:2:2` } } },
     ];
     for (const research of variations) expect(advanceFieldResearch(research, before, after,
-      { heroId: guarded.hero.id, depthTick: 89 })).toBe(research);
-    expect(advanceFieldResearch(proof, { ...before, id: "different" }, after, { heroId: guarded.hero.id, depthTick: 89 })).toBe(proof);
-    expect(advanceFieldResearch(proof, before, after, { heroId: "another-hero", depthTick: 89 })).toBe(proof);
+      { heroId: guarded.hero.id, depthTick: finished.tick })).toBe(research);
+    expect(advanceFieldResearch(proof, { ...before, id: "different" }, after, { heroId: guarded.hero.id, depthTick: finished.tick })).toBe(proof);
+    expect(advanceFieldResearch(proof, before, after, { heroId: "another-hero", depthTick: finished.tick })).toBe(proof);
   });
 
   it("requires unpruned application and intermediate combat packets, not just persisted matching potency", () => {
@@ -130,7 +135,7 @@ describe("Copperhorn final-ember field research", () => {
     expect(isValidCombatState(pruned)).toBe(true);
     const after = resolveCombatTurn(pruned, selectedAction(guarded), seed);
     expect(advanceFieldResearch(guarded.depth.fieldResearch, pruned, after,
-      { heroId: guarded.hero.id, depthTick: 89 })).toBe(guarded.depth.fieldResearch);
+      { heroId: guarded.hero.id, depthTick: guarded.tick + 1 })).toBe(guarded.depth.fieldResearch);
   });
 
   it.each([false, true])("resets the intermediate source when burning is overwritten, other fire=%s", (otherFire) => {
@@ -155,14 +160,14 @@ describe("Copperhorn final-ember field research", () => {
 
   it("records fatal final burning before an interrupted intent without inventing a completed action", () => {
     const { guarded } = naturalChain();
-    // Controlled fatal edge; natural occurrence above survives unchanged.
+    // Controlled fatal edge; the natural occurrence above survives.
     const before = { ...guarded.depth.combat!, combatants: guarded.depth.combat!.combatants.map((actor) => actor.id === guarded.hero.id
       ? { ...actor, health: 1 } : actor) };
     const after = resolveCombatTurn(before, guard(before), seed);
     expect(isValidCombatState(before)).toBe(true);
     expect(isValidCombatState(after)).toBe(true);
     expect(after.outcome).toBe("defeat");
-    const research = advanceFieldResearch(guarded.depth.fieldResearch, before, after, { heroId: guarded.hero.id, depthTick: 89 });
+    const research = advanceFieldResearch(guarded.depth.fieldResearch, before, after, { heroId: guarded.hero.id, depthTick: guarded.tick + 1 });
     expect(research.copperhorn.aftereffect).toMatchObject({ healthBefore: 1, amount: 1, healthAfter: 0, intentEventId: `${before.id}:5:0` });
     expect(after.eventStream.events.filter((event) => event.turn === 5).some((event) => event.kind === "damage"
       || (event.kind === "status-applied" && event.status === "guarding"))).toBe(false);
@@ -190,7 +195,7 @@ describe("Copperhorn final-ember field research", () => {
     const malformed = [null, { ...proof, extra: true }, { ...proof, taskId: "different" }, { ...proof, application: null }, { ...proof, firstTick: null },
       { ...proof, application: { ...application, targetHealthAfter: 0 } },
       { ...proof, application: { ...application, speciesId: "inkcap-mimic" } },
-      { ...proof, application: { ...application, sourceTick: 90 } },
+      { ...proof, application: { ...application, sourceTick: finished.tick + 1 } },
       { ...proof, firstTick: { ...first, durationBefore: 1 } },
       { ...proof, firstTick: { ...first, amount: 0 } },
       { ...proof, aftereffect: { ...final, firstTickEventId: application.sourceEventId } },

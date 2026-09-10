@@ -5,15 +5,23 @@ import { createCounterDuel, resolveCounterDuelRound } from "../depth/counter-due
 import { projectViewHero } from "./hero-inspection-activity";
 
 function realBattle(): { ongoing: WorldState; victory: WorldState } {
-  let ongoing = createWorld("golden:1", "campaign:1");
-  for (let tick = 0; tick < 4; tick += 1) ongoing = advanceWorld(ongoing);
-  const victory = advanceWorld(ongoing);
-  expect(ongoing.tick).toBe(4);
-  expect(ongoing.depth.combat?.outcome).toBe("ongoing");
-  expect(victory.tick).toBe(5);
-  expect(victory.depth.combat).toBeNull();
-  expect(victory.depth.completedCombats.at(-1)?.outcome).toBe("victory");
-  return { ongoing, victory };
+  const opening = createWorld("golden:1", "campaign:1");
+  let ongoing = advanceWorld(opening);
+  // The real smith purchase grants no XP and changes subsequent actor cadence.
+  expect(ongoing.chronicle.at(-1)?.commandType).toBe("buy-disarming-kit");
+  for (let step = 0; step < 32; step += 1) {
+    const victory = advanceWorld(ongoing);
+    const battle = ongoing.depth.combat;
+    const completed = victory.depth.completedCombats.at(-1);
+    if (battle?.outcome === "ongoing" && victory.depth.combat === null
+      && completed?.id === battle.id && completed.outcome === "victory") {
+      expect(victory.tick).toBe(ongoing.tick + 1);
+      expect(victory.chronicle.at(-1)?.commandType).toBe("combat-action");
+      return { ongoing, victory };
+    }
+    ongoing = victory;
+  }
+  throw new Error("The bounded real journey must produce an adjacent ongoing battle and its victory");
 }
 
 function withSource(world: WorldState, changes: Partial<ChronicleEntry>): WorldState {
@@ -112,22 +120,22 @@ describe("hero inspection activity", () => {
     });
   });
 
-  it("distinguishes the real T4 running battle from a same-tick presentation pause without changing its subject", () => {
+  it("distinguishes the real running battle from a same-tick presentation pause without changing its subject", () => {
     const { ongoing } = realBattle();
     const before = JSON.stringify(ongoing);
     const running = projectViewHero(ongoing, "inventory");
     const paused = projectViewHero(ongoing, "inventory", running.subjectId ?? undefined, { paused: true });
     expect(running).toMatchObject({ pose: "battle", liveNotice: "Battle continues off-screen — return to Watch." });
-    expect(paused).toMatchObject({ pose: "battle", liveNotice: "Battle paused — return to Watch.", subjectId: running.subjectId, tick: 4 });
+    expect(paused).toMatchObject({ pose: "battle", liveNotice: "Battle paused — return to Watch.", subjectId: running.subjectId, tick: ongoing.tick });
     expect(projectViewHero(ongoing, "inventory", running.subjectId ?? undefined, { paused: false })).toEqual(running);
     expect(JSON.stringify(ongoing)).toBe(before);
   });
 
-  it("shows the real T5 settled victory while paused or resumed and after JSON reload", () => {
+  it("shows the real settled victory while paused or resumed and after JSON reload", () => {
     const { victory } = realBattle();
     const before = JSON.stringify(victory);
     const paused = projectViewHero(victory, "journal", undefined, { paused: true });
-    expect(paused).toMatchObject({ pose: "review", liveNotice: "Battle won · paused — return to Watch.", tick: 5 });
+    expect(paused).toMatchObject({ pose: "review", liveNotice: "Battle won · paused — return to Watch.", tick: victory.tick });
     expect(projectViewHero(victory, "journal")).toMatchObject({ pose: "review", liveNotice: "Battle won — return to Watch." });
     const restored = upgradeWorldState(JSON.parse(before));
     expect(JSON.stringify(restored)).toBe(before);

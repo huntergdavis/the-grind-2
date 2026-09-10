@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TrapResolutionPacket } from "../ui/trap-resolution";
+import type { TrapResolutionPacketV1 } from "../ui/trap-resolution";
 import {
   createTrapCutawayFatigueMemory,
   projectTrapCutawayFrame,
@@ -15,7 +15,7 @@ import {
   type TrapCutawayStagingBank,
 } from "./trap-cutaway";
 
-function packet(overrides: Partial<TrapResolutionPacket> = {}): TrapResolutionPacket {
+function packet(overrides: Partial<TrapResolutionPacketV1> = {}): TrapResolutionPacketV1 {
   return Object.freeze({
     schemaVersion: 1,
     eventId: "campaign:1",

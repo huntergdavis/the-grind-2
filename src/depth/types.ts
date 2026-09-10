@@ -1,3 +1,25 @@
+export interface DisarmingKitPurchasePlan {
+  readonly locationId: string;
+  readonly townId: string;
+  readonly townName: string;
+  readonly smithId: string;
+  readonly smithName: string;
+  readonly itemId: string;
+  readonly itemName: "Disarming Kit";
+  readonly quantityBefore: 0;
+  readonly quantityBought: 1;
+  readonly quantityAfter: 1;
+  readonly goldBefore: number;
+  readonly unitPrice: 5;
+  readonly goldSpent: 5;
+  readonly goldAfter: number;
+}
+
+export interface DisarmingKitPurchaseReceipt extends DisarmingKitPurchasePlan {
+  readonly schemaVersion: 1;
+  readonly tick: number;
+}
+
 export type LocationKind = "town" | "wilds" | "dungeon" | "landmark";
 
 export type AtlasBiome =
@@ -278,12 +300,33 @@ export interface DungeonSearchStateV1 {
   readonly latestReceipt: DungeonSearchReceiptV1 | null;
 }
 
+export interface DungeonDisarmKitUseV1 {
+  readonly schemaVersion: 1;
+  readonly dungeonId: string;
+  readonly cellId: string;
+  readonly tick: number;
+  readonly itemId: string;
+  readonly quantityBefore: 1;
+  readonly quantityAfter: 0;
+  readonly bonus: 2;
+  readonly kind: DungeonTrapKind;
+  readonly attribute: "agility" | "intellect";
+  readonly skill: number;
+  readonly roll: number;
+  readonly baseTotal: number;
+  readonly total: number;
+  readonly difficulty: number;
+  readonly success: boolean;
+}
+
 export interface DungeonState {
   layoutVersion: DungeonLayoutVersion;
   keyGate: DungeonKeyGateState | null;
   latestShrineUse: DungeonShrineUse | null;
   /** Absence is a legacy dungeon that has never searched; fresh and migrated saves store an explicit empty state. */
   search?: DungeonSearchStateV1;
+  /** Absent in legacy dungeons; one historical receipt, not an unspent resource. */
+  latestDisarmKitUse?: DungeonDisarmKitUseV1 | null;
   id: string;
   name: string;
   width: number;
@@ -350,6 +393,8 @@ export interface ItemState {
   modifiers: Partial<Record<ItemModifier, number>>;
   restorative: ItemRestorativeEffect | null;
   useMastery: WeaponUseMasteryState | null;
+  /** Absent old items are inert: a name never grants this capability. */
+  dungeonTool?: { readonly schemaVersion: 1; readonly kind: "disarming-kit"; readonly bonus: 2 };
 }
 
 export interface TonicRestockPlan {
@@ -1158,7 +1203,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 25;
+  schemaVersion: 26;
+  latestDisarmingKitPurchase: DisarmingKitPurchaseReceipt | null;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -1195,6 +1241,7 @@ export type DepthCommand =
   | { type: "move-dungeon"; direction: MazeDirection }
   | { type: "search-dungeon"; dungeonId: string; cellId: string }
   | { type: "disarm-dungeon-trap" }
+  | { type: "buy-disarming-kit"; smithId: string }
   | { type: "unlock-dungeon-gate" }
   | { type: "start-combat"; encounterId: string; enemyCount: number }
   | { type: "combat-action"; action: CombatAction }

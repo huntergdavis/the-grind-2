@@ -302,7 +302,7 @@ Immediate queue:
     CSS `index-DjMkgq3A.css`, unchanged simulation worker and exact committed
     projection/Gazetteer/renderer source-map comparisons all pass. Owned
     preview 19880 is closed; protected ledger work and parked drafts are intact.
-21. **Next — V04.18a tools/supplies subset: one dungeon disarming kit.**
+21. **Implemented, release verification pending — V04.18a tools/supplies subset: one dungeon disarming kit (v0.5.157).**
     Give the existing recorded town smith one small, fixed-price supply service:
     buy a single capped kit, then consume it for +2 on an actually detected
     trap's existing disarm check. Keep the same fixed roll, one attempt and
@@ -319,7 +319,27 @@ Immediate queue:
     changes that result before claiming utility. The existing browser fixture
     stages location and HP; it is not proof of a full autonomous purchase-to-
     dungeon journey. Add one representative legal purchase→use acceptance path
-    and exact reload, not another long seed sweep. This is queued, not shipped.
+    and exact reload, not another long seed sweep. Actual purchase and staged
+    arrival pass: the same intellect11+roll0 check gains2, succeeds13vs12 and
+    consumes the kit1→0 without HP loss or XP. Final browser journey passes
+    in81.3s under the same120s budget, with five reviewed captures, desktop
+    toolbar clearance, readable scrolled mobile proof and exact reload.
+    Existing recovery, route, XP and research fixtures now account for actual
+    supply turns; all identified local failures pass their focused reruns.
+    Version/boundary/type/build checks pass; no narrator, CSS or new panel.
+    Clean Pages CI and public deployment verification are pending.
+22. **Queued — V04.18a/V04.18c richer traps: one mana-draining mechanism.**
+    Add one generated trap family whose failure drains a bounded amount of MP,
+    not HP, making dungeon hazards interact with ability affordability and
+    existing shrine/inn recovery. Preserve both current trap families exactly;
+    old dungeons keep their existing mechanisms. Version the resource-loss
+    consequence and presentation proof explicitly. Reuse search, detection,
+    one disarm attempt, the purchased kit, spent glyph and existing receipt
+    rail. Hidden traps must not leak through floor art or actor policy.
+    Prove one generated mechanism's actual MP loss with unchanged HP, assisted
+    disarming, no repeated loss on revisit and exact saved reload. No new panel,
+    general status framework, narrator work or protected-ledger dependency.
+    This is a source-backed council recommendation, not implemented gameplay.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

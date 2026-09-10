@@ -42,7 +42,10 @@ function staticEnvelope(eventId: string, tick = 12): CutawayStaticEnvelopeV1 {
 
 function championFixture(seed: string) {
   const campaignId = `campaign:${seed}`;
-  const initial = createWorld(seed, campaignId);
+  const opening = createWorld(seed, campaignId);
+  const first = advanceWorld(opening);
+  // A smith purchase intentionally grants no XP; resolve it before staging the earned crossing.
+  const initial = first.chronicle.at(-1)?.commandType === "buy-disarming-kit" ? first : opening;
   const experience = championExperienceFloorV1 - 1;
   const level = heroLevelForExperience(experience);
   const depthHero = { ...initial.depth.hero, experience, level };

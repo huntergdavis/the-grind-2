@@ -703,7 +703,9 @@ export function resolveCutawayCandidate(
     || staticEnvelope === null) {
     return Object.freeze({ mode: "static-chronicle", reason: "invalid-packet-envelope", recipe, staticEnvelope });
   }
-  if (candidate.packet.schemaVersion !== recipe.packetSchemaVersion) {
+  const assistedTrap = recipe.key === "trap-resolution@1" && recipe.packetSchemaVersion === 1
+    && candidate.packet.schemaVersion === 2 && isTrapResolutionPacket(candidate.packet);
+  if (candidate.packet.schemaVersion !== recipe.packetSchemaVersion && !assistedTrap) {
     return Object.freeze({ mode: "static-chronicle", reason: "packet-version-mismatch", recipe, staticEnvelope });
   }
   if (!validProductionPacket(candidate.recipeKey, candidate.packet)) {

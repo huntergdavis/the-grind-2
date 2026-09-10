@@ -4,6 +4,7 @@ import { counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, crea
 import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState, SecretDiscoveryAdmission, SecretDiscoveryOutcome } from "../depth/types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
+import { createDisarmingKit } from "../depth/disarming-kit";
 import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-reaction";
 import { projectPatternBreakSignature } from "./pattern-break-signature";
 import {
@@ -174,6 +175,21 @@ describe("view-only screen projections", () => {
       latestSource: null,
     });
     expect(JSON.stringify(world)).toBe(before);
+  });
+
+  it("describes the one-use disarming tool without healing or mastery claims", () => {
+    const world = createWorld("screen-inventory", "campaign");
+    const kit = createDisarmingKit(world.hero.id);
+    const supplied = { ...world, depth: { ...world.depth, hero: { ...world.depth.hero,
+      inventory: [...world.depth.hero.inventory, kit],
+    } } };
+    const saved = JSON.stringify(supplied);
+    expect(projectInventoryView(supplied).items.find((item) => item.id === kit.id)).toMatchObject({
+      quantity: 1, restorative: null, useMastery: null, modifiers: [],
+      dungeonTool: "+2 to one disarm attempt · consumed on success or failure",
+    });
+    expect(projectInventoryView(world).items.every((item) => item.dungeonTool === null)).toBe(true);
+    expect(JSON.stringify(supplied)).toBe(saved);
   });
 
   it("projects the active canonical route and discovery count", () => {

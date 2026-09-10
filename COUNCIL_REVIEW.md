@@ -2,6 +2,78 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Gameplay-first council — smith supplies and assisted disarming (v0.5.157)
+
+Reuses `deja "dungeon tool"` and `deja "disarming kit"` sessions06/03, the
+previous session30 separate-disarm contract, and BACKLOG item21. One recorded
+smith sells one capped Disarming Kit for five gold. Existing recovery, tonic,
+inn, quest-route and oath priorities stay ahead of optional supplies. Purchase
+costs one normal turn, with exact building/gold/quantity proof and no XP grant.
+One detected trap consumes the kit on success or failure for +2 on the existing
+check, preserving its skill and fixed roll. No hidden-roll policy lookahead,
+second attempt, new RNG, crafting framework, panel or narrator dependency.
+
+Depth26 initializes old purchase/use histories empty without granting tools.
+Sparse typed item capabilities leave old items unchanged. Keep only the latest
+purchase and the current dungeon's latest use; validate arithmetic, owner,
+source and quantity transitions on play and reload. Inventory describes the
+actual utility, the town scene binds to the recorded smith, and the existing
+trap cutaway accepts a validated assisted V2 packet while preserving V1's
+unassisted arithmetic and rejecting malformed packets. Keep the +2 contribution
+visible rather than pretending the hero's skill increased.
+
+Acceptance reuses the generated browser-dungeon-search:8 layout. The starting
+Oakcross smith and twelve gold are real initial state; the new purchase must be
+autonomous. A separately identified staged handoff moves that actual purchased
+save to the existing dungeon location with half HP. It does not fabricate a
+kit, receipt, room, trap difficulty or roll. The original three-step diagnostic
+confirms an unassisted intellect11 + roll0 check fails difficulty12; require the
+real purchased kit to yield13, consume1→0 and prevent that damage. This is a
+representative legal purchase/use journey, not uninterrupted natural travel.
+Targeted tests, one desktop/mobile browser journey and existing release CI are
+the gates; no new long seed sweep or expanded device matrix is required.
+Focused engine/purchase and presentation checks pass, including genuine
+repurchase chronology and mechanical-level-capped trap arithmetic. Independent
+final review finds no integration blocker. Old route fixtures now resolve the
+real zero-XP purchase before their route/XP assertions; the ten exact seeded
+hashes are intentionally updated because supply turns change gameplay. All
+63 simulation/canonical tests pass in a 257.20s local batch. The existing
+progression test now stops when its level/mastery/quest preconditions are met,
+retaining every state-bound assertion instead of requiring 20,000 turns.
+The source-closure gate caught a new types→purchase-implementation dependency.
+Following recalled session03, move the receipt interfaces into the existing
+shared types module; do not expand narrator manifests or runtime dependencies.
+Version, boundary, TypeScript and production build now pass: entry
+`index-DkJHL-By.js`, simulation `simulation.worker-D4k5MBvk.js`, unchanged CSS
+`index-DjMkgq3A.css` and both unchanged narrator workers. The first browser
+journey passes in59.6s, but visual review finds the pre-existing desktop trap
+heading under the toolbar. Three renderer lines include wide trap scenes in
+the existing reserved tableau layout; no CSS or mobile layout changes.
+The corrected build (`index-BTDVZygw.js`, same simulation/CSS/narrator workers)
+passes the strengthened same journey in81.3s (1.7m runner, unchanged120s
+budget). Actual smith purchase and Inventory captures join the 1280/320 trap
+captures and a scrolled320 proof. The test checks actual desktop heading
+clearance and fully visible, hit-tested mobile attempt/consequence rows with
+at least11px native text. Mobile canvas text remains small; readable proof is
+in the existing native rail, not claimed from the miniature canvas. Exact
+purchase, retained staged handoff, real search/entry/use, Status provenance,
+cleanup and saved reload pass with zero browser errors, inference or external
+requests. Root and independent browser review approve all five captures;
+owned preview19880 is closed and user preview4174 is untouched.
+The broad local duplicate test run was stopped after a stack sample located
+its delay in the unchanged narrator evaluation-package validator. Local
+regression work is restricted to game subsystems; the existing complete Pages
+suite remains unchanged. Newly affected route/XP/timed-combat fixtures resolve
+the real purchase or derive genuine canonical checkpoints, retaining source,
+reward, pause and reload assertions. No gameplay is disabled to satisfy tests.
+The game-only batch covers1,730 tests across138 files:1,704 pass initially and
+26 failures identify the stale fixtures above plus one observer timing case.
+All ten affected files then pass focused reruns (71 cases), without increasing
+timeouts; the independent63-case simulation/replay batch also passes. Final
+TypeScript, version and boundary checks pass. No full local narrator evaluation
+or full browser matrix is claimed. Source is ready for the existing clean
+Pages CI and public-asset verification; nothing is claimed live yet.
+
 ## Gameplay-first council — recorded road-battle memory (v0.5.156)
 
 Reuses `deja "companion restorative"` sessions06/28 and

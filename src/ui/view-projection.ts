@@ -1,5 +1,6 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
+import { selectDisarmingKit } from "../depth/disarming-kit";
 import { copperhornResearchClue, inkcapResearchClue, isValidFieldResearchState, moonhowlResearchClue } from "../depth/field-research";
 import { counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
@@ -71,6 +72,7 @@ export interface InventoryItemView {
   equippedSlot: EquipmentSlot | null;
   modifiers: readonly InventoryModifierView[];
   restorative: string | null;
+  dungeonTool: string | null;
   useMastery: {
     level: number;
     experience: number;
@@ -342,6 +344,7 @@ export function projectMapView(state: WorldState): MapViewProjection {
 
 export function projectInventoryView(state: WorldState): InventoryViewProjection {
   const hero = state.depth.hero;
+  const disarmingKit = selectDisarmingKit(hero);
   const equippedById = new Map<string, EquipmentSlot>();
   for (const [slot, itemId] of Object.entries(hero.equipment) as [EquipmentSlot, string | null][]) {
     if (itemId !== null) equippedById.set(itemId, slot);
@@ -355,6 +358,8 @@ export function projectInventoryView(state: WorldState): InventoryViewProjection
     quantity: item.quantity,
     equippedSlot: equippedById.get(item.id) ?? null,
     restorative: item.restorative === null ? null : "Combat self-use · restores ¼ max HP",
+    dungeonTool: item.id === disarmingKit?.id
+      ? "+2 to one disarm attempt · consumed on success or failure" : null,
     useMastery: item.useMastery === null ? null : {
       level: item.useMastery.level,
       experience: item.useMastery.experience,

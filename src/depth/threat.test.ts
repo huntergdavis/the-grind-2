@@ -95,7 +95,11 @@ describe("honest place-bound encounter threat", () => {
 
   it("rejects fully consistent active-route, quest, factor-order, and legacy-rating forgeries", () => {
     const seed = "active-threat-forgery";
-    const base = createDepthState(seed, "hero:active-threat-forgery", "Nera Flint");
+    const opening = createDepthState(seed, "hero:active-threat-forgery", "Nera Flint");
+    const purchase = depthCommandCandidates(opening).find((candidate) => candidate.command.type === "buy-disarming-kit");
+    if (purchase?.command.type !== "buy-disarming-kit") throw new Error("Threat fixture needs its actual initial smith purchase");
+    const base = stepDepth(opening, purchase.command);
+    expect(base.latestDisarmingKitPurchase?.smithId).toBe(purchase.command.smithId);
     const route = depthCommandCandidates(base).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Threat forgery fixture needs a route");
     const routed = stepDepth(base, route.command);

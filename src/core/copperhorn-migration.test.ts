@@ -30,7 +30,10 @@ describe("Copperhorn world-save migration", () => {
   });
 
   it("resumes an actual old active combat and earns only the new post-migration observations", () => {
-    const before = naturalWorld(85);
+    // Service turns can move this natural encounter; its retained evidence owns the checkpoint.
+    const proof = naturalWorld(89).depth.fieldResearch.copperhorn;
+    if (proof.application === null || proof.aftereffect === null) throw new Error("Expected the existing bounded natural Copperhorn witness");
+    const before = naturalWorld(proof.application.sourceTick - 1);
     let resumed = upgradeWorldState(JSON.parse(JSON.stringify(previousSave(before))));
     expect(resumed).toEqual(before);
     for (const expectedProgress of [1, 1, 1, 2]) {
@@ -39,13 +42,13 @@ describe("Copperhorn world-save migration", () => {
       expect(research.aftereffect === null ? research.application === null ? 0 : 1 : 2).toBe(expectedProgress);
       expect(upgradeWorldState(JSON.parse(JSON.stringify(resumed)))).toEqual(resumed);
     }
-    expect(resumed).toEqual(naturalWorld(89));
+    expect(resumed).toEqual(naturalWorld(proof.aftereffect.sourceTick));
   });
 
   it("rejects an old research shape inside a current save and unsupported future depth", () => {
     const current = createWorld("copperhorn-migration-invalid", "campaign");
     expect(() => upgradeWorldState({ ...current,
       depth: { ...current.depth, fieldResearch: previousSave(current).depth.fieldResearch } })).toThrow();
-    expect(() => upgradeWorldState({ ...current, depth: { ...current.depth, schemaVersion: 26 } })).toThrow();
+    expect(() => upgradeWorldState({ ...current, depth: { ...current.depth, schemaVersion: 27 } })).toThrow();
   });
 });

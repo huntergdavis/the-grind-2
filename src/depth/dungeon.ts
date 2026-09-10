@@ -1,4 +1,6 @@
 import { pick, randomInt } from "../core/rng";
+import { isDisarmingKit } from "./disarming-kit";
+import type { DungeonDisarmKitUseV1, ItemState } from "./types";
 import type {
   DungeonKeyGateState,
   DungeonSearchDiscoveryV1,
@@ -205,6 +207,67 @@ export function resolveDungeonTrapCheck(
   const total = skill + roll;
   const difficulty = stage === "detect" ? trap.detectDifficulty : trap.disarmDifficulty;
   return { cellId, kind: trap.kind, stage, attribute, skill, roll, total, difficulty, success: total >= difficulty };
+}
+
+/** One existing cell-bound roll. A real kit changes only total and success. */
+export function resolveDungeonDisarmCheck(
+  state: DungeonState, cellId: string, aptitudes: DungeonTrapAptitudes, seed: string, kit: ItemState | null,
+): DungeonTrapCheck {
+  if (kit !== null && !isDisarmingKit(kit)) throw new TypeError("Disarming kit capability is invalid");
+  const base = resolveDungeonTrapCheck(state, cellId, "disarm", aptitudes, seed);
+  if (kit === null) return base;
+  const total = base.total + 2;
+  if (!Number.isSafeInteger(total)) throw new RangeError("Assisted disarm total exceeds its bound");
+  return { ...base, total, success: total >= base.difficulty };
+}
+
+function validKitUseArithmetic(value: Record<string, unknown>): boolean {
+  const integer = (candidate: unknown, minimum: number, maximum = Number.MAX_SAFE_INTEGER): candidate is number =>
+    typeof candidate === "number" && Number.isSafeInteger(candidate) && candidate >= minimum && candidate <= maximum;
+  return value.schemaVersion === 1 && value.quantityBefore === 1 && value.quantityAfter === 0 && value.bonus === 2
+    && typeof value.dungeonId === "string" && value.dungeonId.length > 0 && value.dungeonId.length <= 512
+    && typeof value.cellId === "string" && value.cellId.length > 0 && value.cellId.length <= 512
+    && typeof value.itemId === "string" && value.itemId.length > 0 && value.itemId.length <= 512
+    && integer(value.tick, 1) && trapKinds.includes(value.kind as DungeonTrapKind)
+    && value.attribute === trapAttributes[value.kind as DungeonTrapKind]?.disarm
+    && integer(value.skill, 0) && integer(value.roll, 0, 3) && integer(value.baseTotal, 0)
+    && value.baseTotal === (value.skill as number) + (value.roll as number)
+    && integer(value.total, 2) && value.total === (value.baseTotal as number) + 2
+    && integer(value.difficulty, 11, 16) && typeof value.success === "boolean"
+    && value.success === ((value.total as number) >= (value.difficulty as number));
+}
+
+export function createDungeonDisarmKitUse(
+  check: DungeonTrapCheck, kit: ItemState, tick: number, dungeonId: string,
+): DungeonDisarmKitUseV1 {
+  const receipt = {
+    schemaVersion: 1 as const, dungeonId, cellId: check.cellId, tick, itemId: kit.id,
+    quantityBefore: 1 as const, quantityAfter: 0 as const, bonus: 2 as const,
+    kind: check.kind, attribute: check.attribute, skill: check.skill, roll: check.roll,
+    baseTotal: check.skill + check.roll, total: check.total, difficulty: check.difficulty, success: check.success,
+  };
+  if (check.stage !== "disarm" || !isDisarmingKit(kit) || !validKitUseArithmetic(receipt)) {
+    throw new TypeError("Assisted disarm receipt violates its fixed rules");
+  }
+  return Object.freeze(receipt as DungeonDisarmKitUseV1);
+}
+
+export function isValidDungeonDisarmKitUse(
+  value: unknown, dungeon: DungeonState, currentTick: number,
+): value is DungeonDisarmKitUseV1 | null {
+  if (value === null) return true;
+  if (!isRecord(value) || !Number.isSafeInteger(currentTick) || currentTick < 0) return false;
+  const keys = ["schemaVersion", "dungeonId", "cellId", "tick", "itemId", "quantityBefore", "quantityAfter",
+    "bonus", "kind", "attribute", "skill", "roll", "baseTotal", "total", "difficulty", "success"];
+  if (Object.keys(value).length !== keys.length || keys.some((key) => !Object.hasOwn(value, key))
+    || !validKitUseArithmetic(value) || value.dungeonId !== dungeon.id || (value.tick as number) > currentTick
+    || !dungeon.visitedCellIds.includes(value.cellId as string) || !dungeon.discoveredCellIds.includes(value.cellId as string)) return false;
+  const cell = dungeon.cells.find((candidate) => candidate.id === value.cellId);
+  const trap = dungeonTrapAt(dungeon, value.cellId as string);
+  // A released far-stair trap may become a shrine after its actual resolution.
+  if (trap === null) return dungeon.layoutVersion === 3 && value.cellId === dungeon.exitCellId && cell?.feature === "shrine";
+  return cell?.feature === "trap" && trap.kind === value.kind && trap.disarmDifficulty === value.difficulty
+    && trap.phase === (value.success ? "disarmed" : "triggered");
 }
 
 function dimension(value: number): number {
@@ -717,6 +780,7 @@ export function generateDungeon(
     layoutVersion,
     keyGate: generated.keyGate,
     latestShrineUse: null,
+    latestDisarmKitUse: null,
     search: createDungeonSearchState(),
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
@@ -1236,6 +1300,8 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
       return false;
     }
   }
+  if (state.latestDisarmKitUse !== undefined
+    && !isValidDungeonDisarmKitUse(state.latestDisarmKitUse, state, Number.MAX_SAFE_INTEGER)) return false;
   validDungeonStateCache.add(value);
   return true;
 }

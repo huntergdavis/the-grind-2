@@ -10,7 +10,13 @@ import { advanceDepth, createDepthState, depthCommandCandidates, isValidCounterD
 import type { DepthState, DungeonState } from "./types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 
+function settleTownKitPurchase(state: DepthState): DepthState {
+  const purchase = depthCommandCandidates(state).find((candidate) => candidate.command.type === "buy-disarming-kit");
+  return purchase === undefined ? state : stepDepth(state, purchase.command);
+}
+
 function routeCombatFixture(state: DepthState, enemyCount: number): { routed: DepthState; command: Extract<import("./types").DepthCommand, { type: "start-combat" }> } {
+  state = settleTownKitPurchase(state);
   const route = depthCommandCandidates(state).find((candidate) => candidate.command.type === "plan-route");
   if (route?.command.type !== "plan-route") throw new Error("Tactical fixture needs a canonical route");
   const routed = stepDepth(state, route.command);
@@ -24,7 +30,7 @@ function forceCombatVictory(state: DepthState): DepthState {
   const heroId = state.hero.id;
   const enemies = state.combat.combatants.filter((combatant) => combatant.side === "enemies");
   if (enemies.length !== 1) throw new Error("Victory fixture expects one enemy");
-  return advanceDepth({
+  return stepDepth({
     ...state,
     combat: {
       ...state.combat,
@@ -36,7 +42,9 @@ function forceCombatVictory(state: DepthState): DepthState {
           : { ...combatant, health: 1 }
       )),
     },
-  });
+  }, { type: "combat-action", action: {
+    actorId: heroId, type: "attack", targetId: enemies[0]!.id, abilityId: null, itemId: null,
+  } });
 }
 
 function hazardFixture(health?: number, exitAtTrap = false, dungeonId = "dungeon:hazard-reducer"): DepthState {
@@ -310,7 +318,7 @@ describe("composed depth state", () => {
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
       const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
       expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
       for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
@@ -346,7 +354,7 @@ describe("composed depth state", () => {
       }
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       for (const item of upgraded.hero.inventory) {
         expect(item.useMastery).toEqual(item.kind === "equipment" && item.slot === "weapon"
           ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] }
@@ -778,7 +786,7 @@ describe("composed depth state", () => {
     const legacy = JSON.parse(JSON.stringify({ ...released, schemaVersion: 18 }));
     expect(legacy.schemaVersion).toBe(18);
     const upgraded = upgradeDepthState(legacy, released.seed, released.hero.id, released.hero.name);
-    expect(upgraded.schemaVersion).toBe(25);
+    expect(upgraded.schemaVersion).toBe(26);
     expect(upgraded.dungeon).toMatchObject({ layoutVersion: 3, completed: true });
     expect(projectDungeonLandmark(upgraded.dungeon!)).toEqual({
       kind: "far-stair-shrine",
@@ -1243,7 +1251,7 @@ describe("composed depth state", () => {
     };
     for (const source of [active, completed]) {
       const upgraded = upgradeDepthState(downgrade(source), source.seed, source.hero.id, source.hero.name);
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       const duels = [upgraded.counterDuel, ...upgraded.completedCounterDuels].filter((duel) => duel !== null);
       expect(duels.length).toBeGreaterThan(0);
       for (const duel of duels) {
@@ -1312,7 +1320,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -1342,7 +1350,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(25);
+    expect(upgraded.schemaVersion).toBe(26);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -1387,7 +1395,7 @@ describe("composed depth state", () => {
         companions: { ...fixture.companions, explicitKitAfterTick: fixture.tick },
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1521,7 +1529,7 @@ describe("composed depth state", () => {
   });
 
   it("fully rests at or below half health before one unresolved road encounter", () => {
-    const base = createDepthState("critical-roadside-recovery", "hero:roadside", "Tarin Vale");
+    const base = settleTownKitPurchase(createDepthState("critical-roadside-recovery", "hero:roadside", "Tarin Vale"));
     const route = depthCommandCandidates(base).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Recovery fixture needs a route");
     const planned = stepDepth(base, route.command);
@@ -1614,7 +1622,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       expect(upgraded.companions).toEqual({
         schemaVersion: 2,
         kitRulesVersion: "explicit-companion-kit-v1",
@@ -1892,7 +1900,7 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(25);
+      expect(upgraded.schemaVersion).toBe(26);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({
         schemaVersion: 2,
@@ -2055,9 +2063,10 @@ describe("composed depth state", () => {
 
   it("adds one deterministic inventory reward for a combat victory", () => {
     let state = createDepthState("reward-seed", "hero:reward", "Iona Vale");
-    const startingItems = state.hero.inventory.length;
     const fixture = routeCombatFixture(state, 1);
     state = stepDepth(fixture.routed, fixture.command);
+    // Any actual town supply purchase is already paid for before combat loot is measured.
+    const startingItems = state.hero.inventory.length;
     state = forceCombatVictory(state);
     const outcome = state.completedCombats.at(-1)?.outcome;
     expect(outcome).toBe("victory");

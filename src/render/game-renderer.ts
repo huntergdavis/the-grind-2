@@ -104,6 +104,7 @@ import {
 } from "../ui/field-note-resolution-presentation";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 import { projectPaidInnRestScene } from "./paid-inn-rest";
+import { projectDisarmingKitPurchaseScene } from "./disarming-kit-purchase";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import { projectDungeonFraming } from "./dungeon-framing";
 import {
@@ -1108,6 +1109,10 @@ export class GameRenderer {
     delete this.host.dataset.innRestBuilding;
     delete this.host.dataset.innRestReceipt;
     delete this.host.dataset.innRestVisual;
+    delete this.host.dataset.disarmingKitPurchaseActive;
+    delete this.host.dataset.disarmingKitPurchaseBuilding;
+    delete this.host.dataset.disarmingKitPurchaseReceipt;
+    delete this.host.dataset.disarmingKitPurchaseVisual;
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -1385,6 +1390,8 @@ export class GameRenderer {
     delete this.host.dataset.cutawayStage;
     delete this.host.dataset.cutawayOutcome;
     delete this.host.dataset.cutawayCheck;
+    delete this.host.dataset.cutawayToolItem;
+    delete this.host.dataset.cutawayToolQuantity;
     delete this.host.dataset.cutawayHealth;
     delete this.host.dataset.cutawayExit;
     delete this.host.dataset.cutawayQuestDelta;
@@ -3061,7 +3068,14 @@ export class GameRenderer {
     this.host.dataset.cutawayKind = packet.trapKind;
     this.host.dataset.cutawayStage = packet.stage;
     this.host.dataset.cutawayOutcome = outcome;
-    this.host.dataset.cutawayCheck = `${packet.attribute}:${packet.skill}+${packet.roll}=${packet.total}:${packet.difficulty}`;
+    this.host.dataset.cutawayCheck = `${packet.attribute}:${packet.skill}+${packet.roll}${packet.schemaVersion === 2 ? "+2kit" : ""}=${packet.total}:${packet.difficulty}`;
+    if (packet.schemaVersion === 2) {
+      this.host.dataset.cutawayToolItem = packet.tool.itemId;
+      this.host.dataset.cutawayToolQuantity = "1→0";
+    } else {
+      delete this.host.dataset.cutawayToolItem;
+      delete this.host.dataset.cutawayToolQuantity;
+    }
     this.host.dataset.cutawayHealth = `${packet.healthBefore}:${packet.damage}:${packet.healthAfter}:${packet.maxHealth}`;
     this.host.dataset.cutawayExit = String(packet.completedExit);
     this.host.dataset.cutawayQuestDelta = String(packet.crossMazeDelta);
@@ -3184,10 +3198,12 @@ export class GameRenderer {
     check.position.set(108, 58);
     check.addChild(rect(0, 0, 184, 25, 0x141c23, 0.96));
     const checkLabel = this.createScaleSensitiveText(
-      `${packet.attribute.toUpperCase()} · ${packet.skill} + ${packet.roll} = ${packet.total}  /  ${packet.difficulty}`,
-      { fontFamily: "ui-monospace, monospace", fontSize: 7, fill: 0xf4ead5, fontWeight: "800", letterSpacing: 0.35 },
+      packet.schemaVersion === 2
+        ? `${packet.attribute.toUpperCase()} · ${packet.skill} + ${packet.roll} + 2 KIT\n= ${packet.total} / ${packet.difficulty} · KIT 1 → 0`
+        : `${packet.attribute.toUpperCase()} · ${packet.skill} + ${packet.roll} = ${packet.total}  /  ${packet.difficulty}`,
+      { fontFamily: "ui-monospace, monospace", fontSize: 7, fill: 0xf4ead5, fontWeight: "800", letterSpacing: 0.35, lineHeight: 9 },
     );
-    checkLabel.position.set(8, 8);
+    checkLabel.position.set(8, packet.schemaVersion === 2 ? 3 : 8);
     check.addChild(checkLabel);
     this.worldLayer.addChild(check);
 
@@ -4237,7 +4253,9 @@ export class GameRenderer {
     const reservedTableauPortrait = reservedTableauVisible
       && this.app.screen.width <= 760
       && this.app.screen.height > 520;
-    const reservedTableauWide = reservedTableauVisible && !reservedTableauPortrait;
+    const trapTableauWide = this.app.screen.width > 760 && (this.trapCutawayBinding !== null
+      || this.host.dataset.cutawayStage === "detect" || this.host.dataset.cutawayStage === "disarm");
+    const reservedTableauWide = (reservedTableauVisible && !reservedTableauPortrait) || trapTableauWide;
     const fieldNoteSideRail = fieldNoteTableauVisible && !reservedTableauPortrait;
     const relationshipScale = Math.min(baseLayout.scale, 0.52);
     const portraitStageTop = 72;
@@ -4587,6 +4605,7 @@ export class GameRenderer {
     const latestChronicle = state.chronicle.at(-1);
     const restocking = latestChronicle?.tick === state.tick && latestChronicle.commandType === "restock-tonic";
     const innRest = projectPaidInnRestScene(state);
+    const kitPurchase = projectDisarmingKitPurchaseScene(state);
     this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x345446));
     if (town === undefined) {
       this.drawHero(state, 160, 146, palette);
@@ -4598,7 +4617,12 @@ export class GameRenderer {
       const inn = town.buildings.find((building) => building.id === innRest.innId);
       if (inn !== undefined) visibleBuildings.splice(17, 1, inn);
     }
+    if (kitPurchase !== null && !visibleBuildings.some((building) => building.id === kitPurchase.smithId)) {
+      const smith = town.buildings.find((building) => building.id === kitPurchase.smithId);
+      if (smith !== undefined) visibleBuildings.splice(17, 1, smith);
+    }
     let innHeroX = 172;
+    let smithHeroX = 172;
     for (let index = 0; index < visibleBuildings.length; index += 1) {
       const building = visibleBuildings[index];
       if (building === undefined) continue;
@@ -4632,6 +4656,15 @@ export class GameRenderer {
           .lineTo(x + width + 2, y + 18).stroke({ color: 0xffd99a, width: 1.2 })
           .roundRect(x + width - 5, y + 12, 7, 3, 1).fill(0xffd99a));
       }
+      if (building.id === kitPurchase?.smithId) {
+        smithHeroX = Math.max(24, Math.min(286, x + width / 2));
+        // The sign belongs to the recorded smithy; it does not invent a merchant actor.
+        this.worldLayer.addChild(new Graphics()
+          .roundRect(x + width - 10, y + 8, 15, 12, 2).fill(0x3f302b)
+          .poly([x + width - 8, y + 11, x + width + 3, y + 11, x + width, y + 14,
+            x + width - 2, y + 14, x + width - 2, y + 17, x + width - 6, y + 17,
+            x + width - 6, y + 14]).fill(0xc4cbd1));
+      }
       for (let residentIndex = 0; residentIndex < Math.min(3, building.residentIds.length); residentIndex += 1) {
         this.worldLayer.addChild(
           circle(x + 6 + residentIndex * 6, 137 + row * 8, 2, 0xe7c9a0),
@@ -4656,6 +4689,23 @@ export class GameRenderer {
       this.drawHero({ ...state, scene: { ...state.scene, mode: "camp" } }, innHeroX, 143, palette);
       for (let index = 0; index < 5; index += 1) {
         this.worldLayer.addChild(circle(innHeroX - 10 + index * 5, 160, 1.8, 0xe0ad4f));
+      }
+      return;
+    }
+    if (kitPurchase !== null) {
+      this.host.dataset.disarmingKitPurchaseActive = "true";
+      this.host.dataset.disarmingKitPurchaseBuilding = kitPurchase.smithId;
+      this.host.dataset.disarmingKitPurchaseReceipt = kitPurchase.receipt;
+      this.host.dataset.disarmingKitPurchaseVisual = "recorded-smithy|anvil-sign|toolbag|five-coins|equipped-hero";
+      this.drawHero(state, smithHeroX, 146, palette);
+      this.worldLayer.addChild(new Graphics()
+        .roundRect(smithHeroX + 12, 134, 12, 10, 2).fill(0x99714c)
+        .moveTo(smithHeroX + 15, 134).lineTo(smithHeroX + 15, 131)
+        .lineTo(smithHeroX + 21, 131).lineTo(smithHeroX + 21, 134).stroke({ color: 0xe8cf9f, width: 1.3 })
+        .moveTo(smithHeroX + 12, 138).lineTo(smithHeroX + 24, 138).stroke({ color: 0x4c3d35, width: 1 })
+        .rect(smithHeroX + 17, 137, 2, 3).fill(0xe8cf9f));
+      for (let index = 0; index < 5; index += 1) {
+        this.worldLayer.addChild(circle(smithHeroX - 10 + index * 5, 160, 1.8, 0xe0ad4f));
       }
       return;
     }

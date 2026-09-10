@@ -2,12 +2,15 @@ import type { ChronicleEntry, WorldState } from "../core/types";
 import {
   dungeonTrapAt,
   dungeonTrapCheckAttribute,
+  createDungeonDisarmKitUse,
   generateDungeon,
   moveDungeon,
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
+  resolveDungeonDisarmCheck,
 } from "../depth/dungeon";
-import { applyQuestProgressFact, effectiveAttribute, isValidQuestObjectiveRule } from "../depth/rpg";
+import { disarmingKitId, selectDisarmingKit } from "../depth/disarming-kit";
+import { applyQuestProgressFact, effectiveAttribute, heroMechanicalLevel, isValidQuestObjectiveRule } from "../depth/rpg";
 import { isQuestLeadDungeon } from "../depth/quest-lead";
 import type {
   AttributeName,
@@ -22,7 +25,7 @@ import type {
 export type TrapResolutionCommandType = "enter-dungeon" | "move-dungeon" | "disarm-dungeon-trap";
 export type TrapResolutionStage = "detect" | "disarm";
 
-export interface TrapResolutionPacket {
+export interface TrapResolutionPacketV1 {
   readonly schemaVersion: 1;
   readonly eventId: string;
   readonly tick: number;
@@ -53,6 +56,18 @@ export interface TrapResolutionPacket {
   readonly crossMazeDelta: number;
 }
 
+export interface TrapResolutionPacketV2 extends Omit<TrapResolutionPacketV1, "schemaVersion"> {
+  readonly schemaVersion: 2;
+  readonly tool: {
+    readonly itemId: string;
+    readonly bonus: 2;
+    readonly quantityBefore: 1;
+    readonly quantityAfter: 0;
+  };
+}
+
+export type TrapResolutionPacket = TrapResolutionPacketV1 | TrapResolutionPacketV2;
+
 const trapResolutionPacketKeys = Object.freeze([
   "schemaVersion", "eventId", "tick", "commandId", "commandType", "heroId", "dungeonId", "cellId",
   "trapKind", "phaseBefore", "phaseAfter", "stage", "attribute", "skill", "roll", "total", "difficulty",
@@ -81,8 +96,9 @@ function safeInteger(value: unknown, minimum = 0): value is number {
 
 /** Accepts only the exact, internally consistent packet shape emitted by projectTrapResolution. */
 export function isTrapResolutionPacket(value: unknown): value is TrapResolutionPacket {
-  if (!isRecord(value) || !hasExactKeys(value, trapResolutionPacketKeys)) return false;
-  if (value.schemaVersion !== 1
+  if (!isRecord(value) || !hasExactKeys(value, value.schemaVersion === 2
+    ? [...trapResolutionPacketKeys, "tool"] : trapResolutionPacketKeys)) return false;
+  if ((value.schemaVersion !== 1 && value.schemaVersion !== 2)
     || !nonEmptyString(value.eventId)
     || !safeInteger(value.tick)
     || !nonEmptyString(value.commandId)
@@ -112,6 +128,10 @@ export function isTrapResolutionPacket(value: unknown): value is TrapResolutionP
     || !safeInteger(value.crossMazeDelta)) return false;
 
   const packet = value as unknown as TrapResolutionPacket;
+  if (packet.schemaVersion === 2 && (packet.stage !== "disarm" || !isRecord(packet.tool)
+    || !hasExactKeys(packet.tool, ["itemId", "bonus", "quantityBefore", "quantityAfter"])
+    || packet.heroId.length > 400 || packet.tool.itemId !== disarmingKitId(packet.heroId)
+    || packet.tool.bonus !== 2 || packet.tool.quantityBefore !== 1 || packet.tool.quantityAfter !== 0)) return false;
   const expectedStage = packet.commandType === "disarm-dungeon-trap" ? "disarm" : "detect";
   const expectedPhaseAfter: DungeonTrapPhase = packet.success
     ? packet.stage === "detect" ? "detected" : "disarmed"
@@ -121,7 +141,7 @@ export function isTrapResolutionPacket(value: unknown): value is TrapResolutionP
     && packet.phaseBefore === (packet.stage === "detect" ? "hidden" : "detected")
     && packet.phaseAfter === expectedPhaseAfter
     && packet.attribute === dungeonTrapCheckAttribute(packet.trapKind, packet.stage)
-    && packet.total === packet.skill + packet.roll
+    && packet.total === packet.skill + packet.roll + (packet.schemaVersion === 2 ? packet.tool.bonus : 0)
     && packet.success === (packet.total >= packet.difficulty)
     && packet.difficulty >= expectedDifficultyRange[0]!
     && packet.difficulty <= expectedDifficultyRange[1]!
@@ -294,14 +314,24 @@ export function projectTrapResolution(
   if ((stage === "detect" && trapBefore.phase !== "hidden")
     || (stage === "disarm" && trapBefore.phase !== "detected")) return null;
 
+  const kit = stage === "disarm" ? selectDisarmingKit(before.depth.hero) : null;
   let check;
   try {
-    check = resolveDungeonTrapCheck(beforeDungeon, cellId, stage, {
+    const aptitudes = {
       agility: effectiveAttribute(before.depth.hero, "agility"),
       intellect: effectiveAttribute(before.depth.hero, "intellect"),
       spirit: effectiveAttribute(before.depth.hero, "spirit"),
-      level: before.depth.hero.level,
-    }, before.seed);
+      level: heroMechanicalLevel(before.depth.hero.level),
+    };
+    check = stage === "disarm"
+      ? resolveDungeonDisarmCheck(beforeDungeon, cellId, aptitudes, before.seed, kit)
+      : resolveDungeonTrapCheck(beforeDungeon, cellId, stage, aptitudes, before.seed);
+    if (kit !== null) {
+      const receipt = createDungeonDisarmKitUse(check, kit, after.depth.tick, afterDungeon.id);
+      if (!sameJson(afterDungeon.latestDisarmKitUse, receipt)
+        || !sameJson(after.depth.hero.inventory, before.depth.hero.inventory.filter((item) => item.id !== kit.id))) return null;
+    } else if (stage === "disarm"
+      && !sameJson(beforeDungeon.latestDisarmKitUse ?? null, afterDungeon.latestDisarmKitUse ?? null)) return null;
   } catch {
     return null;
   }
@@ -360,8 +390,7 @@ export function projectTrapResolution(
   const crossMazeDelta = crossMazeAfter.current - crossMazeBefore.current;
   if (!Number.isSafeInteger(crossMazeDelta) || crossMazeDelta < 0 || crossMazeDelta > 1) return null;
 
-  return Object.freeze({
-    schemaVersion: 1,
+  const facts = {
     eventId: source.id,
     tick: source.tick,
     commandId,
@@ -389,5 +418,10 @@ export function projectTrapResolution(
     crossMazeBefore: crossMazeBefore.current,
     crossMazeAfter: crossMazeAfter.current,
     crossMazeDelta,
-  });
+  };
+  return kit === null
+    ? Object.freeze({ schemaVersion: 1, ...facts })
+    : Object.freeze({ schemaVersion: 2, ...facts, tool: Object.freeze({
+      itemId: kit.id, bonus: 2, quantityBefore: 1, quantityAfter: 0,
+    }) });
 }

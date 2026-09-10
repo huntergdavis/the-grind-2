@@ -3,7 +3,7 @@ import {
   championExperienceFloorV1,
   createChampionInduction,
 } from "../core/champions";
-import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "../core/simulation";
 import { createHeroGrowthState } from "../core/hero-growth";
 import type { WorldState } from "../core/types";
 import {
@@ -33,7 +33,9 @@ function withExperience(state: WorldState, experience: number): WorldState {
 }
 
 function resolveLevel(seed: string, targetLevel: number) {
-  const initial = createWorld(seed, `campaign:${seed}`);
+  const created = createWorld(seed, `campaign:${seed}`);
+  const initial = campaignDirector(created).candidates.some((candidate) => candidate.command.type === "buy-disarming-kit")
+    ? advanceWorld(created) : created;
   const before = withExperience(initial, heroExperienceFloor(targetLevel) - 1);
   const after = advanceWorld(before);
   const source = after.chronicle.at(-1);
