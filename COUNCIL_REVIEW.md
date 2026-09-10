@@ -1,6 +1,6 @@
 # The Grind 2 — Red-Team Council Report
 
-Status: council reviews, latest update 2026-09-09
+Status: council reviews, latest update 2026-09-10
 
 ## Gameplay-first council — Copperhorn final-ember research (v0.5.154)
 
@@ -53,6 +53,32 @@ legacy expectations were corrected; their targeted rerun passes11/11. The
 ten golden full-state and normalized gameplay assertions pass. Do not increase
 timeouts or claim the complete local suite passed; existing clean-run deployment
 CI must resolve those two timing checks before marking this release delivered.
+
+Delivery verification resolves that gate: feature
+`415f6a5ad4bb32346a27d8cb752a571a5e770dcc` is pushed and live.
+[Pages run 34447460510](https://github.com/huntergdavis/the-grind-2/actions/runs/34447460510)
+passes all 3,372 release tests across 224 files in256.85s; the complete
+deployment takes5m26s (06:55:46–07:01:12 UTC). The existing progression test
+passes in9.203s and save/replay in1.322s, with their original limits unchanged.
+At 2026-09-10 00:02 PDT the actual public version/cache0.5.154, entry
+`index-C5XRIO2Q.js`, simulation worker `simulation.worker-DE6llA_g.js` and
+unchanged stylesheet `index-C9e4LhCm.css` match the verified build bytes.
+Public source maps match committed main/projection/research/state/simulation
+sources in the browser bundle and research/state/simulation in the worker.
+Narrator worker references stay unchanged; protected ledger work and parked
+drafts remain untouched. Ignored `scratch/verify-copperhorn-live.mjs` records
+the verification procedure. No further code or testing is required for v154.
+
+Next-slice council reuses Codex mobile recalls from sessions03/09 and the
+actual v154 capture: V04.16b's portrait dossiers and V04.19c2's 320px acceptance
+support a compact full-width evidence layout. The current 5.25rem portrait
+column leaves the adjacent text cramped even without horizontal overflow.
+Retain the silhouette as a short header and preserve every disclosed fact,
+native control and desktop composition. Queue this separately as item18;
+do not silently change the frozen v154 CSS. Broader risk-aware routing is not
+selected: existing actor policy already scores known traps, keys, useful
+shrines, searches and disarming; claiming that as new would duplicate shipped
+behavior. New routing mechanics need their own distinct design.
 
 ## Gameplay-first council — mobile Map toolbar clearance (v0.5.153)
 

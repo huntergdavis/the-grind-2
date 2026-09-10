@@ -1,6 +1,6 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, updated 2026-09-09
+Status: council-adjudicated backlog, updated 2026-09-10
 
 ## Active roadmap — gameplay depth first (2026-09-09)
 
@@ -182,7 +182,7 @@ Immediate queue:
     public version/cache 0.5.153, entry `index-BFnQOE02.js`, stylesheet
     `index-C9e4LhCm.css`, unchanged simulation worker and committed source/build
     comparisons pass. Protected ledger work and parked drafts remain untouched.
-17. **In implementation — V04.16e3, Copperhorn: study the final ember (v0.5.154).**
+17. **Delivered — V04.16e3, Copperhorn: study the final ember (v0.5.154).**
     Newly promote one bounded subset of the existing monster field-research
     backlog: witness actual Bellmetal Charge apply burning, then witness that
     same application lose its final duration while still damaging the hero
@@ -212,7 +212,27 @@ Immediate queue:
     in 117.4s under its unchanged 120s budget: exact T85→T89 saves and progress,
     native disclosure/focus, 1280/320 captures, actual reload and zero browser
     errors, inference or external requests. Both captures reviewed; no new
-    Watch panel or CSS change. Full CI and public deployment remain pending.
+    Watch panel or CSS change. Feature `415f6a5` is pushed and live: Pages run
+    `34447460510` passes 3,372 tests in 224 files (256.85s release suite,
+    5m26s deployment). The existing progression and save/replay timing checks
+    pass clean CI in 9.203s and 1.322s without changing their limits.
+    At 2026-09-10 00:02 PDT public version/cache, entry `index-C5XRIO2Q.js`,
+    simulation worker `simulation.worker-DE6llA_g.js`, unchanged stylesheet,
+    bundle bytes and exact committed browser/worker source maps all verify.
+    Protected ledger edits, parked drafts and narrator workers remain unchanged.
+18. **Next — V04.16b portrait Codex readability follow-up.** Complete the
+    existing portrait-dossier/320px containment intent, also recorded under
+    V04.19c2. The v154 capture has no horizontal overflow, but its permanent
+    5.25rem portrait column leaves research clues and source receipts in an
+    unnecessarily narrow adjacent article. At compact widths give dossier
+    content the available card width and retain the silhouette in a short
+    portrait header. Preserve names, technique states, progress, clues, source
+    receipts and native disclosures; do not shrink the text or hide facts.
+    Keep desktop composition, Watch, saved state and all mechanics unchanged.
+    Reuse the genuine Copperhorn T89 browser checkpoint to verify available
+    text width, reachable evidence, focus/open-state preservation, exact save
+    and desktop agreement. This is readability completion, not a new mechanic,
+    a whole Codex redesign or another broad browser matrix.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
