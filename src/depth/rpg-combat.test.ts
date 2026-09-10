@@ -288,6 +288,56 @@ describe("character, inventory, and quest depth", () => {
     expect(isValidWeaponUseMastery(forged, progressed.id)).toBe(false);
   });
 
+  it("keeps the original weapon receipt when a route combat identity returns with different facts", () => {
+    const hero = createHero("weapon-use-return", "hero:weapon-use-return", "Rhea Moss");
+    const weapon = hero.inventory.find((item) => item.id === hero.equipment.weapon);
+    if (weapon === undefined) throw new Error("Returning encounter fixture needs an equipped weapon");
+    const original = {
+      id: "encounter:route:location:0>location:1", outcome: "victory",
+      weaponUse: { schemaVersion: 1, tracking: "tracked", rulesVersion: "weapon-effective-use-v1",
+        heroId: hero.id, weaponId: weapon.id, basicStrikes: 1, damage: 5 },
+    } as const;
+    const earned = applyWeaponUseMastery(weapon, original, 142);
+    const captured = JSON.stringify(earned.item);
+    const returning = { ...original, outcome: "defeat" as const,
+      weaponUse: { ...original.weaponUse, basicStrikes: 3, damage: 27 } };
+    const repeated = applyWeaponUseMastery(earned.item, returning, 476);
+    expect(repeated.item).toBe(earned.item);
+    expect(repeated.receipt).toBeNull();
+    expect(JSON.stringify(repeated.item)).toBe(captured);
+    expect(repeated.item.useMastery?.receipts).toEqual([earned.receipt]);
+    expect(repeated.item.useMastery?.receipts[0]).toMatchObject({ resolvedTick: 142, outcome: "victory", basicStrikes: 1, damage: 5 });
+    const next = applyWeaponUseMastery(repeated.item, { ...original, id: "encounter:route:location:1>location:2" }, 477);
+    expect(next.receipt).toMatchObject({ experienceBefore: 1, experienceAfter: 2, resolvedTick: 477 });
+    expect(next.item.useMastery?.receipts).toEqual([earned.receipt, next.receipt]);
+    expect(isValidWeaponUseMastery(next.item.useMastery, weapon.id)).toBe(true);
+    expect(JSON.stringify(earned.item)).toBe(captured);
+  });
+
+  it("still rejects invalid mastery, invalid duplicate ticks, and nonmonotonic new identities before awarding use", () => {
+    const hero = createHero("weapon-use-validation", "hero:weapon-use-validation", "Rhea Moss");
+    const weapon = hero.inventory.find((item) => item.id === hero.equipment.weapon);
+    if (weapon === undefined) throw new Error("Use validation fixture needs an equipped weapon");
+    const combat = {
+      id: "encounter:mastery:validation", outcome: "victory",
+      weaponUse: { schemaVersion: 1, tracking: "tracked", rulesVersion: "weapon-effective-use-v1",
+        heroId: hero.id, weaponId: weapon.id, basicStrikes: 1, damage: 5 },
+    } as const;
+    const earned = applyWeaponUseMastery(weapon, combat, 10).item;
+    if (earned.useMastery === null) throw new Error("The actual settlement must retain mastery");
+    const corrupt = { ...earned, useMastery: { ...earned.useMastery, experience: 2 } };
+    expect(() => applyWeaponUseMastery(corrupt, combat, 11)).toThrow("requires a valid weapon");
+    for (const tick of [-1, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => applyWeaponUseMastery(earned, combat, tick)).toThrow("tick is invalid");
+    }
+    const unique = { ...combat, id: "encounter:mastery:new-validation" };
+    for (const tick of [9, 10]) {
+      expect(() => applyWeaponUseMastery(earned, unique, tick)).toThrow("settlement is invalid");
+    }
+    expect(earned.useMastery).toMatchObject({ experience: 1 });
+    expect(earned.useMastery.receipts).toHaveLength(1);
+  });
+
   it("rejects malformed quest identities, progress, and nested status propagation", () => {
     const quest = createQuest("quest-invariants");
     expect(isValidQuestState(quest)).toBe(true);

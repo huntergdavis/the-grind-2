@@ -2,6 +2,68 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — efficient finishing strikes (v0.5.151, in progress)
+
+The proposed Familiar Opening failed its promotion gate: committed-v150 golden
+0/1/2, 1,000 ticks each, retained only Use-L1 weapons. This bounded sample is not
+an all-class claim. Source arithmetic also shows the zero-potency art losing
+to free piercing techniques and to trained physical techniques at the current
+maximum enemy armor. A manufactured unlock or removed ability would hide those
+problems. The incomplete draft is parked in ignored scratch; the shipped scope
+is the finisher prerequisite, not a nominally wired but unproved weapon art.
+
+Independent review approves the comparison after matched-rule priority and
+before legacy score: only the actual hero's existing, guaranteed battle-ending
+attack/ability alternatives compare MP, minimum overkill, then basic exact tie.
+Canonical candidates have uniform keys within that rule, avoiding a mixed-key
+sort cycle. Existing forecasts retain Guard and pre-action status arithmetic.
+Other actor profiles, multiple foes, Shared Opening and recovery priorities are
+unchanged. Review caught potentially misleading retained personality text;
+the selected finisher now replaces it with the actual economic explanation.
+
+Actual basic strikes must earn their existing receipts without altered mastery,
+hidden rolls, added rewards or a new panel. The representative browser journey
+must show exact save/reload and current weapon presentation at 1280/320. An L4
+unlocking terminal strike correctly retains its pre-unlock L3 pose; any new
+Familiar Form assertion must use a subsequent genuine strike. Existing golden
+hashes will change intentionally with the new policy, but exact deterministic
+JSON/replay checks stay. Verification and deployment are pending.
+
+Actual pacing uncovered an existing settlement defect at golden 2 T476: a
+repeated path-derived combat ID had left the four-combat history but remained
+in the weapon's source receipts from T142. Reviewed fix is idempotent settlement
+after normal validation, preserving the exact first receipt and returning no
+new credit. It does not rename route encounters or imply every physical revisit
+is a distinct mastery source. Eleven focused finisher and two new settlement
+regressions pass; the combined RPG/finisher run passes 40 tests. Unchanged enemy,
+multi-foe, Guard/status and restoration behavior remains directly covered.
+
+Corrected 1,000-tick samples now yield 5/9/10 actual basic finishes and 5/9/7
+unique receipts across golden 0/1/2, with maximum Use levels 3/3/4. Golden 2
+naturally earns its sixth Foxfire Wand receipt and Use L4 at T902. Duplicate
+route credit stays suppressed. These samples still offer no useful window for
+the original zero-potency art; no premature art promotion is included.
+
+The frozen production journey passes in 40.9s / 59.8s runner under its unchanged
+120s budget: natural golden 1 T4→T5, actual Guard, four-HP basic-strike victory,
+zero MP cost, untouched abilities, one Roadworn Blade L1→L2 receipt, exact save
+and reload, and native Inventory/Status. Root inspected all four 1280/320
+Watch/Inventory captures; no overlap/overflow. Zero browser errors, inference
+or external requests; preview closed. The first harness attempt expected an
+L4-only form marker on an L2 receipt; corrected assertions use actual victory/
+mastery truth without claiming a particular paused cue phase. No production
+change was needed. Version, boundaries and production build pass.
+
+The local existing 20,000-turn case takes 96.309s and exceeds its unchanged
+60s budget. A matched profiled 5,000-turn baseline/current comparison measures
+21.162s/23.326s (+10.2%, single uncontrolled pair) with bounded state and equal
+hero-level/quest milestones, not an unbounded loop. Weapon-mastery validation
+is only 2.71% inclusive in the current profile; do not justify speculative
+validation rewrites from that timeout. Previous successful CI completed the
+actual 20,000 turns in 9.477s. Keep the existing CI gate and budgets unchanged.
+Whole-state goldens and the now-earlier finite mentor journey are intentionally
+updated for changed policy; exact JSON/replay assertions remain in place.
+
 ## Gameplay-first council — readable dungeon captions (v0.5.150)
 
 Reuses session 09's mobile-caption review. The pure helper depends only on

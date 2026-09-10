@@ -99,7 +99,15 @@ Immediate queue:
     mechanics, inference or expanded test matrix. Reuses existing landmark
     suppression, extending it to the remaining mechanism-rail owners. Also fixes
     stale Watch-stage positioning after toolbar changes during paused resize.
-13. **Next — V04.20l2b, Familiar Opening: one earned weapon art.** Promote the
+13. **In progress — V04.20l2b prerequisite, efficient finishing strikes (v0.5.151).**
+    Within the existing hero-only, guaranteed battle-ending rule, prefer lower
+    MP cost, then less minimum overkill, then a basic strike on an exact tie.
+    Keep all abilities intact. Existing Guard/status forecasts, recovery rules,
+    enemy decisions and multi-foe tactics retain priority and behavior. Actual
+    weapon strikes can now earn their existing Use Mastery receipts naturally;
+    no new power, action, panel, reward or save schema. Prove this through real
+    autoplay, saved reload and existing weapon presentation.
+14. **Held — V04.20l2b, Familiar Opening: one earned weapon art.** Promote the
     existing tactical-sidegrade proposal into a bounded first implementation:
     a genuine equipped-weapon Use-L4 unlock receipt enables one 2-MP piercing
     weapon strike per combat, only against an actually guarded enemy. Preserve
@@ -114,6 +122,19 @@ Immediate queue:
     once-only behavior, L3/insufficient-MP rejection and exact reload. Validate
     occurrence and bounded pacing with existing seeded journeys before shipping;
     do not add a general mastery framework, enemy policy change or ledger dependency.
+    **Pacing gate:** the original zero-potency recipe is not approved for release.
+    A bounded v150 sample (golden 0/1/2, 1,000 ticks each) retained only Use-L1
+    weapons; ability-biased finishers starved basic-strike receipts. Even with an
+    earned unlock, free piercing techniques dominate this recipe, and the narrow
+    high-armor physical-technique advantage disappears after early ability
+    training. Reassess the situational benefit after the finisher prerequisite;
+    do not fake eligibility by removing abilities or manufacturing mastery.
+    The incomplete art draft is preserved, unshipped, in ignored
+    `scratch/parked-familiar-opening-unverified-2026-09-09.patch` (base `af5807f`).
+15. **Next UI polish — truthful inspection status.** The verified Inventory
+    capture still says the battle continues off-screen when the adventure is
+    paused on a settled victory. Make that existing hint distinguish playing,
+    paused and completed combat, without another panel or gameplay mutation.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -698,6 +719,71 @@ and unchanged CSS `index-DeqLtJ6M.css` match local production bytes. All three
 relevant entry source-map copies (caption layout, renderer and main) match the
 exact feature commit. Verified live on hunterdavis.com at 2026-09-09 20:10 PDT.
 Familiar Opening is next; LLM work remains paused at the existing baseline.
+
+### V04.20l2b prerequisite — efficient finishing strikes (v0.5.151, in progress)
+
+Reuses `deja "Familiar Opening"`, session 09's live Actor Policy correction,
+and the existing v143 Guard/status-aware damage forecast. Before promoting the
+art, a read-only committed-v150 sample of golden 0/1/2 ran 1,000 ticks each:
+every retained weapon remained Use L1. The existing finisher rule recognized
+safe kills but then personality/ability scores favored technique use even when
+a cheaper, less excessive weapon strike was enough. No upcoming RNG roll is
+needed to make that choice.
+
+The new comparison applies only after the existing rule priority, inside the
+hero's guaranteed last-foe finishing rule: mana cost, minimum overkill, basic
+strike on an exact tie, then the established tie-breakers. Enemy and companion
+choices, multiple living opponents, Shared Opening, and emergency recovery
+outside a genuinely battle-ending finish stay unchanged. Decision text now
+names the actual economic reason rather than attributing it to personality.
+
+This deliberately changes autonomous actions and resulting progression, not
+combat damage, equipment stats or mastery rewards. Reuse the existing visible
+weapon strike, receipt, Inventory and Familiar Form paths. No new panel, save
+schema, narrator or compact-ledger change. The original art draft was parked
+before this smaller implementation; it is not part of v151. Verification and
+deployment are pending.
+
+The new actual strikes exposed a pre-existing duplicate-settlement crash:
+golden 2 at T476 revisits `encounter:route:location:1>location:10`, whose Foxfire
+Wand receipt already exists from T142 but whose combat has left the four-entry
+completed-combat ring. Mastery now returns the original item unchanged for an
+already-credited combat identity, after existing input validation. No duplicate
+XP, overwritten provenance or new encounter IDs. Two regressions retain invalid
+mastery/tick rejection and prove the next distinct encounter earns normally.
+Distinct battle-instance identities for repeated routes remain a separate
+design question; this fix preserves the current one-credit-per-source contract.
+
+The same bounded current-code sample now records 5/9/10 actual basic finishes
+and 5/9/7 unique weapon-use receipts for golden 0/1/2, reaching maximum Use
+levels 3/3/4 versus baseline 1/1/1. Golden 2's existing Foxfire Wand reaches
+Use L4 naturally at T902, on its sixth distinct receipt, without altered stats,
+abilities or mastery. The original Familiar Opening still has zero useful
+windows in this sample; the art remains held for a real design revision.
+Evidence: `scratch/efficient-finisher-pacing-evidence.json`.
+
+The production browser journey passes in 40.9s (59.8s runner) within the same
+120s budget. It loads unmodified natural golden 1 at T4, then autoplay chooses
+the sufficient basic strike through an actual enemy Guard at T5: exact four-HP
+victory, zero MP spent, unchanged abilities and first Roadworn Blade receipt
+(Use L1→L2). Whole-save equality, native Inventory/Status and actual reload pass.
+Root reviewed all four Watch/Inventory captures at 1280/320: readable existing
+feedback, no overlap or horizontal overflow. Zero browser errors, inference or
+external requests; owned preview closed. An initial harness assertion incorrectly
+expected the L4-only terminal-form marker; acceptance instead verifies the actual
+L2 victory/mastery fields without inventing an animation phase. Build/version/
+boundaries pass; source and save schemas remain unchanged. Deployment pending.
+
+Local performance audit: the existing 20,000-turn test completes behaviorally
+but exceeds its unchanged 60s limit at 96.309s on this busy machine. A matched,
+profiled 5,000-turn comparison is 21.162s for committed v150 versus 23.326s for
+v151 (+10.2%; one uncontrolled pair, not a benchmark guarantee). Both remain
+bounded and reach the same hero level 31 / mastery 43 / 17 completed quests;
+only v151's weapon records progress. No runaway growth or dominant mastery
+validator hotspot was found. Previous Pages ran the actual 20,000-turn check
+in 9.477s. Do not raise timeouts or add another replay matrix: existing CI is
+the final performance/release gate. Intentional ten-campaign golden hashes and
+the mentor anchor (now T4109 / visit 23) are updated; exact JSON replay remains.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

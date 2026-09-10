@@ -490,10 +490,31 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
   const profile = actorInstinctProfiles[context];
   const knowledge = projectActorPolicyKnowledge(state);
   const ranked = opportunity.candidates
-    .map((candidate) => ({ ...scoreCandidate(state, candidate, knowledge), ...matchingRule(state, candidate, profile, knowledge) }))
-    .sort((left, right) => left.index - right.index || right.score - left.score || left.tieBreak - right.tieBreak || (left.candidate.id < right.candidate.id ? -1 : 1));
+    .map((candidate) => {
+      const matched = matchingRule(state, candidate, profile, knowledge);
+      const command = candidate.command;
+      const facts = combatFacts(state, candidate);
+      // Only rank alternatives inside the existing safe, battle-ending rule.
+      // Enemy turns, party actions, recovery priorities and multi-foe tactics
+      // retain their current ordering; no future combat roll is consulted.
+      const finish = matched.rule.selector === "finishing-action" && facts.boundedFinish
+        && command.type === "combat-action" && command.action.actorId === state.depth.hero.id
+        && (command.action.type === "attack" || command.action.type === "ability")
+        ? [facts.ability?.manaCost ?? 0, facts.projectedDamage - (facts.target?.health ?? 0), command.action.type === "attack" ? 0 : 1] as const
+        : null;
+      return { ...scoreCandidate(state, candidate, knowledge), ...matched, finish };
+    })
+    .sort((left, right) => left.index - right.index
+      || (left.finish !== null && right.finish !== null
+        ? left.finish[0] - right.finish[0] || left.finish[1] - right.finish[1] || left.finish[2] - right.finish[2]
+        : 0)
+      || right.score - left.score || left.tieBreak - right.tieBreak || (left.candidate.id < right.candidate.id ? -1 : 1));
   const selected = ranked[0];
   if (selected === undefined) throw new Error("Actor Policy found no legal choice");
+  if (selected.finish !== null) {
+    const facts = combatFacts(state, selected.candidate);
+    selected.reason = `${facts.ability?.name ?? "the weapon strike"} guarantees a finish against the last foe, ${facts.target?.name ?? "the target"}${facts.forecast?.guarded === true ? ", through Guard" : ""}; ${selected.finish[0]} MP and ${selected.finish[1]} minimum overkill, preferring lower mana cost and then less guaranteed overkill`;
+  }
   const actor = decisionActor(state, selected.candidate);
   const consideration = (entry: typeof selected): ActorDecisionConsideration => ({
     commandId: `${state.campaignId}:${entry.candidate.id}`,

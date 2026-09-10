@@ -158,6 +158,10 @@ export function applyWeaponUseMastery(
     return { item, receipt: null };
   }
   if (!isBoundedInteger(resolvedTick, 0, Number.MAX_SAFE_INTEGER)) throw new RangeError("Weapon Use Mastery tick is invalid");
+  // Route encounters can recur after the small completed-combat ring expires.
+  // Mastery retains its own source identities: never credit or overwrite one
+  // twice, even when the returning encounter has a different outcome or tick.
+  if (item.useMastery.receipts.some((receipt) => receipt.combatId === combat.id)) return { item, receipt: null };
   const experienceBefore = item.useMastery.experience;
   if (experienceBefore >= maximumWeaponUseExperience) return { item, receipt: null };
   const experienceAfter = experienceBefore + 1;

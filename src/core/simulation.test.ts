@@ -638,11 +638,12 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    // v149 adds observational research only. Removing that wrapper/new task
-    // must preserve v147/v148's exact mentor journey (T9229, visit 22).
+    // v151's economical finishers intentionally change the wider journey:
+    // the same finite, non-mechanical mentor arc now completes at T4109/visit23.
+    // Retain the research-normalized anchor plus the exact JSON resume below.
     const releasedState = { ...state, depth: { ...state.depth, schemaVersion: 23,
       fieldResearch: state.depth.fieldResearch.inkcap } };
-    expect(canonicalHash(releasedState), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("46d6832c4f655ac7");
+    expect(canonicalHash(releasedState), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("822d5a7c779d3c5f");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
