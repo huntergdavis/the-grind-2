@@ -90,14 +90,15 @@ Immediate queue:
     not a guaranteed final-damage difference through armor/Guard/minimum damage.
     Preserve Inkcap evidence on migration and reuse Codex disclosures. No power
     grant, actor-policy change, hidden comparison or general research framework.
-12. **In progress — V04.18a presentation subset, mobile dungeon caption readability (v0.5.150).**
-    Replace fixed 7/4.5-design-pixel receipt typography with a responsive caption
+12. **Delivered — V04.18a presentation subset, mobile dungeon caption readability (v0.5.150).**
+    Replaces fixed 7/4.5-design-pixel receipt typography with a responsive caption
     layout for the existing reserved top rail. Keep a readable narrow-screen
     headline and concise detail; full exact consequences remain in Status.
     Preserve discovered-room framing, reduced motion and all save bytes. Reuse
     the actual search→disarm journey at 320/1280; no new panel, hidden facts,
-    mechanics, inference or expanded test matrix. Existing landmark collision
-    suppression already works and should not be reimplemented.
+    mechanics, inference or expanded test matrix. Reuses existing landmark
+    suppression, extending it to the remaining mechanism-rail owners. Also fixes
+    stale Watch-stage positioning after toolbar changes during paused resize.
 13. **Next — V04.20l2b, Familiar Opening: one earned weapon art.** Promote the
     existing tactical-sidegrade proposal into a bounded first implementation:
     a genuine equipped-weapon Use-L4 unlock receipt enables one 2-MP piercing
@@ -643,7 +644,7 @@ The public bundle contains the Moonhowl study and its no-health-drain clue.
 Verified live on hunterdavis.com at 2026-09-09 19:06 PDT. Mobile dungeon-caption
 readability is next; LLM work remains paused at the existing baseline.
 
-### V04.18a — mobile dungeon caption readability (v0.5.150, in progress)
+### V04.18a — mobile dungeon caption readability (v0.5.150)
 
 Reuses `deja "mobile dungeon caption readability"`, session 09's 2026-09-09
 18:50 council recommendation and the reviewed v148 mobile search capture. The
@@ -689,8 +690,14 @@ actions, native Chronicle consequence, paused resize-back and genuine persisted
 reload pass. The trap still inflicts its own four HP on the failed disarm;
 research/search is not immunity. Root reviewed all four 1280/320 search/disarm
 captures: readable labels, separate lines and no room/hero overlap or horizontal
-overflow. Zero browser errors, inference or external requests. Live deployment
-is pending.
+overflow. Zero browser errors, inference or external requests. The owned preview
+is closed. Feature `41c8c5a` passed Pages run `34431709911` with 3,334 release
+tests / 221 files and a 5m38s deployment. Public v0.5.150/cache, entry
+`index-_ONuBqXR.js`, unchanged simulation worker `simulation.worker-CFEvwV8L.js`
+and unchanged CSS `index-DeqLtJ6M.css` match local production bytes. All three
+relevant entry source-map copies (caption layout, renderer and main) match the
+exact feature commit. Verified live on hunterdavis.com at 2026-09-09 20:10 PDT.
+Familiar Opening is next; LLM work remains paused at the existing baseline.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

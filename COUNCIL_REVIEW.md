@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — readable dungeon captions (v0.5.150, in progress)
+## Gameplay-first council — readable dungeon captions (v0.5.150)
 
 Reuses session 09's mobile-caption review. The pure helper depends only on
 actual scene scale: compact 12/11 CSS-pixel targets, a rail ending at y30 above
@@ -28,7 +28,7 @@ attempt found a one-pixel overlap of measured mobile text boxes despite nominal
 line-height separation. The corrected compact rail uses y0→30 and centers the
 actual measured glyph heights with a one-CSS-pixel gap; font sizes and room
 bounds are unchanged. The five helper tests and corrected build pass. The same
-browser assertions are rerunning without a longer timeout. A later exact
+browser assertions were rerun without a longer timeout. A later exact
 resize-back assertion exposed an existing position-only observer gap: the
 toolbar rectangles returned to their original desktop values, but the Watch
 stage retained an intermediate top offset. The four paused snapshots in
@@ -48,7 +48,13 @@ passes in 58.1s under its unchanged 120s budget: three exact canonical actions,
 genuine reload and native Chronicle consequence. Root reviewed all four final
 1280/320 search/disarm captures; no hero/room overlap or horizontal overflow.
 Zero browser errors, inference or external requests. Release review is clear;
-deployment pending.
+the owned preview is closed. Feature `41c8c5a` passed Pages run `34431709911`
+with 3,334 release tests / 221 files and a 5m38s deployment. Public v0.5.150/cache,
+entry `index-_ONuBqXR.js`, unchanged simulation worker
+`simulation.worker-CFEvwV8L.js` and unchanged CSS `index-DeqLtJ6M.css` match local
+production bytes. The public source map matches the exact committed caption
+layout, renderer and main modules. Verified live on hunterdavis.com at
+2026-09-09 20:10 PDT.
 
 Next gameplay recommendation: promote V04.20l2b Familiar Opening into one
 receipt-earned, 2-MP, once-per-combat piercing weapon art against existing Guard,
