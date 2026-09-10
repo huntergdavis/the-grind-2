@@ -2166,6 +2166,13 @@ body {
 .gazetteer-browser h2, .gazetteer-browser h3 { margin: 0.7rem 0 0.4rem; font-family: Georgia, serif; }
 .gazetteer-browser h2 { font-size: 1.25rem; }
 .gazetteer-browser h3 { font-size: 1rem; }
+.gazetteer-battle-memory { margin: 0.65rem 0; border-block: 1px solid rgb(221 201 161 / 22%); }
+.gazetteer-battle-memory > summary { min-height: 2.75rem; padding: 0.7rem 0.2rem; color: #e5d3ad; cursor: pointer; }
+.gazetteer-battle-memory > small { display: block; color: #adbac5; line-height: 1.45; }
+.gazetteer-battle-records { padding-left: 1.1rem; margin: 0.6rem 0; }
+.gazetteer-battle-records li { margin: 0.6rem 0; overflow-wrap: anywhere; }
+.gazetteer-battle-records strong, .gazetteer-battle-records span { display: block; font-size: 0.8rem; line-height: 1.45; }
+.gazetteer-battle-records span { color: #c0cdd5; }
 .gazetteer-districts, .gazetteer-buildings, .gazetteer-residents {
   list-style: none;
   padding: 0;
@@ -2202,7 +2209,19 @@ body {
 .map-inspector:has(.map-gazetteer[open]) .hero-activity--map { display: none; }
 .map-inspector:has(.map-gazetteer[open]) > .view-close { position: sticky; top: 0; }
 @media (max-width: 600px) {
-  .map-inspector:has(.map-gazetteer[open]) { grid-template-columns: minmax(0, 1fr); }
+  .map-inspector:has(.map-gazetteer[open]) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
+    overflow: hidden;
+  }
+  .map-inspector:has(.map-gazetteer[open]) > .map-overview {
+    grid-row: 2;
+    min-height: 0;
+    align-self: stretch;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
   .map-inspector:has(.map-gazetteer[open]) > .view-close {
     grid-row: 1;
     max-width: none;

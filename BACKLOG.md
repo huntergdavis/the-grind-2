@@ -248,7 +248,7 @@ Immediate queue:
     entry `index-DtPvUvr7.js`, CSS `index-CJXRzz2S.css`, the unchanged simulation
     worker and committed stylesheet/main source comparisons all pass.
     Protected ledger edits, parked drafts and narrator workers stay unchanged.
-19. **Next — V04.20k ally-restorative subset: emergency companion aid.**
+19. **Held — V04.20k ally-restorative subset: emergency companion aid.**
     Promote one explicitly deferred tonic behavior: on the hero's turn a living,
     identity-bound active companion at or below one-third HP can receive one
     hero-owned tonic, restoring `ceil(companion.maxHP / 4)` capped by missing
@@ -270,6 +270,32 @@ Immediate queue:
     If real journeys only yield healthy or immediately fallen companions,
     reassess instead of manufacturing survivable HP. Companion-owned supplies,
     MP/status restoration and general support policies remain separate.
+    The bounded v155 gate found no useful aid window across 8,000 autoplay
+    turns, 21 recruitments and 29 hero/companion action windows. Its one
+    critical ally case, golden7 T31, is correctly followed by an immediate
+    winning Spell Edge. A separate 32-turn trace confirms that choice. This
+    sample does not prove impossibility, but does not justify changing balance,
+    finishing priorities or saved tonic semantics. No aid code was implemented.
+20. **Verified locally — recorded road-battle memory (v0.5.156).** Add a
+    small historical Map/Gazetteer precursor using the existing retained combat
+    records. A static, hollow road mark and a compact disclosure list the latest
+    retained completed battle on that known road, observed species and outcome.
+    Both endpoints must be discovered, and the exact rated combat/road join must
+    validate. Keep at most the existing four retained sources; pruning removes
+    their marks. No age without a timestamp, inferred creature location,
+    current-danger claim, routing effect, new archive, canonical field or Watch
+    panel. This is not V04.21e's roaming-threat/last-seen mechanic, which still
+    lacks threat-instance and sensing contracts. Reuse existing Map roads and
+    Browse known places; preserve focus, disclosure state and saved bytes.
+    All 17 focused new/existing Map projection tests and version/boundary/type/
+    production-build checks pass. Council review fixed same-place district
+    focus/disclosure preservation. The first browser source checks passed, but
+    visual review caught the existing mobile sticky Return covering new text.
+    Expanded mobile notes now scroll below a separate Return row. The corrected
+    journey passes in 57.1s (1.2m runner, same 120s budget), with actual control-
+    occlusion checks, natural T15→16 autoplay, exact source/save/reload, native
+    focus, four approved 1280/320 captures and zero browser errors, inference
+    or external requests. No simulation or narrator worker bytes changed.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

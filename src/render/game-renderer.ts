@@ -77,6 +77,7 @@ import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, t
 import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponFormPose, type CombatFamiliarWeaponFormFact, type FamiliarWeaponFormPose } from "./weapon-form";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import { projectAtlasPartyGlyphs, projectAtlasPartyMarker, projectAtlasPartySupportLink, type AtlasPartyMarkerV1 } from "../ui/atlas-party-marker";
+import { projectAtlasBattleMemory } from "../ui/atlas-battle-memory";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
 import type {
@@ -1249,6 +1250,9 @@ export class GameRenderer {
     delete this.host.dataset.atlasPartyStatus;
     delete this.host.dataset.atlasPartySupport;
     delete this.host.dataset.atlasPartyMotion;
+    delete this.host.dataset.atlasBattleMemoryCount;
+    delete this.host.dataset.atlasBattleMemoryEdges;
+    delete this.host.dataset.atlasBattleMemoryProjection;
     delete this.host.dataset.companionId;
     delete this.host.dataset.companionStatus;
     delete this.host.dataset.companionHealth;
@@ -4854,6 +4858,21 @@ export class GameRenderer {
       if (known || selected) this.atlasRoad(edge, atlas, roadInk, selected);
     }
     this.worldLayer.addChild(roadInk);
+    if (this.viewMode === "map") {
+      const memories = projectAtlasBattleMemory(state.depth);
+      this.host.dataset.atlasBattleMemoryCount = String(memories.length);
+      this.host.dataset.atlasBattleMemoryEdges = JSON.stringify(memories.map((memory) => memory.edgeId));
+      this.host.dataset.atlasBattleMemoryProjection = "atlas-battle-memory-v1";
+      const memoryInk = new Graphics();
+      for (const memory of memories) {
+        const [x, y] = this.atlasPoint({ x: memory.position.terrainX, y: memory.position.terrainY });
+        // Diagrammatic road history, not a creature's location or current danger.
+        // Static ink stays below location labels and the living party marker.
+        memoryInk.poly([x, y - 3.5, x + 3.5, y, x, y + 3.5, x - 3.5, y])
+          .stroke({ color: 0x76634f, width: 1.1, alpha: 0.88 });
+      }
+      this.worldLayer.addChild(memoryInk);
+    }
     const partyMarker = projectAtlasPartyMarker(state.depth);
     let partyPoint: readonly [number, number] | null = null;
     if (partyMarker !== null) {

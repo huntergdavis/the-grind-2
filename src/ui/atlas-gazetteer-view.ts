@@ -1,11 +1,14 @@
 import { projectAtlasGazetteer, type AtlasGazetteer } from "./atlas-gazetteer";
-import type { AtlasState, TownState } from "../depth/types";
+import { projectAtlasBattleMemory, type AtlasBattleMemory } from "./atlas-battle-memory";
+import type { DepthState } from "../depth/types";
 
 /** Read-only place browsing. Selection and disclosure never enter the save. */
 export function createAtlasGazetteerView(select: HTMLSelectElement, entry: HTMLElement) {
   const doc = entry.ownerDocument;
   let current: AtlasGazetteer = { places: [] };
+  let battleMemory: readonly AtlasBattleMemory[] = [];
   let campaign: string | undefined;
+  let entryCampaign: string | undefined;
   let optionsKey = "";
   let entryKey = "";
   function node<K extends keyof HTMLElementTagNameMap>(tag: K, text: string, className = ""): HTMLElementTagNameMap[K] {
@@ -16,9 +19,24 @@ export function createAtlasGazetteerView(select: HTMLSelectElement, entry: HTMLE
   }
   function presentEntry(): void {
     const place = current.places.find((candidate) => candidate.id === select.value);
-    const nextKey = JSON.stringify(place ?? null);
+    const battles = place === undefined ? [] : battleMemory.filter((battle) =>
+      battle.fromLocationId === place.id || battle.destinationLocationId === place.id);
+    const nextKey = JSON.stringify({ place: place ?? null, battles });
     if (nextKey === entryKey) return;
     entryKey = nextKey;
+    const oldDisclosure = entry.querySelector<HTMLDetailsElement>(".gazetteer-battle-memory");
+    const samePlace = entryCampaign === campaign && entry.dataset.locationId === place?.id;
+    const wasOpen = samePlace && oldDisclosure?.open === true;
+    const hadFocus = samePlace && oldDisclosure?.querySelector("summary") === doc.activeElement;
+    const openDistricts = new Set<string>();
+    let focusedDistrict: string | undefined;
+    if (samePlace) {
+      for (const item of entry.querySelectorAll<HTMLElement>(".gazetteer-district")) {
+        if (item.querySelector("details")?.open) openDistricts.add(item.dataset.districtId!);
+        if (item.querySelector("summary") === doc.activeElement) focusedDistrict = item.dataset.districtId;
+      }
+    }
+    entryCampaign = campaign;
     entry.replaceChildren();
     delete entry.dataset.locationId;
     if (place === undefined) {
@@ -28,6 +46,24 @@ export function createAtlasGazetteerView(select: HTMLSelectElement, entry: HTMLE
     entry.dataset.locationId = place.id;
     entry.append(node("h2", place.name));
     entry.append(node("p", `${place.kind} · ${place.feature.replaceAll("-", " ")} · Place danger ${place.danger}`));
+    if (battles.length > 0) {
+      const history = node("details", "", "gazetteer-battle-memory");
+      const summary = node("summary", `◇ Recorded road battles (${battles.length})`);
+      const records = node("ul", "", "gazetteer-battle-records");
+      for (const battle of battles) {
+        const row = node("li", "");
+        row.dataset.edgeId = battle.edgeId;
+        row.dataset.combatId = battle.combatId;
+        row.dataset.outcome = battle.outcome;
+        row.append(node("strong", `${battle.fromName} — ${battle.destinationName}`),
+          node("span", `${battle.speciesNames.join(", ")} · ${battle.outcome}`));
+        records.append(row);
+      }
+      history.append(summary, node("small", "Historical road records—not current danger or a creature's present position."), records);
+      history.open = wasOpen;
+      entry.append(history);
+      if (hadFocus) summary.focus({ preventScroll: true });
+    } else if (hadFocus) select.focus({ preventScroll: true });
     const town = place.town;
     if (town === null) {
       entry.append(node("p", place.kind === "town"
@@ -44,6 +80,7 @@ export function createAtlasGazetteerView(select: HTMLSelectElement, entry: HTMLE
       const item = node("li", "", "gazetteer-district");
       item.dataset.districtId = district.id;
       const detail = node("details", "");
+      detail.open = openDistricts.has(district.id);
       detail.append(node("summary", `${district.name} · ${district.character}`));
       const buildings = node("ul", "", "gazetteer-buildings");
       for (const building of district.buildings) {
@@ -65,11 +102,16 @@ export function createAtlasGazetteerView(select: HTMLSelectElement, entry: HTMLE
       districts.append(item);
     }
     entry.append(districts);
+    if (focusedDistrict !== undefined) {
+      const retained = [...districts.children].find((item) => (item as HTMLElement).dataset.districtId === focusedDistrict);
+      (retained?.querySelector("summary") ?? select).focus({ preventScroll: true });
+    }
   }
   select.addEventListener("change", presentEntry);
   return {
-    render(source: { atlas: AtlasState; towns: Readonly<Record<string, TownState>> }, campaignId: string): void {
+    render(source: Pick<DepthState, "atlas" | "towns" | "completedCombats">, campaignId: string): void {
       current = projectAtlasGazetteer(source);
+      battleMemory = projectAtlasBattleMemory(source);
       const sameCampaign = campaign === campaignId;
       const selected = sameCampaign ? select.value : "";
       if (!sameCampaign) entryKey = "";

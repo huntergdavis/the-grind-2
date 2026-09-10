@@ -2,6 +2,56 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Gameplay-first council — recorded road-battle memory (v0.5.156)
+
+Reuses `deja "companion restorative"` sessions06/28 and
+`deja "last-known threat marks"` session01a06835-15f and session03.
+The queued companion-tonic feature did not meet its natural-occurrence gate:
+two bounded samples total 8,000 turns, 21 recruitments and 29 hero-plus-companion
+action windows. The only critical companion case, golden7 T31, already has a
+guaranteed Spell Edge finish; T32 confirms victory. No tonic-aid code or save
+migration was introduced. Item19 is held, not declared impossible or complete.
+
+Instead, item20 exposes existing completed road battles as quiet historical
+Map ink and a native disclosure in Browse known places. This is a precursor,
+not completion of V04.21e: actual roaming-threat identities and sensing are
+still absent. Project only the four retained completed combats, exact rated
+road provenance and discovered endpoints. Keep the latest record per road,
+observed species and result. Mid-road hollow diamonds are diagrammatic, never
+creature coordinates; no invented age, current-danger claim, new archive,
+canonical state, policy, reward or narrator change. Watch gets no extra ink.
+
+The engine reviewer supplied a natural golden1/campaign1 witness: a completed
+Cinderreach–Ambervale River Wyrmling victory is available at T12; Watch's atlas
+scene occurs at T15 and the next battle at T16. Six focused projection tests
+pass, covering exact save/reload, immutability, hidden roads, route mismatch,
+geometry, latest-record selection, bounded pruning and malformed sources.
+The 11 existing Gazetteer/party-marker tests also pass, as do version,
+boundary, TypeScript and production-build checks. Simulation and narrator
+workers retain their v155 hashes. Independent integration review caught that
+adding history to the entry key could close existing district disclosures on
+refresh. Same-place/campaign updates now preserve their open IDs and keyboard
+focus as well as the new battle disclosure; the reviewer approves the fix.
+The first browser journey passes its source/save assertions in 78.3s, but root
+and independent visual review reject its 320px capture: the existing sticky
+Return button covers the new history heading and note. Bounds-only checks
+missed actual occlusion. Reusing `deja "gazetteer"` sessions03/09's existing
+full-height browser, the mobile expanded layout now reserves a separate Return
+row and scrolls only the notes below it. Desktop and collapsed Map are unchanged.
+The corrected production build passes: entry `index-DGcxoPgN.js`, stylesheet
+`index-DjMkgq3A.css`, with the same unchanged workers.
+The corrected journey passes in 57.1s (1.2m runner, unchanged 120s budget).
+It retains natural T15→16 exact autoplay/source facts, selected place and
+native disclosure focus, an open district, four 1280/320 captures and exact
+save/reload. It now checks hit targets and Return-rectangle non-intersection,
+and clicks the actual mobile Return control to prove Watch cleanup. Zero
+browser errors, inference or external requests. The T15→16 source key is stable;
+this is not claimed as forced ring-change coverage of the rebuild branch.
+Root and the independent renderer reviewer approve all corrected visuals:
+the history count, caveat and result are clear below Return. Original captures
+are retained separately as evidence of the bounds-only check's limitation.
+Deployment is not yet verified.
+
 ## Gameplay-first council — readable mobile Codex dossiers (v0.5.155)
 
 Reuses `deja "Codex mobile"` sessions03/06/09, BACKLOG item18, V04.16b's
