@@ -276,7 +276,7 @@ Immediate queue:
     winning Spell Edge. A separate 32-turn trace confirms that choice. This
     sample does not prove impossibility, but does not justify changing balance,
     finishing priorities or saved tonic semantics. No aid code was implemented.
-20. **Verified locally — recorded road-battle memory (v0.5.156).** Add a
+20. **Delivered — recorded road-battle memory (v0.5.156).** Add a
     small historical Map/Gazetteer precursor using the existing retained combat
     records. A static, hollow road mark and a compact disclosure list the latest
     retained completed battle on that known road, observed species and outcome.
@@ -296,6 +296,30 @@ Immediate queue:
     occlusion checks, natural T15→16 autoplay, exact source/save/reload, native
     focus, four approved 1280/320 captures and zero browser errors, inference
     or external requests. No simulation or narrator worker bytes changed.
+    Feature `0b0da3a` is pushed and live. Pages run `34458283238` passes 3,378
+    tests across 225 files (272.22s release suite, 5m27s deployment). At
+    2026-09-10 02:07 PDT the public version/cache, entry `index-DGcxoPgN.js`,
+    CSS `index-DjMkgq3A.css`, unchanged simulation worker and exact committed
+    projection/Gazetteer/renderer source-map comparisons all pass. Owned
+    preview 19880 is closed; protected ledger work and parked drafts are intact.
+21. **Next — V04.18a tools/supplies subset: one dungeon disarming kit.**
+    Give the existing recorded town smith one small, fixed-price supply service:
+    buy a single capped kit, then consume it for +2 on an actually detected
+    trap's existing disarm check. Keep the same fixed roll, one attempt and
+    normal failure consequences; do not inspect that roll when deciding to use
+    a tool. Preserve emergency recovery and oath/quest priorities. No kit means
+    the existing unassisted behavior. Join legitimate purchase, gold/quantity
+    debit, assisted total and outcome in exact versioned receipts; initialize
+    old saves deliberately without inventing old purchases or tool use. Reuse
+    Inventory, the disarm animation and Status, without a new panel, general
+    crafting system, LLM dependency or protected compact-ledger edits.
+    Reuse the known generated `browser-dungeon-search:8` rune-ward layout for
+    focused arithmetic and presentation checks: its unassisted check fails
+    difficulty12. Verify the exact check arithmetic and whether assistance
+    changes that result before claiming utility. The existing browser fixture
+    stages location and HP; it is not proof of a full autonomous purchase-to-
+    dungeon journey. Add one representative legal purchase→use acceptance path
+    and exact reload, not another long seed sweep. This is queued, not shipped.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

@@ -50,7 +50,30 @@ this is not claimed as forced ring-change coverage of the rebuild branch.
 Root and the independent renderer reviewer approve all corrected visuals:
 the history count, caveat and result are clear below Return. Original captures
 are retained separately as evidence of the bounds-only check's limitation.
-Deployment is not yet verified.
+Feature `0b0da3a8a8d08c94a85edd3010096ff3514fd77d` is pushed and live.
+[Pages run 34458283238](https://github.com/huntergdavis/the-grind-2/actions/runs/34458283238)
+passes 3,378 tests across 225 files, with a 272.22s release suite and 5m27s
+deployment (09:00:50–09:06:17 UTC). At 2026-09-10 02:07 PDT the actual public
+version/cache 0.5.156, entry `index-DGcxoPgN.js`, CSS `index-DjMkgq3A.css`,
+unchanged simulation worker and source maps for the committed projection,
+Gazetteer view and renderer match the verified build. The public stylesheet
+matches local build bytes and committed stylesheet source; narrator references
+remain unchanged. Ignored `scratch/verify-road-memory-live.mjs` records the
+procedure. Preview19880 is closed, and protected ledger work and parked drafts
+remain untouched. No further implementation is required for this slice.
+
+The next recommendation promotes V04.18a's tools/supplies remainder into one
+smith-purchased disarming kit. Reuses `deja "dungeon tool"` session30's separate
+canonical disarm contract and session01a06835-15f's dungeon-depth inventory.
+Source review confirms one skill-plus-fixed-roll check and no tool producer/
+consumer. A +2 consumable can reuse real disarm outcomes and existing Inventory/
+Status presentation. Preserve public-fact decision-making, single attempt,
+normal consequences and exact purchase/use receipts. The known rune-ward
+fixture demonstrates an unassisted failure, not yet verified assisted utility
+or uninterrupted natural acquisition: its location and hero HP are staged.
+Queue one representative legal purchase
+through use/reload, without another long seed sweep or general crafting system.
+No kit code is part of v156.
 
 ## Gameplay-first council — readable mobile Codex dossiers (v0.5.155)
 
