@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v157 intentionally adds paid supply turns and consumable trap assistance.
+      // v158 records Depth 27 and versioned three-family traps in new expeditions.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "bb5ba29b66f6393c",
-      "1dfedf62b0bb8b34",
-      "2298a5bc828f9514",
-      "bd620bee998dab48",
-      "368ab03eaaae4b50",
-      "2ff229e1979f47ce",
-      "6d01e7af998ae399",
-      "99b46712168530c4",
-      "7dd9ce42728e14eb",
-      "5492d86a3a51a849",
+      "05e0bc97dd319176",
+      "010c3bdddefe729b",
+      "9238799c64bad271",
+      "948ff77a97d7667b",
+      "684f5e366efe5f0e",
+      "9b848c17ea39fade",
+      "04617b1528188352",
+      "a9c954e98772263e",
+      "7999b8db4133cd58",
+      "cab0d316f2fed901",
     ]);
   }, 80_000);
 });

@@ -503,9 +503,21 @@ function describeBeat(
           ? "Pattern Duel resolved · the next chapter can begin"
           : null
       : null;
+  const previousTrap = previousDepth.dungeon?.id === dungeon?.id && previousDepth.dungeon !== null && currentTrap !== null
+    ? dungeonTrapAt(previousDepth.dungeon, currentTrap.cellId) : null;
+  const freshManaTrap = currentTrap?.kind === "mana-siphon" && dungeon?.trapRulesVersion === 2
+    && (choice.command.type === "enter-dungeon"
+      ? previousDepth.dungeon?.id !== dungeon.id && currentTrap.cellId === dungeon.entryCellId
+      : choice.command.type === "move-dungeon"
+        ? previousTrap?.phase === "hidden" && !previousDepth.dungeon!.visitedCellIds.includes(currentTrap.cellId)
+        : choice.command.type === "disarm-dungeon-trap" && previousTrap?.phase === "detected")
+    && depth.hero.resources.health === previousDepth.hero.resources.health
+    && depth.hero.resources.maxMana === previousDepth.hero.resources.maxMana
+    && depth.hero.resources.mana === previousDepth.hero.resources.mana
+      - Math.min(previousDepth.hero.resources.mana, Math.ceil(previousDepth.hero.resources.maxMana / 4));
   const trapTriggered = opportunity.mode === "dungeon"
     && currentTrap?.phase === "triggered"
-    && depth.hero.resources.health < previousDepth.hero.resources.health
+    && (depth.hero.resources.health < previousDepth.hero.resources.health || freshManaTrap)
     && depth.log.at(-1)?.tick === depth.tick;
   const trapDetected = opportunity.mode === "dungeon" && currentTrap?.phase === "detected";
   const trapDisarmed = opportunity.mode === "dungeon"
@@ -1408,7 +1420,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 26 ||
+    state.depth.schemaVersion !== 27 ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

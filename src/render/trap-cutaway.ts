@@ -92,6 +92,7 @@ export function trapCutawayOutcome(packet: TrapResolutionPacket): TrapCutawayOut
 
 export function trapCutawayFlavor(packet: TrapResolutionPacket): TrapCutawayFlavor {
   if (!packet.success || packet.damage > 0 || packet.healthAfter === 0) return "none";
+  if (packet.trapKind === "mana-siphon") return "none";
   const outcome = trapCutawayOutcome(packet);
   if (outcome === "spotted") return "boot-stop";
   return packet.trapKind === "tripwire" ? "wire-curl" : "rune-wobble";

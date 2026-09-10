@@ -703,9 +703,10 @@ export function resolveCutawayCandidate(
     || staticEnvelope === null) {
     return Object.freeze({ mode: "static-chronicle", reason: "invalid-packet-envelope", recipe, staticEnvelope });
   }
-  const assistedTrap = recipe.key === "trap-resolution@1" && recipe.packetSchemaVersion === 1
-    && candidate.packet.schemaVersion === 2 && isTrapResolutionPacket(candidate.packet);
-  if (candidate.packet.schemaVersion !== recipe.packetSchemaVersion && !assistedTrap) {
+  const extendedTrap = recipe.key === "trap-resolution@1" && recipe.packetSchemaVersion === 1
+    && (candidate.packet.schemaVersion === 2 || candidate.packet.schemaVersion === 3)
+    && isTrapResolutionPacket(candidate.packet);
+  if (candidate.packet.schemaVersion !== recipe.packetSchemaVersion && !extendedTrap) {
     return Object.freeze({ mode: "static-chronicle", reason: "packet-version-mismatch", recipe, staticEnvelope });
   }
   if (!validProductionPacket(candidate.recipeKey, candidate.packet)) {

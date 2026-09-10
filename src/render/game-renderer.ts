@@ -1393,6 +1393,8 @@ export class GameRenderer {
     delete this.host.dataset.cutawayToolItem;
     delete this.host.dataset.cutawayToolQuantity;
     delete this.host.dataset.cutawayHealth;
+    delete this.host.dataset.cutawayMana;
+    delete this.host.dataset.cutawayResource;
     delete this.host.dataset.cutawayExit;
     delete this.host.dataset.cutawayQuestDelta;
     delete this.host.dataset.cutawayFlavor;
@@ -3055,6 +3057,8 @@ export class GameRenderer {
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const outcome = trapCutawayOutcome(packet);
+    const manaSiphon = packet.schemaVersion === 3;
+    const tool = packet.schemaVersion === 1 ? null : packet.tool;
     const staging = Object.freeze({
       shot: options.staging.shot,
       flavor: resolveTrapCutawayFlavor(packet, options.staging.flavor),
@@ -3068,15 +3072,19 @@ export class GameRenderer {
     this.host.dataset.cutawayKind = packet.trapKind;
     this.host.dataset.cutawayStage = packet.stage;
     this.host.dataset.cutawayOutcome = outcome;
-    this.host.dataset.cutawayCheck = `${packet.attribute}:${packet.skill}+${packet.roll}${packet.schemaVersion === 2 ? "+2kit" : ""}=${packet.total}:${packet.difficulty}`;
-    if (packet.schemaVersion === 2) {
-      this.host.dataset.cutawayToolItem = packet.tool.itemId;
+    this.host.dataset.cutawayCheck = `${packet.attribute}:${packet.skill}+${packet.roll}${tool !== null ? "+2kit" : ""}=${packet.total}:${packet.difficulty}`;
+    if (tool !== null) {
+      this.host.dataset.cutawayToolItem = tool.itemId;
       this.host.dataset.cutawayToolQuantity = "1→0";
     } else {
       delete this.host.dataset.cutawayToolItem;
       delete this.host.dataset.cutawayToolQuantity;
     }
     this.host.dataset.cutawayHealth = `${packet.healthBefore}:${packet.damage}:${packet.healthAfter}:${packet.maxHealth}`;
+    this.host.dataset.cutawayResource = manaSiphon ? "mana" : "health";
+    if (packet.schemaVersion === 3) {
+      this.host.dataset.cutawayMana = `${packet.manaBefore}:${packet.manaLost}:${packet.manaAfter}:${packet.maxMana}`;
+    } else delete this.host.dataset.cutawayMana;
     this.host.dataset.cutawayExit = String(packet.completedExit);
     this.host.dataset.cutawayQuestDelta = String(packet.crossMazeDelta);
 
@@ -3094,7 +3102,8 @@ export class GameRenderer {
         .lineTo(x + 19, 42)
         .stroke({ color: 0x29343a, width: 1, alpha: 0.46 }));
     }
-    this.lightLayer.addChild(circle(shotLayout.lightX, 108, shotLayout.lightRadius, outcome === "sprung" ? 0xb44b4f : 0xd09b57, 0.08));
+    this.lightLayer.addChild(circle(shotLayout.lightX, 108, shotLayout.lightRadius,
+      manaSiphon ? 0x619dcc : outcome === "sprung" ? 0xb44b4f : 0xd09b57, 0.08));
 
     const title = this.createScaleSensitiveText(
       packet.commandType === "enter-dungeon"
@@ -3145,6 +3154,26 @@ export class GameRenderer {
         }
       } else {
         resolvedMechanism.addChild(new Graphics().poly([0, -17, 7, -7, 0, 3, -7, -7]).stroke({ color: 0xffe19a, width: 1.4 }));
+      }
+    } else if (manaSiphon) {
+      mechanism.addChild(new Graphics()
+        .ellipse(0, -4, 31, 12).stroke({ color: 0x75bde8, width: 1.4, alpha: 0.95 })
+        .moveTo(-20, -13).lineTo(20, -13).lineTo(6, 1).lineTo(6, 12)
+        .lineTo(-6, 12).lineTo(-6, 1).closePath().stroke({ color: 0xb9e0f7, width: 1.4 }));
+      if (outcome === "sprung") {
+        resolvedMechanism.addChild(new Graphics()
+          .moveTo(-26, -9).lineTo(-11, -15).moveTo(11, 7).lineTo(27, 0)
+          .stroke({ color: 0x537a9c, width: 2 })
+          .moveTo(0, -14).lineTo(0, 10).moveTo(-7, 3).lineTo(0, 10).lineTo(7, 3)
+          .stroke({ color: 0x9dd7f7, width: 1.8 }));
+      } else if (outcome === "disarmed") {
+        resolvedMechanism.addChild(new Graphics()
+          .ellipse(0, -4, 31, 12).stroke({ color: 0x91c6a5, width: 1.4 })
+          .moveTo(-9, -4).lineTo(-2, 3).lineTo(12, -12)
+          .stroke({ color: 0xcce8c9, width: 1.5 }));
+      } else {
+        resolvedMechanism.addChild(new Graphics()
+          .poly([0, -23, 10, -7, 0, 9, -10, -7]).stroke({ color: 0xb9e0f7, width: 1.5 }));
       }
     } else {
       mechanism.addChild(new Graphics()
@@ -3198,20 +3227,20 @@ export class GameRenderer {
     check.position.set(108, 58);
     check.addChild(rect(0, 0, 184, 25, 0x141c23, 0.96));
     const checkLabel = this.createScaleSensitiveText(
-      packet.schemaVersion === 2
+      tool !== null
         ? `${packet.attribute.toUpperCase()} · ${packet.skill} + ${packet.roll} + 2 KIT\n= ${packet.total} / ${packet.difficulty} · KIT 1 → 0`
         : `${packet.attribute.toUpperCase()} · ${packet.skill} + ${packet.roll} = ${packet.total}  /  ${packet.difficulty}`,
       { fontFamily: "ui-monospace, monospace", fontSize: 7, fill: 0xf4ead5, fontWeight: "800", letterSpacing: 0.35, lineHeight: 9 },
     );
-    checkLabel.position.set(8, packet.schemaVersion === 2 ? 3 : 8);
+    checkLabel.position.set(8, tool !== null ? 3 : 8);
     check.addChild(checkLabel);
     this.worldLayer.addChild(check);
 
     const result = new Container();
     result.position.set(108, 86);
-    result.addChild(rect(0, 0, 184, 25, outcome === "sprung" ? 0x5b2228 : outcome === "disarmed" ? 0x234a3a : 0x5b4820, 0.98));
+    result.addChild(rect(0, 0, 184, 25, outcome === "sprung" ? manaSiphon ? 0x203c57 : 0x5b2228 : outcome === "disarmed" ? 0x234a3a : 0x5b4820, 0.98));
     const resultLabel = this.createScaleSensitiveText(outcome.toUpperCase(), {
-      fontFamily: "Inter, sans-serif", fontSize: 9, fill: outcome === "sprung" ? 0xffcc82 : outcome === "disarmed" ? 0xcce8c9 : 0xffe19a, fontWeight: "900", letterSpacing: 1.3,
+      fontFamily: "Inter, sans-serif", fontSize: 9, fill: outcome === "sprung" ? manaSiphon ? 0xb9e0f7 : 0xffcc82 : outcome === "disarmed" ? 0xcce8c9 : 0xffe19a, fontWeight: "900", letterSpacing: 1.3,
     });
     resultLabel.position.set(8, 6);
     const phaseLabel = this.createScaleSensitiveText(`${packet.phaseBefore.toUpperCase()} → ${packet.phaseAfter.toUpperCase()}`, {
@@ -3225,15 +3254,17 @@ export class GameRenderer {
     consequence.position.set(108, 114);
     consequence.addChild(rect(0, 0, 184, 39, 0x10171d, 0.96));
     const hp = this.createScaleSensitiveText(
-      `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? `  (−${packet.damage})` : "  (NO DAMAGE)"}`,
-      { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: packet.healthAfter === 0 ? 0xffa8aa : 0xe8edf2, fontWeight: "800" },
+      packet.schemaVersion === 3
+        ? `MP ${packet.manaBefore} → ${packet.manaAfter} (−${packet.manaLost})\nHP ${packet.healthBefore} → ${packet.healthAfter} (UNCHANGED)`
+        : `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? `  (−${packet.damage})` : "  (NO DAMAGE)"}`,
+      { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: manaSiphon ? 0xb9e0f7 : packet.healthAfter === 0 ? 0xffa8aa : 0xe8edf2, fontWeight: "800", lineHeight: 9 },
     );
     hp.position.set(8, 6);
     const progress = this.createScaleSensitiveText(
       `${packet.completedExit ? "EXIT REACHED" : "MAZE CONTINUES"} · QUEST ${packet.crossMazeDelta > 0 ? `+${packet.crossMazeDelta}` : "UNCHANGED"}`,
       { fontFamily: "ui-monospace, monospace", fontSize: 4.7, fill: 0xb8c8d2, fontWeight: "700", letterSpacing: 0.2 },
     );
-    progress.position.set(8, 20);
+    progress.position.set(8, manaSiphon ? 28 : 20);
     consequence.addChild(hp, progress);
     this.worldLayer.addChild(consequence);
 
@@ -5557,7 +5588,14 @@ export class GameRenderer {
         const centerX = x + cellSize / 2;
         const centerY = y + cellSize / 2;
         const radius = Math.max(1.5, cellSize * 0.17);
-        if (triggeredTrap?.cellId === cell.id) {
+        if (triggeredTrap?.cellId === cell.id && trap.kind === "mana-siphon") {
+          this.worldLayer.addChild(new Graphics()
+            .circle(centerX, centerY, radius * 1.5).stroke({ color: 0x6092b7, width: Math.max(1, cellSize * 0.08) })
+            .moveTo(centerX, centerY - radius).lineTo(centerX, centerY + radius)
+            .moveTo(centerX - radius * 0.6, centerY + radius * 0.3).lineTo(centerX, centerY + radius)
+            .lineTo(centerX + radius * 0.6, centerY + radius * 0.3)
+            .stroke({ color: 0xb9e0f7, width: Math.max(1, cellSize * 0.08) }));
+        } else if (triggeredTrap?.cellId === cell.id) {
           const burst = new Graphics();
           for (let ray = 0; ray < 8; ray += 1) {
             const angle = ray * Math.PI / 4;
@@ -5584,6 +5622,11 @@ export class GameRenderer {
             ]).fill({ color: 0xa64b4b, alpha: 0.96 });
             glyph.moveTo(centerX - radius * 0.75, centerY - radius * 0.35).lineTo(centerX + radius * 0.75, centerY + radius * 0.35);
             glyph.moveTo(centerX - radius * 0.75, centerY + radius * 0.35).lineTo(centerX + radius * 0.75, centerY - radius * 0.35);
+          } else if (trap.kind === "mana-siphon") {
+            glyph.circle(centerX, centerY, radius).fill({ color: 0x315e83, alpha: 0.96 });
+            glyph.moveTo(centerX - radius * 0.7, centerY - radius * 0.55)
+              .lineTo(centerX + radius * 0.7, centerY - radius * 0.55)
+              .lineTo(centerX, centerY + radius * 0.25).lineTo(centerX, centerY + radius * 0.75);
           } else {
             glyph.circle(centerX, centerY, radius).fill({ color: 0x714c82, alpha: 0.96 });
             glyph.poly([
@@ -5593,7 +5636,7 @@ export class GameRenderer {
             ]);
             glyph.moveTo(centerX, centerY - radius * 0.72).lineTo(centerX, centerY + radius * 0.65);
           }
-          glyph.stroke({ color: 0xffd39a, width: Math.max(0.8, cellSize * 0.07) });
+          glyph.stroke({ color: trap.kind === "mana-siphon" ? 0xb9e0f7 : 0xffd39a, width: Math.max(0.8, cellSize * 0.07) });
           this.worldLayer.addChild(glyph);
         } else if (trap.status === "disarmed") {
           const safe = new Graphics().rect(centerX - radius, centerY - radius, radius * 2, radius * 2).stroke({ color: 0x83b99a, width: Math.max(0.8, cellSize * 0.075), alpha: 0.86 });
@@ -5601,10 +5644,10 @@ export class GameRenderer {
           safe.stroke({ color: 0xcce8c9, width: Math.max(0.9, cellSize * 0.08), alpha: 0.9 });
           this.worldLayer.addChild(safe);
         } else {
-          const sprung = new Graphics().circle(centerX, centerY, radius).stroke({ color: 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
+          const sprung = new Graphics().circle(centerX, centerY, radius).stroke({ color: trap.kind === "mana-siphon" ? 0x476d8b : 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
           sprung.moveTo(centerX - radius, centerY + radius * 0.65).lineTo(centerX - radius * 0.1, centerY - radius * 0.08);
           sprung.moveTo(centerX + radius * 0.15, centerY + radius * 0.12).lineTo(centerX + radius, centerY - radius * 0.65);
-          sprung.stroke({ color: 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
+          sprung.stroke({ color: trap.kind === "mana-siphon" ? 0x88aeca : 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
           this.worldLayer.addChild(sprung);
         }
       } else if (cell.feature === "shrine") {
@@ -5804,8 +5847,8 @@ export class GameRenderer {
       const [banner, result] = this.drawDungeonCaption(alertLabel,
         `${trapName} · ${detectedTrap !== undefined ? "STILL ARMED" : "NO LONGER ARMED"}`,
         `${trapName} · ${detectedTrap !== undefined ? "ARMED" : "SPENT"}`,
-        triggeredTrap !== undefined ? 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d,
-        triggeredTrap !== undefined ? 0xffd37f : detectedTrap !== undefined ? 0xffe49b : 0xcce8c9, 0xffedc2);
+        triggeredTrap !== undefined ? hazardBeat.kind === "mana-siphon" ? 0x203c57 : 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d,
+        triggeredTrap !== undefined ? hazardBeat.kind === "mana-siphon" ? 0xb9e0f7 : 0xffd37f : detectedTrap !== undefined ? 0xffe49b : 0xcce8c9, 0xffedc2);
       this.dungeonAlertTexts.push(banner, result);
       this.host.dataset.dungeonAlertLabel = alertLabel;
       this.host.dataset.dungeonAlertPlacement = "reserved-top-rail";

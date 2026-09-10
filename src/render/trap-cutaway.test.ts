@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TrapResolutionPacketV1 } from "../ui/trap-resolution";
+import { isTrapResolutionPacket, type TrapResolutionPacketV1, type TrapResolutionPacketV3 } from "../ui/trap-resolution";
 import {
   createTrapCutawayFatigueMemory,
   projectTrapCutawayFrame,
@@ -50,6 +50,29 @@ function packet(overrides: Partial<TrapResolutionPacketV1> = {}): TrapResolution
 }
 
 describe("trap cutaway presentation", () => {
+  it("keeps mana-only failures truthful, including an empty pool, in normal and static staging", () => {
+    for (const manaBefore of [26, 0]) {
+      const manaLost = Math.min(manaBefore, 7);
+      const source: TrapResolutionPacketV3 = Object.freeze({ ...packet(), schemaVersion: 3,
+        trapKind: "mana-siphon", attribute: "spirit", skill: 10, roll: 0, total: 10, difficulty: 11,
+        success: false, phaseAfter: "triggered", manaBefore, manaLost, manaAfter: manaBefore - manaLost,
+        maxMana: 26, tool: null,
+      });
+      expect(isTrapResolutionPacket(source)).toBe(true);
+      const saved = JSON.stringify(source);
+      expect(trapCutawayOutcome(source)).toBe("sprung");
+      expect(trapCutawayFlavor(source)).toBe("none");
+      expect(resolveTrapCutawayFlavor(source, "rune-wobble")).toBe("none");
+      expect(selectTrapCutawayStaging(createTrapCutawayFatigueMemory(), source).staging.flavor).toBe("none");
+      for (const frame of [projectTrapCutawayFrame(source, 6.5, false),
+        projectTrapCutawayFrame(source, 0, true), projectTrapCutawayFrame(source, 0, false, true)]) {
+        expect(frame).toMatchObject({ outcome: "sprung", flavor: "none", heroKneel: 0,
+          mechanismAlpha: 1, checkAlpha: 1, resultAlpha: 1, consequenceAlpha: 1 });
+      }
+      expect(JSON.stringify(source)).toBe(saved);
+    }
+  });
+
   it("derives only the three truthful outcomes", () => {
     expect(trapCutawayOutcome(packet())).toBe("spotted");
     expect(trapCutawayOutcome(packet({ stage: "disarm", phaseBefore: "detected", phaseAfter: "disarmed" }))).toBe("disarmed");

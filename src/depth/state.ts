@@ -37,6 +37,7 @@ import {
   dungeonTrapAt,
   dungeonTrapKindLabel,
   generateDungeon,
+  isValidDungeonTrapRules,
   isValidDungeonSearchState,
   migrateDungeonFarStairShrine,
   migrateDungeonSearch,
@@ -831,9 +832,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -868,6 +869,14 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 26) {
+    // Existing expeditions retain their exact two-family mechanisms and layout.
+    // A malformed present version must not be silently replaced on import.
+    return upgradeDepthState({ ...value, schemaVersion: 27,
+      dungeon: isRecord(value.dungeon) && !Object.hasOwn(value.dungeon, "trapRulesVersion")
+        ? { ...value.dungeon, trapRulesVersion: 1 } : value.dungeon,
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 27) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -882,6 +891,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) ||
+      (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
       (state.dungeon?.search !== undefined && !isValidDungeonSearchState(state.dungeon.search, state.dungeon, state.tick)) ||
@@ -1289,7 +1299,8 @@ function applyDungeonTrap(hero: DetailedHeroState, trap: DungeonTrapConsequence 
   if (trap === null) return hero;
   return {
     ...hero,
-    resources: { ...hero.resources, health: trap.healthAfter },
+    resources: { ...hero.resources, health: trap.healthAfter,
+      ...("effect" in trap ? { mana: trap.manaAfter } : {}) },
   };
 }
 
@@ -1299,7 +1310,9 @@ function dungeonTrapMessage(
   trap: DungeonTrapConsequence,
   completed: boolean,
 ): string {
-  const result = trap.healthAfter === 0
+  const result = "effect" in trap
+    ? `The mana siphon in ${dungeonName} drains ${trap.manaLost} MP from ${hero.name} — ${trap.manaBefore}→${trap.manaAfter}/${trap.maxMana} MP; HP unchanged.`
+    : trap.healthAfter === 0
     ? `The marked trap in ${dungeonName} knocks ${hero.name} down — 0/${hero.resources.maxHealth} HP.`
     : `The marked trap in ${dungeonName} catches ${hero.name} for ${trap.damage} HP — ${trap.healthAfter}/${hero.resources.maxHealth} remains.`;
   return completed ? `${result} The far stair is reached.` : result;
@@ -1362,7 +1375,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 26,
+    schemaVersion: 27,
     seed,
     tick: 0,
     atlas,
@@ -1607,7 +1620,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         plan === null || command.dungeonId !== plan.dungeonId ||
         command.width !== plan.width || command.height !== plan.height
       ) throw new Error("Dungeon entry does not match the canonical expedition plan");
-      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion);
+      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion, 2);
       const entry = dungeon.cells.find((cell) => cell.id === dungeon.entryCellId);
       const entryTrap = dungeonTrapAt(dungeon, dungeon.entryCellId);
       let hero = state.hero;
@@ -1634,7 +1647,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
           dungeon = withDungeonTrapPhase(dungeon, entryTrap.cellId, "detected");
           message = `${hero.name} spots a ${dungeonTrapKindLabel(check.kind)} at the threshold — ${check.attribute} ${check.total} meets concealment ${check.difficulty}. It must be disarmed.`;
         } else {
-          const consequence = resolveDungeonTrap(dungeon, entryTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
+          const consequence = resolveDungeonTrap(dungeon, entryTrap.cellId, true, hero.resources.health, hero.resources.maxHealth, hero.resources.mana, hero.resources.maxMana);
           dungeon = withDungeonTrapPhase(dungeon, entryTrap.cellId, "triggered");
           hero = applyDungeonTrap(hero, consequence);
           message = consequence === null
@@ -1734,7 +1747,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         if (check.success) {
           dungeon = withDungeonTrapPhase(dungeon, currentTrap.cellId, "detected");
         } else {
-          trap = resolveDungeonTrap(dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
+          trap = resolveDungeonTrap(dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth, hero.resources.mana, hero.resources.maxMana);
           dungeon = withDungeonTrapPhase(dungeon, currentTrap.cellId, "triggered");
           hero = applyDungeonTrap(hero, trap);
         }
@@ -1819,7 +1832,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       let consequence: DungeonTrapConsequence | null = null;
       let shrineUse: DungeonShrineUse | null = null;
       if (!check.success) {
-        consequence = resolveDungeonTrap(state.dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
+        consequence = resolveDungeonTrap(state.dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth, hero.resources.mana, hero.resources.maxMana);
         hero = applyDungeonTrap(hero, consequence);
       }
       if (canResolveReleasedFarShrine(state, dungeon)) {
@@ -2372,6 +2385,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
+    (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
     (input.dungeon?.search !== undefined && !isValidDungeonSearchState(input.dungeon.search, input.dungeon, input.tick)) ||
@@ -2382,6 +2396,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
+    (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
     (output.dungeon?.search !== undefined && !isValidDungeonSearchState(output.dungeon.search, output.dungeon, output.tick)) ||

@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { advanceWorld, attentionPolicyForMode, createWorld, eventPolicyForMode } from "../core/simulation";
 import { createHeroGrowthState } from "../core/hero-growth";
 import type { ChronicleEntry, WorldState } from "../core/types";
-import { dungeonTrapAt, generateDungeon, mazeCellId, resolveDungeonTrapCheck } from "../depth/dungeon";
+import { dungeonTrapAt, mazeCellId, resolveDungeonTrapCheck } from "../depth/dungeon";
 import { selectDisarmingKit } from "../depth/disarming-kit";
-import { derivedStats, effectiveAttribute, heroExperienceFloor, heroMasteryForExperience, heroMechanicalLevel } from "../depth/rpg";
+import { createQuest, derivedStats, effectiveAttribute, heroExperienceFloor, heroMasteryForExperience, heroMechanicalLevel } from "../depth/rpg";
+import { selectSuccessorQuestLead } from "../depth/quest-lead";
 import { depthCommandCandidates, stepDepth } from "../depth/state";
 import type { DepthCommandCandidate, DepthState, DungeonState, DungeonTrapKind, DungeonTrapPhase } from "../depth/types";
 import { isTrapResolutionPacket, projectTrapResolution } from "./trap-resolution";
@@ -109,22 +110,32 @@ function resolve(options: TrapWorldOptions) {
   return { before, after, source, packet: projectTrapResolution(before, after, source) };
 }
 
-const entryTrapFixtures = new Map<DungeonTrapKind, {
+const entryTrapFixtures = new Map<string, {
   world: WorldState;
   depth: DepthState;
   entry: DepthCommandCandidate & { command: Extract<DepthCommandCandidate["command"], { type: "enter-dungeon" }> };
 }>();
 
-function canonicalEntryTrapFixture(kind: DungeonTrapKind) {
-  const cached = entryTrapFixtures.get(kind);
+function canonicalEntryTrapFixture(kind: DungeonTrapKind, withKit = false, successor = false) {
+  const key = `${kind}:${withKit}:${successor}`;
+  const cached = entryTrapFixtures.get(key);
   if (cached !== undefined) return cached;
   for (let index = 0; index < 200; index += 1) {
     const candidateSeed = `entry-${kind}-${index}`;
-    const world = createWorld(candidateSeed, `campaign:entry-${kind}`);
-    const location = world.depth.atlas.locations.find((entry) => entry.kind === "dungeon");
+    let world = createWorld(candidateSeed, `campaign:entry-${kind}`);
+    if (withKit) {
+      const purchased = advanceWorld(world);
+      if (purchased.chronicle.at(-1)?.commandType !== "buy-disarming-kit") continue;
+      world = purchased;
+    }
+    // Explicit successor quest setup tests the real layout-3 entry plan, not a claimed played chapter.
+    const quest = successor ? createQuest(world.seed, 1, world.depth.tick) : world.depth.quest;
+    const lead = successor ? selectSuccessorQuestLead(world.seed, world.depth.atlas, quest) : null;
+    const location = world.depth.atlas.locations.find((entry) => lead === null ? entry.kind === "dungeon" : entry.id === lead.locationId);
     if (location === undefined) continue;
     const depth: DepthState = {
       ...world.depth,
+      quest,
       atlas: {
         ...world.depth.atlas,
         currentLocationId: location.id,
@@ -136,19 +147,19 @@ function canonicalEntryTrapFixture(kind: DungeonTrapKind) {
       command: Extract<typeof candidate.command, { type: "enter-dungeon" }>;
     } => candidate.command.type === "enter-dungeon");
     if (entry === undefined) continue;
-    const generated = generateDungeon(candidateSeed, entry.command.dungeonId, entry.command.width, entry.command.height, true);
+    const generated = stepDepth(depth, entry.command).dungeon!;
     const trap = dungeonTrapAt(generated, generated.entryCellId);
     if (trap?.kind === kind) {
       const fixture = { world, depth, entry };
-      entryTrapFixtures.set(kind, fixture);
+      entryTrapFixtures.set(key, fixture);
       return fixture;
     }
   }
   throw new Error(`Could not find a canonical generated ${kind} entry trap`);
 }
 
-function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
-  const fixture = canonicalEntryTrapFixture(kind);
+function entryTrapWorld(kind: DungeonTrapKind, success: boolean, options: { withKit?: boolean; mana?: number; successor?: boolean } = {}) {
+  const fixture = canonicalEntryTrapFixture(kind, options.withKit ?? false, options.successor ?? false);
   const { world } = fixture;
   const aptitude = success ? 20 : 1;
   const hero = {
@@ -165,7 +176,7 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
     ...hero,
     resources: {
       ...hero.resources,
-      mana: Math.min(hero.resources.mana, heroStats.maxMana),
+      mana: options.mana ?? Math.min(hero.resources.mana, heroStats.maxMana),
       maxMana: heroStats.maxMana,
     },
   };
@@ -216,6 +227,86 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
 }
 
 describe("trap resolution projection", () => {
+  it("reconstructs the actual successor layout and current trap rules at a generated threshold", () => {
+    const { before, after, source } = entryTrapWorld("mana-siphon", true, { successor: true });
+    expect(after.depth.dungeon).toMatchObject({ layoutVersion: 3, trapRulesVersion: 2 });
+    expect(projectTrapResolution(before, after, source)).toMatchObject({ schemaVersion: 3, success: true });
+    expect(projectTrapResolution(before, { ...after, depth: { ...after.depth,
+      dungeon: { ...after.depth.dungeon!, layoutVersion: 2 },
+    } }, source)).toBeNull();
+  });
+
+  for (const mode of ["spotted", "drained", "empty"] as const) {
+    it(`projects a generated mana siphon ${mode} without inventing HP damage`, () => {
+      const { before, after, source } = entryTrapWorld("mana-siphon", mode === "spotted",
+        mode === "empty" ? { mana: 0 } : {});
+      expect(after.depth.dungeon).toMatchObject({ trapRulesVersion: 2 });
+      const saved = JSON.stringify([before, after]);
+      const packet = projectTrapResolution(before, after, source);
+      const manaBefore = before.depth.hero.resources.mana;
+      const maxMana = before.depth.hero.resources.maxMana;
+      const manaLost = mode === "spotted" ? 0 : Math.min(manaBefore, Math.ceil(maxMana / 4));
+      expect(packet).toMatchObject({ schemaVersion: 3, trapKind: "mana-siphon", commandType: "enter-dungeon",
+        stage: "detect", attribute: "spirit", success: mode === "spotted", tool: null,
+        healthBefore: before.hero.health, healthAfter: before.hero.health, damage: 0,
+        manaBefore, manaLost, manaAfter: manaBefore - manaLost, maxMana,
+      });
+      expect(isTrapResolutionPacket(packet)).toBe(true);
+      expect(projectTrapResolution(clone(before), clone(after), clone(source))).toEqual(packet);
+      const candidate = projectCutawayCandidates(before, after, source).find((entry) => entry.recipeKey === "trap-resolution@1")!;
+      expect(resolveCutawayCandidate(cutawayRegistry, candidate)).toMatchObject({ mode: "animate", reason: "registered" });
+      expect(JSON.stringify([before, after])).toBe(saved);
+      expect(Object.isFrozen(packet)).toBe(true);
+      if (packet?.schemaVersion !== 3) throw new Error("Expected mana-only packet");
+      for (const changed of [
+        { schemaVersion: 1 }, { schemaVersion: 2 }, { schemaVersion: 4 }, { trapKind: "tripwire" },
+        { manaLost: manaLost + 1 }, { manaAfter: packet.manaAfter + 1 }, { maxMana: -1 },
+        { damage: 1, healthAfter: packet.healthBefore - 1 }, { manaBefore: -1 },
+        { tool: { itemId: "foreign", bonus: 2, quantityBefore: 1, quantityAfter: 0 } },
+      ]) expect(isTrapResolutionPacket({ ...packet, ...changed })).toBe(false);
+      const changedResource = { ...after, depth: { ...after.depth,
+        hero: { ...after.depth.hero, resources: { ...after.depth.hero.resources, mana: packet.manaAfter + 1 } },
+      } };
+      expect(projectTrapResolution(before, changedResource, source)).toBeNull();
+      expect(projectTrapResolution(before, { ...after, depth: { ...after.depth,
+        dungeon: { ...after.depth.dungeon!, trapRulesVersion: 1 },
+      } }, source)).toBeNull();
+    });
+  }
+
+  for (const success of [true, false]) {
+    it(`retains actual kit consumption on generated mana-siphon disarm ${success ? "success" : "failure"}`, () => {
+      const entered = entryTrapWorld("mana-siphon", true, { withKit: true }).after;
+      const kit = selectDisarmingKit(entered.depth.hero)!;
+      expect(entered.depth.latestDisarmingKitPurchase?.itemId).toBe(kit.id);
+      // Explicit aptitudes isolate both outcomes; the kind, cell, roll, and kit all have real sources.
+      const adjusted = { ...entered.depth.hero, attributes: { ...entered.depth.hero.attributes, intellect: success ? 20 : 1 } };
+      const stats = derivedStats(adjusted);
+      const hero = { ...adjusted, resources: { ...adjusted.resources,
+        mana: Math.min(adjusted.resources.mana, stats.maxMana), maxMana: stats.maxMana,
+      } };
+      const before = { ...entered, depth: { ...entered.depth, hero, heroGrowth: createHeroGrowthState(hero) } };
+      const after = advanceWorld(clone(before));
+      const source = after.chronicle.at(-1)!;
+      const packet = projectTrapResolution(before, after, source);
+      expect(packet).toMatchObject({ schemaVersion: 3, trapKind: "mana-siphon", attribute: "intellect", stage: "disarm",
+        success, damage: 0, healthBefore: before.hero.health, healthAfter: before.hero.health,
+        tool: { itemId: kit.id, bonus: 2, quantityBefore: 1, quantityAfter: 0 },
+      });
+      if (packet?.schemaVersion !== 3) throw new Error("Expected assisted mana packet");
+      expect(packet.total).toBe(packet.skill + packet.roll + 2);
+      expect(packet.manaLost).toBe(success ? 0 : Math.min(packet.manaBefore, Math.ceil(packet.maxMana / 4)));
+      expect(after.depth.hero.inventory.some((item) => item.id === kit.id)).toBe(false);
+      expect(isTrapResolutionPacket(packet)).toBe(true);
+      expect(projectTrapResolution(before, { ...after, depth: { ...after.depth,
+        hero: { ...after.depth.hero, inventory: before.depth.hero.inventory },
+      } }, source)).toBeNull();
+      expect(projectTrapResolution(before, { ...after, depth: { ...after.depth,
+        dungeon: { ...after.depth.dungeon!, latestDisarmKitUse: null },
+      } }, source)).toBeNull();
+    });
+  }
+
   for (const succeeds of [true, false]) {
     it(`projects a consumed kit separately from the original roll on assisted ${succeeds ? "success" : "failure"}`, () => {
       const purchased = advanceWorld(createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search"));
@@ -394,6 +485,22 @@ describe("trap resolution projection", () => {
     expect(Object.isFrozen(first)).toBe(true);
     expect(before).toEqual(beforeSnapshot);
     expect(after).toEqual(afterSnapshot);
+  });
+
+  it("does not turn combined legacy exit-trap and shrine changes into an isolated trap receipt", () => {
+    const { before, after, source, packet } = resolve({ kind: "tripwire", stage: "disarm", success: false, exit: true, health: 10 });
+    expect(packet).toMatchObject({ schemaVersion: 1, completedExit: true });
+    // Adversarial projector inputs: a later shrine refund cannot stand in for raw trap loss.
+    const restoredHealth = after.hero.health + 1;
+    const restored = { ...after, hero: { ...after.hero, health: restoredHealth }, depth: { ...after.depth,
+      hero: { ...after.depth.hero, resources: { ...after.depth.hero.resources, health: restoredHealth } },
+    } };
+    expect(projectTrapResolution(before, restored, source)).toBeNull();
+    const dungeon = after.depth.dungeon!;
+    const changedLandmark = { ...after, depth: { ...after.depth, dungeon: { ...dungeon,
+      cells: dungeon.cells.map((cell) => cell.id === dungeon.exitCellId ? { ...cell, feature: "shrine" as const } : cell),
+    } } };
+    expect(projectTrapResolution(before, changedLandmark, source)).toBeNull();
   });
 
   it("fails closed for unrelated, forged, unchanged, illegal, and multiply changed events", () => {

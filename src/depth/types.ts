@@ -235,7 +235,7 @@ export interface MazeCell {
   feature: "empty" | "treasure" | "trap" | "shrine" | "lair";
 }
 
-export type DungeonTrapKind = "tripwire" | "rune-ward";
+export type DungeonTrapKind = "tripwire" | "rune-ward" | "mana-siphon";
 export type DungeonTrapPhase = "hidden" | "detected" | "disarmed" | "triggered";
 
 export interface DungeonTrapState {
@@ -321,6 +321,8 @@ export interface DungeonDisarmKitUseV1 {
 
 export interface DungeonState {
   layoutVersion: DungeonLayoutVersion;
+  /** Absent legacy fixtures use rules 1; generated dungeons record their family rules explicitly. */
+  trapRulesVersion?: 1 | 2;
   keyGate: DungeonKeyGateState | null;
   latestShrineUse: DungeonShrineUse | null;
   /** Absence is a legacy dungeon that has never searched; fresh and migrated saves store an explicit empty state. */
@@ -1203,7 +1205,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 26;
+  schemaVersion: 27;
   latestDisarmingKitPurchase: DisarmingKitPurchaseReceipt | null;
   seed: string;
   tick: number;

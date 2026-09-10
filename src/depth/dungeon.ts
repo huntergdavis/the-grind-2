@@ -20,7 +20,8 @@ const directions: readonly MazeDirection[] = ["north", "east", "south", "west"];
 const opposite: Record<MazeDirection, MazeDirection> = { north: "south", east: "west", south: "north", west: "east" };
 const delta: Record<MazeDirection, readonly [number, number]> = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] };
 const features: readonly MazeCell["feature"][] = ["empty", "empty", "empty", "treasure", "trap", "shrine", "lair"];
-const trapKinds: readonly DungeonTrapKind[] = ["tripwire", "rune-ward"];
+const legacyTrapKinds: readonly DungeonTrapKind[] = ["tripwire", "rune-ward"];
+const trapKinds: readonly DungeonTrapKind[] = [...legacyTrapKinds, "mana-siphon"];
 const trapPhases: readonly DungeonTrapPhase[] = ["hidden", "detected", "disarmed", "triggered"];
 const names = ["Ashen Archive", "Clockroot Vault", "Hollow Crown", "Moonkennel", "Salt Labyrinth"] as const;
 const validDungeonStateCache = new WeakSet<object>();
@@ -87,13 +88,25 @@ export function describeDungeonShrineUse(use: DungeonShrineUse): string {
   return `HP ${use.healthBefore}→${use.healthAfter} (+${use.healthRestored}) · MP ${use.manaBefore}→${use.manaAfter} (+${use.manaRestored})`;
 }
 
-export interface DungeonTrapConsequence {
+export interface DungeonHealthTrapConsequenceV1 {
   dungeonId: string;
   cellId: string;
   damage: number;
   healthBefore: number;
   healthAfter: number;
 }
+
+export interface DungeonManaTrapConsequenceV2 extends DungeonHealthTrapConsequenceV1 {
+  readonly schemaVersion: 2;
+  readonly effect: "mana-loss";
+  readonly damage: 0;
+  readonly manaBefore: number;
+  readonly manaLost: number;
+  readonly manaAfter: number;
+  readonly maxMana: number;
+}
+
+export type DungeonTrapConsequence = DungeonHealthTrapConsequenceV1 | DungeonManaTrapConsequenceV2;
 
 export interface DungeonTrapView {
   cellId: string;
@@ -130,12 +143,13 @@ export interface DungeonTrapAptitudes {
 const trapAttributes: Record<DungeonTrapKind, { detect: DungeonTrapCheckAttribute; disarm: DungeonTrapCheckAttribute }> = {
   tripwire: { detect: "intellect", disarm: "agility" },
   "rune-ward": { detect: "spirit", disarm: "intellect" },
+  "mana-siphon": { detect: "spirit", disarm: "intellect" },
 };
 
-function generatedTrap(seed: string, cellId: string, phase: DungeonTrapPhase = "hidden"): DungeonTrapState {
+function generatedTrap(seed: string, cellId: string, phase: DungeonTrapPhase = "hidden", trapRulesVersion: 1 | 2 = 1): DungeonTrapState {
   return {
     cellId,
-    kind: pick(trapKinds, seed, "dungeon-trap", cellId, 0, "kind"),
+    kind: pick(trapRulesVersion === 1 ? legacyTrapKinds : trapKinds, seed, "dungeon-trap", cellId, 0, "kind"),
     detectDifficulty: 10 + randomInt(5, seed, "dungeon-trap", cellId, 0, "detect-difficulty"),
     disarmDifficulty: 11 + randomInt(6, seed, "dungeon-trap", cellId, 0, "disarm-difficulty"),
     phase,
@@ -143,7 +157,7 @@ function generatedTrap(seed: string, cellId: string, phase: DungeonTrapPhase = "
 }
 
 export function dungeonTrapKindLabel(kind: DungeonTrapKind): string {
-  return kind === "tripwire" ? "whisper-wire" : "echo rune";
+  return kind === "tripwire" ? "whisper-wire" : kind === "rune-ward" ? "echo rune" : "mana siphon";
 }
 
 export function dungeonTrapCheckAttribute(kind: DungeonTrapKind, stage: "detect" | "disarm"): DungeonTrapCheckAttribute {
@@ -159,6 +173,7 @@ export function migrateDungeonTraps(
   return {
     ...state,
     layoutVersion: 1,
+    trapRulesVersion: 1,
     keyGate: null,
     latestShrineUse: null,
     search: createDungeonSearchState(),
@@ -168,6 +183,7 @@ export function migrateDungeonTraps(
         seed,
         cell.id,
         visited.has(cell.id) ? "triggered" : discovered.has(cell.id) ? "detected" : "hidden",
+        1,
       )),
   };
 }
@@ -261,6 +277,7 @@ export function isValidDungeonDisarmKitUse(
     "bonus", "kind", "attribute", "skill", "roll", "baseTotal", "total", "difficulty", "success"];
   if (Object.keys(value).length !== keys.length || keys.some((key) => !Object.hasOwn(value, key))
     || !validKitUseArithmetic(value) || value.dungeonId !== dungeon.id || (value.tick as number) > currentTick
+    || (value.kind === "mana-siphon" && dungeon.trapRulesVersion !== 2)
     || !dungeon.visitedCellIds.includes(value.cellId as string) || !dungeon.discoveredCellIds.includes(value.cellId as string)) return false;
   const cell = dungeon.cells.find((candidate) => candidate.id === value.cellId);
   const trap = dungeonTrapAt(dungeon, value.cellId as string);
@@ -578,6 +595,7 @@ export function isValidDungeonSearchState(
     if (!isRecord(found) || !searchExactKeys(found, ["cellId", "kind", "attribute", "skill", "roll", "total", "difficulty"])
       || typeof found.cellId !== "string" || !exitIds.has(found.cellId) || foundIds.has(found.cellId)
       || !trapKinds.includes(found.kind as DungeonTrapKind)
+      || (found.kind === "mana-siphon" && dungeon.trapRulesVersion !== 2)
       || !searchInteger(found.skill) || !searchInteger(found.roll, 0, 3) || !searchInteger(found.total)
       || !searchInteger(found.difficulty, 10, 14) || found.total !== found.skill + found.roll + dungeonSearchBonus
       || found.total < found.difficulty) return false;
@@ -731,8 +749,10 @@ export function generateDungeon(
   requestedHeight = 8,
   includeTransientEntryHazard = false,
   layoutVersion: 2 | 3 = 2,
+  trapRulesVersion: 1 | 2 = 1,
 ): DungeonState {
   if (layoutVersion !== 2 && layoutVersion !== 3) throw new RangeError("Generated dungeon layout version must be 2 or 3");
+  if (trapRulesVersion !== 1 && trapRulesVersion !== 2) throw new RangeError("Generated trap rules must be 1 or 2");
   const width = dimension(requestedWidth);
   const height = dimension(requestedHeight);
   const exitSets = Array.from({ length: width * height }, () => new Set<MazeDirection>());
@@ -775,9 +795,10 @@ export function generateDungeon(
   const finalCells = layoutVersion === 3
     ? generated.cells.map((cell): MazeCell => cell.id === exitCellId ? { ...cell, feature: "shrine" } : cell)
     : generated.cells;
-  const traps = finalCells.filter((cell) => cell.feature === "trap").map((cell) => generatedTrap(seed, cell.id));
+  const traps = finalCells.filter((cell) => cell.feature === "trap").map((cell) => generatedTrap(seed, cell.id, "hidden", trapRulesVersion));
   const base: DungeonState = {
     layoutVersion,
+    trapRulesVersion,
     keyGate: generated.keyGate,
     latestShrineUse: null,
     latestDisarmKitUse: null,
@@ -860,11 +881,25 @@ export function resolveDungeonTrap(
   firstVisit: boolean,
   healthBefore: number,
   maxHealth: number,
+  manaBefore?: number,
+  maxMana?: number,
 ): DungeonTrapConsequence | null {
   const cell = state.cells.find((candidate) => candidate.id === cellId);
   const trap = dungeonTrapAt(state, cellId);
   if (!firstVisit || cell?.feature !== "trap" || trap === null || trap.phase === "disarmed" || trap.phase === "triggered") return null;
   const boundedHealth = Math.max(0, Math.min(maxHealth, healthBefore));
+  if (trap.kind === "mana-siphon") {
+    if (state.trapRulesVersion !== 2 || !Number.isSafeInteger(manaBefore) || !Number.isSafeInteger(maxMana)
+      || (manaBefore as number) < 0 || (maxMana as number) < 0 || (manaBefore as number) > (maxMana as number)) {
+      throw new TypeError("Mana siphon requires rules 2 and exact valid mana resources");
+    }
+    const manaLost = Math.min(manaBefore as number, Math.ceil((maxMana as number) / 4));
+    return {
+      schemaVersion: 2, effect: "mana-loss", dungeonId: state.id, cellId,
+      damage: 0, healthBefore: boundedHealth, healthAfter: boundedHealth,
+      manaBefore: manaBefore as number, manaLost, manaAfter: (manaBefore as number) - manaLost, maxMana: maxMana as number,
+    };
+  }
   const rawDamage = Math.max(1, Math.floor(maxHealth / 10));
   const healthAfter = Math.max(0, boundedHealth - rawDamage);
   return {
@@ -1107,8 +1142,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Validates family/rules compatibility only, not grid geometry or trap receipts. */
+export function isValidDungeonTrapRules(value: unknown): boolean {
+  if (!isRecord(value) || !Array.isArray(value.traps)) return false;
+  if (Object.hasOwn(value, "trapRulesVersion") && value.trapRulesVersion !== 1 && value.trapRulesVersion !== 2) return false;
+  for (const trap of value.traps) {
+    if (!isRecord(trap) || !trapKinds.includes(trap.kind as DungeonTrapKind)
+      || (trap.kind === "mana-siphon" && value.trapRulesVersion !== 2)) return false;
+  }
+  return true;
+}
+
 export function isValidDungeonState(value: unknown): value is DungeonState {
-  if (!isRecord(value)) return false;
+  if (!isRecord(value) || !isValidDungeonTrapRules(value)) return false;
   if (value.search !== undefined && !isValidDungeonSearchState(value.search, value as unknown as DungeonState)) return false;
   if (validDungeonStateCache.has(value)) return true;
   const state = value as unknown as DungeonState;
@@ -1243,6 +1289,7 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
     if (
       !trapCellIds.has(trap.cellId) || trapIds.has(trap.cellId)
       || !trapKinds.includes(trap.kind) || !trapPhases.includes(trap.phase)
+      || (trap.kind === "mana-siphon" && state.trapRulesVersion !== 2)
       || !Number.isSafeInteger(trap.detectDifficulty) || trap.detectDifficulty < 10 || trap.detectDifficulty > 14
       || !Number.isSafeInteger(trap.disarmDifficulty) || trap.disarmDifficulty < 11 || trap.disarmDifficulty > 16
       || (trap.phase !== "hidden" && !discovered.has(trap.cellId))

@@ -105,7 +105,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const finished = complete();
     const { fieldResearch: _research, ...previous } = finished;
     const upgraded = upgradeDepthState({ ...previous, schemaVersion: 21 }, seed, heroId, "Mara");
-    expect(upgraded.schemaVersion).toBe(26);
+    expect(upgraded.schemaVersion).toBe(27);
     expect(upgraded.fieldResearch).toEqual(createFieldResearchState());
     expect(upgraded.hero.monsterLore).toEqual(finished.hero.monsterLore);
     expect(upgraded.combat).toEqual(finished.combat);
@@ -124,7 +124,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     expect(Object.isFrozen(upgraded.inkcap.aftereffect)).toBe(true);
     expect(upgradeFieldResearchState(JSON.parse(JSON.stringify(upgraded)), heroId, finished.tick)).toEqual(upgraded);
     const loaded = upgradeDepthState({ ...finished, schemaVersion: 23, fieldResearch: legacy }, seed, heroId, "Mara");
-    expect(loaded.schemaVersion).toBe(26);
+    expect(loaded.schemaVersion).toBe(27);
     expect(loaded.fieldResearch).toEqual(upgraded);
     for (const invalid of [null, { ...legacy, schemaVersion: 3 }, { ...upgraded, extra: true },
       { ...upgraded, moonhowl: null }, { ...upgraded, schemaVersion: 1 },

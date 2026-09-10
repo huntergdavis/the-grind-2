@@ -8,9 +8,10 @@ The user's full collated catalog was saved to [ROADMAP.md](ROADMAP.md) before
 new research began. It is now the current planning source. The complete old
 [BACKLOG.md](BACKLOG.md) is retained behind a collapsed history disclosure;
 shipped and held work and paused LLM experiments are outside the new queue.
-Mana-siphon implementation remains local and unfinished. This planning work
-does not ship its runtime, change the model baseline or reopen protected ledger
-edits. Public gameplay remains v0.5.157 until a separately verified release.
+At this planning checkpoint, mana-siphon implementation was local and unfinished.
+That planning commit did not ship its runtime, change the model baseline or
+reopen protected ledger edits. Public gameplay was v0.5.157; the separate v158
+implementation and acceptance evidence follows below.
 
 A dedicated flyting agent inspected the sibling project's real reading,
 vocabulary and banter paths. The repository is named `the-curse-of-the-herder`,
@@ -63,7 +64,32 @@ geometry only if its new mechanism is actually verified. A staged location or
 resource handoff must be identified, not called uninterrupted natural travel.
 Acceptance uses focused tests, one desktop/mobile browser journey and existing
 release CI, without another model run or expanded long-duration matrix.
-Implementation and validation are in progress; nothing is claimed live yet.
+Local acceptance is complete. Engine/search/kit tests pass49, presentation61,
+and six new Depth tests cover real generated loss, purchased-kit success/failure,
+zero/low MP, exact reload and legacy rules. Final canonical/narrator checks pass
+14 tests in71.12s. The updated mentor regression passes in52.86s with unchanged
+T7921/visit22 and finite promise/return/farewell behavior. An independent single
+replay proves the old normalized hash is reproduced exactly by removing only
+the new dungeon rules field and restoring three still-hidden legacy trap kinds;
+the new fixture retains those intentional facts rather than normalizing them away.
+
+Browser acceptance caught one test assumption and one real presentation gap.
+Ordinary first-visit movement already grants4XP; the test now asserts that exact
+unchanged reward instead of claiming no XP. The normal scene classified traps
+only through HP loss, suppressing the mana hazard rail after cutscene dismissal.
+The correction recognizes a fresh rules2 trigger through command, prior phase
+and exact resource facts, including zero-MP outcomes. Two new scene tests pass
+and prove the following ordinary move does not replay the alert. Old HP paths
+remain unchanged; the exact browser rail assertion was not weakened.
+
+Final browser acceptance against the rebuilt runtime passes in29.8s (48.1s
+runner, unchanged120s budget): real sole south move, MP26→19/HP45, unchanged
+inventory/gold/quest, readable source-bound V3 and native proof at1280/320,
+exact Status, the normal blue spent-trap rail and exact reload without another
+drain. Zero browser errors, inference or external requests. Root reviewed both
+cutscene sizes and the final mobile spent view. Version, boundaries, TypeScript
+and production build pass. Owned preview19880 is closed;4174 is untouched.
+Protected ledger work is unchanged and excluded. Public deployment is pending.
 
 ## Gameplay-first council — smith supplies and assisted disarming (v0.5.157)
 

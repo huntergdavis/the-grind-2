@@ -404,12 +404,14 @@ describe("versioned presentation cutaway registry", () => {
       staticEnvelope: unknown.staticEnvelope,
     });
 
-    const wrongPacketVersion = candidate("trap-resolution@1", "event:packet-v2", 2);
-    expect(resolveCutawayCandidate(cutawayRegistry, wrongPacketVersion)).toMatchObject({
-      mode: "static-chronicle",
-      reason: "packet-version-mismatch",
-      staticEnvelope: wrongPacketVersion.staticEnvelope,
-    });
+    for (const version of [2, 3, 4]) {
+      const wrongPacketVersion = candidate("trap-resolution@1", `event:packet-v${version}`, version);
+      expect(resolveCutawayCandidate(cutawayRegistry, wrongPacketVersion)).toMatchObject({
+        mode: "static-chronicle",
+        reason: "packet-version-mismatch",
+        staticEnvelope: wrongPacketVersion.staticEnvelope,
+      });
+    }
 
     const invalidEnvelope = {
       ...candidate("trap-resolution@1", "event:invalid-envelope"),

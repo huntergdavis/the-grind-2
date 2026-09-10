@@ -3,7 +3,7 @@
 ## Start here
 
 The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
-active planning source: finish the mana-siphon slice, then ship further playable
+active planning source: verify the mana-siphon release, then ship further playable
 features one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -354,7 +354,7 @@ Immediate queue:
     CSS/narrator workers and11 exact committed browser/worker source-map
     comparisons pass. Protected ledger work and parked drafts remain intact;
     owned preview19880 is closed. No further work is required for this slice.
-22. **In implementation — V04.18a/V04.18c richer traps: one mana siphon (v0.5.158).**
+22. **Implemented; publication pending — V04.18a/V04.18c richer traps: one mana siphon (v0.5.158).**
     Add one generated trap family whose failure drains a bounded amount of MP,
     not HP, making dungeon hazards interact with ability affordability and
     existing shrine/inn recovery. Preserve both current trap families exactly;
@@ -372,10 +372,24 @@ Immediate queue:
     Preserve old HP consequences and V1/V2 presentation packets; use an explicit
     MP-loss consequence and V3 packet for the new family, with optional actual
     kit proof. Do not infer trap loss from net shrine/resource changes. Reuse
-    seed8/location3 geometry for bounded acceptance, but new-family placement
-    there is not yet verified; no natural-pacing claim or seed sweep.
-    Engine, migration and existing cutaway integration are in progress; browser
-    acceptance, clean release CI and actual public delivery are not yet claimed.
+    seed8/location3 geometry for bounded acceptance: its real first south move
+    fails spirit 10+0 vs11 and drains MP26→19 while HP45 stays unchanged.
+    The location/entry handoff is staged, not uninterrupted natural travel;
+    there is no seed sweep. Real purchased-kit tests prove intellect11+0+2
+    beats12 and consumes the kit, whereas the unassisted attempt fails.
+    Engine/search/kit checks pass49 tests, presentation checks61, and six new
+    Depth integration tests cover resources, kit use and migration. Final
+    replay/narrator compatibility passes14 tests; the mentor anchor change is
+    explained exactly by trap metadata and three still-hidden family changes.
+    The browser exposed a genuine HP-only scene classifier: fresh mana triggers,
+    including zero MP, now receive the normal blue hazard rail; two focused
+    scene regressions also prevent replaying the alert on the next ordinary move.
+    Final frozen-build browser acceptance passes in29.8s (48.1s runner), including
+    desktop/mobile proof, exact Status, spent glyph and exact saved reload, with
+    zero browser errors/inference/external requests. Ordinary first-visit4XP is
+    preserved; no additional trap reward. All three captures were reviewed.
+    Version/boundary/type/build checks pass; preview19880 is closed and4174
+    untouched. Existing release CI and public deployment verification are pending.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

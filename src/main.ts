@@ -1635,6 +1635,7 @@ function presentTrapCutawayPhase(phase: TrapCutawayPhase): void {
 function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCutawayStaging): void {
   const outcome = trapCutawayOutcome(packet);
   const mechanism = dungeonTrapKindLabel(packet.trapKind);
+  const tool = packet.schemaVersion === 1 ? null : packet.tool;
   elements.trapCutaway.hidden = false;
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = true;
@@ -1655,9 +1656,12 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
       ? "Enter the marked chamber"
       : "Disarm the detected mechanism";
   elements.trapCutawayInspection.textContent = `${mechanism} · ${packet.phaseBefore}`;
-  elements.trapCutawayCheck.textContent = `${packet.attribute} · ${packet.skill} + ${packet.roll}${packet.schemaVersion === 2 ? " + 2 KIT" : ""} = ${packet.total} vs ${packet.difficulty}`;
+  elements.trapCutawayCheck.textContent = `${packet.attribute} · ${packet.skill} + ${packet.roll}${tool !== null ? " + 2 KIT" : ""} = ${packet.total} vs ${packet.difficulty}`;
   elements.trapCutawayResult.textContent = `${outcome.toUpperCase()} · ${packet.phaseBefore} → ${packet.phaseAfter}`;
-  elements.trapCutawayConsequence.textContent = `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? ` (−${packet.damage})` : " (no damage)"}${packet.schemaVersion === 2 ? " · Disarming Kit 1 → 0 (consumed)" : ""}`;
+  elements.trapCutawayConsequence.textContent = (packet.schemaVersion === 3
+    ? `MP ${packet.manaBefore} → ${packet.manaAfter} (−${packet.manaLost}) · HP ${packet.healthBefore} → ${packet.healthAfter} (unchanged)`
+    : `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? ` (−${packet.damage})` : " (no damage)"}`)
+    + (tool !== null ? " · Disarming Kit 1 → 0 (consumed)" : "");
   elements.trapCutawayProgress.textContent = `${packet.completedExit ? "Exit reached" : "Maze continues"} · Cross-maze quest ${packet.crossMazeDelta > 0 ? `+${packet.crossMazeDelta}` : "unchanged"} · the viewer cannot alter this resolved result.`;
   elements.trapCutawayOutcome.hidden = false;
   elements.trapCutawayOutcome.disabled = false;
@@ -2452,7 +2456,11 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.trapCutawayOutcome.disabled = true;
       presentTrapCutawayPhase("final");
       const outcome = trapCutawayOutcome(packet).toUpperCase();
-      elements.trapCutawayAnnouncement.textContent = `${outcome}. HP ${packet.healthBefore} to ${packet.healthAfter}. ${packet.schemaVersion === 2 ? "Disarming Kit consumed: 1 to 0; +2 to the check. " : ""}${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
+      const resource = packet.schemaVersion === 3
+        ? `MP ${packet.manaBefore} to ${packet.manaAfter}; ${packet.manaLost} mana lost. HP ${packet.healthAfter} unchanged.`
+        : `HP ${packet.healthBefore} to ${packet.healthAfter}.`;
+      const tool = packet.schemaVersion === 1 ? null : packet.tool;
+      elements.trapCutawayAnnouncement.textContent = `${outcome}. ${resource} ${tool !== null ? "Disarming Kit consumed: 1 to 0; +2 to the check. " : ""}${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
     },
   },
   "companion-farewell@1": {
