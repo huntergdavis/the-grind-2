@@ -1280,10 +1280,17 @@ function syncWatchStageGeometry(): void {
   const appBounds = elements.app.getBoundingClientRect();
   const showing = !ribbon.hidden && bounds.height > 0 && getComputedStyle(ribbon).display !== "none";
   const reserved = showing ? Math.ceil(appBounds.bottom - bounds.top + 8) : 0;
+  const header = elements.topbar.getBoundingClientRect();
+  const headerBottom = header.width > 0 && header.height > 0 ? Math.ceil(header.bottom - appBounds.top) : null;
   let chromeBottom = 0;
   if (showing) for (const chrome of [elements.topbar, elements.viewToolbar, elements.stageFocusControls]) {
     const chromeBounds = chrome.getBoundingClientRect();
-    if (chromeBounds.width > 0 && chromeBounds.height > 0) chromeBottom = Math.max(chromeBottom, chromeBounds.bottom - appBounds.top);
+    if (chromeBounds.width <= 0 || chromeBounds.height <= 0) continue;
+    // Match --view-toolbar-top's header measurement. A position read can still
+    // contain the old top inside the resize callback, even after the CSS write.
+    const bottom = chrome === elements.viewToolbar && headerBottom !== null
+      ? headerBottom + chromeBounds.height : chromeBounds.bottom - appBounds.top;
+    chromeBottom = Math.max(chromeBottom, bottom);
   }
   for (const [property, value] of [["--watch-ribbon-height", reserved], ["--watch-stage-top", Math.ceil(chromeBottom + (showing ? 8 : 0))]] as const) {
     const cssValue = `${value}px`;
@@ -1438,7 +1445,12 @@ function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, ann
   syncStageChromePresentation(false);
 }
 
-const inspectionChromeObserver = new ResizeObserver(syncInspectionViewportGeometry);
+const inspectionChromeObserver = new ResizeObserver(() => {
+  syncInspectionViewportGeometry();
+  // The toolbar's top can change without resizing its border box. Recompute
+  // the Watch reservation after updating that offset, not only on size events.
+  syncWatchStageGeometry();
+});
 for (const chrome of [elements.topbar, elements.viewToolbar, elements.app]) {
   inspectionChromeObserver.observe(chrome, { box: "border-box" });
 }

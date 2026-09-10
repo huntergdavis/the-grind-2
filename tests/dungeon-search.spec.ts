@@ -5,7 +5,7 @@ import type { WorldState } from "../src/core/types";
 import { dungeonTrapAt, projectDungeonSearchExits, resolveDungeonTrapCheck } from "../src/depth/dungeon";
 import { effectiveAttribute, heroMechanicalLevel } from "../src/depth/rpg";
 import { selectDungeonEntryPlan, stepDepth } from "../src/depth/state";
-import { projectDungeonFraming } from "../src/render/dungeon-framing";
+import { dungeonFramingViewRect, projectDungeonFraming } from "../src/render/dungeon-framing";
 
 function publicFrame(world: WorldState) {
   const dungeon = world.depth.dungeon!;
@@ -23,13 +23,61 @@ function expectFrame(stage: Record<string, string | undefined>, world: WorldStat
     dungeonFrameRooms: String(frame.roomCount) });
 }
 
+function captionMetrics(stage: Record<string, string | undefined>) {
+  return Object.fromEntries(Object.entries(stage).filter(([key]) => key.startsWith("dungeonCaption")));
+}
+
+function expectReadableCaption(stage: Record<string, string | undefined>, phase: "search" | "disarm"): void {
+  expect(["wide", "compact"]).toContain(stage.dungeonCaptionLayout);
+  expect(stage.dungeonCaptionTitle).toBe(phase === "search" ? "TRAP MARKED" : "TRAP SPRUNG");
+  const compact = stage.dungeonCaptionLayout === "compact";
+  expect(stage.dungeonCaptionDetail).toBe(phase === "search"
+    ? compact ? "1 MARKED · STILL ARMED" : "1 TRAP MARKED · STILL ARMED"
+    : compact ? "ECHO RUNE · SPENT" : "ECHO RUNE · NO LONGER ARMED");
+  // These are actual CSS font sizes and measured Pixi text bounds, not a
+  // screenshot-scale assumption or the helper's nominal line-height alone.
+  expect(Number(stage.dungeonCaptionTitleSize)).toBeGreaterThanOrEqual(12 - 0.000001);
+  expect(Number(stage.dungeonCaptionDetailSize)).toBeGreaterThanOrEqual(11 - 0.000001);
+  const [railX, railY, railWidth, railHeight] = stage.dungeonCaptionRail!.split(",").map(Number);
+  expect(railY + railHeight).toBeLessThan(dungeonFramingViewRect.y);
+  expect(railX).toBeGreaterThanOrEqual(0);
+  expect(railX + railWidth).toBeLessThanOrEqual(320);
+  const bounds = JSON.parse(stage.dungeonCaptionBounds!) as {
+    title: [number, number, number, number] | null; detail: [number, number, number, number] | null;
+  };
+  expect(bounds.title).not.toBeNull();
+  expect(bounds.detail).not.toBeNull();
+  for (const [x, y, width, height] of [bounds.title!, bounds.detail!]) {
+    expect(width).toBeGreaterThan(0);
+    expect(height).toBeGreaterThan(0);
+    expect(x).toBeGreaterThanOrEqual(railX);
+    expect(y).toBeGreaterThanOrEqual(railY);
+    expect(x + width).toBeLessThanOrEqual(railX + railWidth + 0.01);
+    expect(y + height).toBeLessThanOrEqual(railY + railHeight + 0.01);
+  }
+  expect(bounds.title![1] + bounds.title![3]).toBeLessThanOrEqual(bounds.detail![1] + 0.01);
+}
+
 async function pauseOnReady(page: Page): Promise<void> {
-  await page.waitForFunction(() => {
-    if (document.documentElement.dataset.ready !== "true") return false;
-    const app = document.querySelector<HTMLElement>("#app")!;
-    if (app.dataset.presentationPaused !== "true") document.querySelector<HTMLButtonElement>("#pause-button")!.click();
-    return app.dataset.presentationPaused === "true";
-  }, undefined, { polling: 20, timeout: 20_000 });
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    let pauseRequested = false;
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(poll);
+      reject(new Error("The ready adventure did not pause within 20 seconds"));
+    }, 20_000);
+    const poll = window.setInterval(() => {
+      if (document.documentElement.dataset.ready !== "true") return;
+      const app = document.querySelector<HTMLElement>("#app")!;
+      if (!pauseRequested && app.dataset.presentationPaused !== "true") {
+        pauseRequested = true;
+        document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+      }
+      if (app.dataset.presentationPaused !== "true") return;
+      window.clearInterval(poll);
+      window.clearTimeout(timeout);
+      resolve();
+    }, 20);
+  }));
 }
 
 function cautiousDungeon(): WorldState {
@@ -54,16 +102,31 @@ function cautiousDungeon(): WorldState {
 }
 
 async function automaticStep(page: Page, before: WorldState): Promise<WorldState> {
-  await page.evaluate(() => document.querySelector<HTMLButtonElement>("#pause-button")!.click());
-  const handle = await page.waitForFunction(({ campaignId, tick }) => {
-    const raw = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
-    if (raw === null || JSON.parse(raw).tick <= tick) return false;
+  const raw = await page.evaluate(({ campaignId, tick }) => new Promise<string>((resolve, reject) => {
     const app = document.querySelector<HTMLElement>("#app")!;
-    if (app.dataset.presentationPaused !== "true") document.querySelector<HTMLButtonElement>("#pause-button")!.click();
-    return app.dataset.presentationPaused === "true" && Number(app.dataset.simulationTick) > tick ? raw : false;
-  }, { campaignId: before.campaignId, tick: before.tick }, { polling: 20, timeout: 20_000 });
-  const after = JSON.parse(await handle.jsonValue() as string) as WorldState;
-  await handle.dispose();
+    const pause = document.querySelector<HTMLButtonElement>("#pause-button")!;
+    let pauseRequested = false;
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(poll);
+      reject(new Error("The actual automatic adventure step did not settle within 20 seconds"));
+    }, 20_000);
+    const poll = window.setInterval(() => {
+      const saved = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+      if (saved === null || JSON.parse(saved).tick <= tick) return;
+      // Pausing while a turn is settling is asynchronous. Request it once;
+      // repeated clicks before its acknowledgment would resume the adventure.
+      if (!pauseRequested && app.dataset.presentationPaused !== "true") {
+        pauseRequested = true;
+        pause.click();
+      }
+      if (app.dataset.presentationPaused !== "true" || Number(app.dataset.simulationTick) <= tick) return;
+      window.clearInterval(poll);
+      window.clearTimeout(timeout);
+      resolve(saved);
+    }, 20);
+    pause.click();
+  }), { campaignId: before.campaignId, tick: before.tick });
+  const after = JSON.parse(raw) as WorldState;
   expect(after).toEqual(advanceWorld(before));
   return after;
 }
@@ -159,7 +222,8 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
       text: "TRAP MARKED · 1 TRAP MARKED · STILL ARMED", title: source.consequence });
     milestone("actual search spends one turn: same roll +2 marks trap, no movement, HP or XP");
 
-    const captureFrame = async (phase: "search" | "disarm", world: WorldState): Promise<void> => {
+    const captureFrame = async (phase: "search" | "disarm", world: WorldState): Promise<Record<string, string | undefined>> => {
+      let desktop: Record<string, string | undefined> = {};
       for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
         await page.setViewportSize(viewport);
         await page.locator("#stage").scrollIntoViewIfNeeded();
@@ -169,6 +233,9 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
         }));
         expect(layout.fits).toBe(true);
         expectFrame(layout.stage, world);
+        expectReadableCaption(layout.stage, phase);
+        if (viewport.width === 320) expect(layout.stage.dungeonCaptionLayout).toBe("compact");
+        else desktop = layout.stage;
         if (phase === "search") {
           expect(layout.stage.dungeonFrameCellSize).toBe("40");
           expect(layout.stage.dungeonHeroScale).toBe("0.8");
@@ -181,18 +248,30 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
           await page.screenshot({ path, timeout: 8_000 });
           await testInfo.attach(`Dungeon ${phase} ${viewport.width}`, { path, contentType: "image/png" });
         }
-        milestone(`${viewport.width}px discovered-room ${phase} frame captured`);
+        milestone(`${viewport.width}px ${phase} caption readable and contained above the public rooms; frame captured`);
       }
+      return desktop;
     };
-    await captureFrame("search", searched);
-    expect((await presentation(page, fixture.campaignId)).saved).toBe(shown.saved);
+    const desktopSearch = await captureFrame("search", searched);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    // Chrome reserves its responsive height before the canvas observer settles.
+    // Await the original camera scale; retain exact metric and save assertions.
+    await page.waitForFunction((expected) => document.querySelector<HTMLElement>("#stage")!.dataset.sceneLayout === expected,
+      desktopSearch.sceneLayout, { polling: "raf", timeout: 5_000 });
+    const resizedBack = await presentation(page, fixture.campaignId);
+    expect(resizedBack.saved).toBe(shown.saved);
+    expectFrame(resizedBack.stage, searched);
+    expect(captionMetrics(resizedBack.stage)).toEqual(captionMetrics(desktopSearch));
     await page.reload({ timeout: 25_000 });
     await pauseOnReady(page);
+    await page.waitForFunction((expected) => document.querySelector<HTMLElement>("#stage")!.dataset.sceneLayout === expected,
+      desktopSearch.sceneLayout, { polling: "raf", timeout: 5_000 });
     const reloaded = await presentation(page, fixture.campaignId);
     expect(reloaded.saved).toBe(shown.saved);
     expectFrame(reloaded.stage, searched);
     expect(reloaded.stage.dungeonSearchEvent).toBe(source.id);
-    milestone("actual persisted search reload keeps the exact public camera and save");
+    expect(captionMetrics(reloaded.stage)).toEqual(captionMetrics(desktopSearch));
+    milestone("paused resize back and actual persisted reload keep the exact caption, public camera and save");
     const entered = await automaticStep(page, searched);
     expect(entered.chronicle.at(-1)?.commandType).toBe("move-dungeon");
     expect(entered.depth.dungeon!.currentCellId).toBe(targetId);

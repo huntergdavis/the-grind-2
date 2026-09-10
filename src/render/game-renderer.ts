@@ -1,5 +1,6 @@
 import { Application, Container, Graphics, Text, type TextStyleOptions, type Ticker } from "pixi.js";
 import { randomInt } from "../core/rng";
+import { projectDungeonCaptionLayout } from "./dungeon-caption-layout";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import { projectCombatRoster, type CombatRosterProjection } from "../depth/combat-roster";
@@ -467,6 +468,10 @@ export class GameRenderer {
   private readonly heroRigs: HeroRigBinding[] = [];
   private readonly scaleSensitiveTexts: Text[] = [];
   private readonly dungeonAlertTexts: Text[] = [];
+  private dungeonCaption: {
+    background: Graphics; accent: Graphics; title: Text; detail: Text;
+    fullDetail: string; compactDetail: string; color: number;
+  } | null = null;
   private trapCutawayBinding: TrapCutawayBinding | null = null;
   private farewellCutawayBinding: FarewellCutawayBinding | null = null;
   private heroLevelUpCutawayBinding: HeroLevelUpCutawayBinding | null = null;
@@ -1335,6 +1340,11 @@ export class GameRenderer {
 
   private clear(layer: Container): void {
     if (layer === this.worldLayer) {
+      this.dungeonCaption = null;
+      for (const key of ["dungeonCaptionLayout", "dungeonCaptionTitle", "dungeonCaptionDetail",
+        "dungeonCaptionTitleSize", "dungeonCaptionDetailSize", "dungeonCaptionBounds", "dungeonCaptionRail"]) {
+        delete this.host.dataset[key];
+      }
       this.stageInformationGroups.length = 0;
       this.syncStageInformationVisibility();
     }
@@ -4321,6 +4331,7 @@ export class GameRenderer {
     for (const text of this.scaleSensitiveTexts) {
       if (text.resolution !== textResolution) text.resolution = textResolution;
     }
+    this.layoutDungeonCaption(layout.scale);
     if ((this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || reservedTableauVisible) && this.scaleSensitiveTexts.length > 0) {
       if (this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) {
         this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
@@ -5190,6 +5201,79 @@ export class GameRenderer {
     this.worldLayer.addChild(sceneLabel);
   }
 
+  /** One existing receipt rail, with short public copy when the viewport is narrow. */
+  private drawDungeonCaption(titleCopy: string, fullDetail: string, compactDetail: string, color: number,
+    titleColor = 0xffe4a1, detailColor = 0xf5ead5): readonly [Text, Text] {
+    const title = this.createScaleSensitiveText(titleCopy, {
+      fontFamily: "Inter, sans-serif", fontSize: 7, fill: titleColor, fontWeight: "800",
+    });
+    const detail = this.createScaleSensitiveText(fullDetail, {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: detailColor, fontWeight: "700",
+    });
+    const background = new Graphics();
+    const accent = new Graphics();
+    this.worldLayer.addChild(background, accent, title, detail);
+    this.dungeonCaption = { background, accent, title, detail, fullDetail, compactDetail, color };
+    return [title, detail];
+  }
+
+  /** Called on paused resize too; resolution alone cannot make small letters readable. */
+  private layoutDungeonCaption(sceneScale: number): void {
+    const caption = this.dungeonCaption;
+    if (caption === null) return;
+    const layout = projectDungeonCaptionLayout(sceneScale);
+    const { background, accent, title, detail } = caption;
+    background.visible = accent.visible = title.visible = layout !== null;
+    detail.visible = layout?.detail !== null && layout !== null;
+    this.host.dataset.dungeonCaptionLayout = layout === null ? "hidden"
+      : layout.detail === null ? "headline-only" : layout.compact ? "compact" : "wide";
+    if (layout === null) {
+      for (const key of ["dungeonCaptionTitle", "dungeonCaptionDetail", "dungeonCaptionTitleSize",
+        "dungeonCaptionDetailSize", "dungeonCaptionBounds", "dungeonCaptionRail"]) delete this.host.dataset[key];
+      return;
+    }
+    const rail = layout.rail;
+    background.clear().rect(rail.x, rail.y, rail.width, rail.height).fill({ color: 0x111820, alpha: 0.94 });
+    accent.clear().rect(rail.x, rail.y, 4, rail.height).fill(caption.color);
+    const applyLine = (text: Text, line: typeof layout.title): void => {
+      text.style.fontSize = line.fontSize;
+      text.style.lineHeight = line.lineHeight;
+      text.style.letterSpacing = line.letterSpacing;
+      text.position.set(line.x, line.y);
+    };
+    applyLine(title, layout.title);
+    if (layout.detail !== null) {
+      applyLine(detail, layout.detail);
+      detail.text = layout.compact ? caption.compactDetail : caption.fullDetail;
+      // Even unusually large recorded values must not spill into the rooms.
+      // Keep the readable font and use the factual short copy, not a smaller font.
+      if (detail.width > layout.maxTextWidth) detail.text = caption.compactDetail;
+      detail.visible = detail.width <= layout.maxTextWidth;
+    }
+    if (layout.compact) {
+      // Pixi glyph bounds can exceed the requested lineHeight. Fit the actual
+      // text boxes with a one-CSS-pixel gap, including during paused resize.
+      const gap = 1 / sceneScale;
+      if (detail.visible && title.height + gap + detail.height > rail.height) detail.visible = false;
+      const contentHeight = title.height + (detail.visible ? gap + detail.height : 0);
+      title.y = rail.y + (rail.height - contentHeight) / 2;
+      if (detail.visible) detail.y = title.y + title.height + gap;
+    }
+    if (title.width > layout.maxTextWidth || title.height > rail.height) {
+      background.visible = accent.visible = title.visible = detail.visible = false;
+    }
+    this.host.dataset.dungeonCaptionLayout = !title.visible ? "hidden" : !detail.visible ? "headline-only"
+      : layout.compact ? "compact" : "wide";
+    const bounds = (text: Text) => [text.x, text.y, text.width, text.height];
+    this.host.dataset.dungeonCaptionTitle = title.visible ? title.text : "";
+    this.host.dataset.dungeonCaptionDetail = detail.visible ? detail.text : "";
+    this.host.dataset.dungeonCaptionTitleSize = String(title.style.fontSize * sceneScale);
+    this.host.dataset.dungeonCaptionDetailSize = String(detail.visible ? detail.style.fontSize * sceneScale : 0);
+    this.host.dataset.dungeonCaptionRail = [rail.x, rail.y, rail.width, rail.height].join(",");
+    this.host.dataset.dungeonCaptionBounds = JSON.stringify({ title: title.visible ? bounds(title) : null,
+      detail: detail.visible ? bounds(detail) : null });
+  }
+
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(34, 19, 252, 142, 0x0b1117));
     const dungeon = state.depth.dungeon;
@@ -5226,6 +5310,21 @@ export class GameRenderer {
     const sightedKeyMove = search === null ? projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey) : undefined;
     const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
     const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
+    const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
+    const mechanismBeat = search !== null
+      ? { title: search.headline, detail: search.detail,
+        compact: search.discoveries.length === 0 ? "PASSAGES UNVERIFIED" : `${search.discoveries.length} MARKED · STILL ARMED`, color: 0x5b4820 }
+      : shrineUse !== null && shrineSummary !== null
+      ? { title: shrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS", detail: shrineSummary,
+        compact: shrineSummary === "RESOURCES FULL" ? shrineSummary : `HP +${shrineUse.healthRestored} · MP +${shrineUse.manaRestored}`, color: 0x275b59 }
+      : latestDungeonMessage.includes("finds the Wayfinder Key")
+        ? { title: "KEY FOUND", detail: "WAYFINDER KEY · RETURN TO THE SEALED GATE", compact: "WAYFINDER KEY", color: 0x5b4820 }
+      : latestDungeonMessage.includes("Wayfinder Gate is open")
+        ? { title: "GATE OPEN", detail: "SHORTCUT UNSEALED · CROSSING NEXT", compact: "SHORTCUT UNSEALED", color: 0x274f3d }
+        : latestDungeonMessage.includes("crosses the opened Wayfinder Gate")
+          ? { title: "SHORTCUT CROSSED", detail: latestDungeonMessage.includes("far stair") ? "THE FAR STAIR IS REACHED" : "THE MAZE FOLDS BEHIND THE HERO",
+            compact: latestDungeonMessage.includes("far stair") ? "FAR STAIR REACHED" : "BEYOND THE GATE", color: 0x315766 }
+          : null;
     this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
@@ -5252,7 +5351,7 @@ export class GameRenderer {
     }
     // A transient result owns the existing top strip; do not draw the landmark
     // caption underneath it. Its factual status remains in the normal HUD.
-    if (landmark !== null && hazardBeat === undefined && search === null && shrineUse === null) {
+    if (landmark !== null && hazardBeat === undefined && mechanismBeat === null) {
       const landmarkCopy = landmark.status === "promised"
         ? "LANDMARK · FAR-STAIR SHRINE"
         : landmark.status === "mapped"
@@ -5607,31 +5706,8 @@ export class GameRenderer {
         this.worldLayer.addChild(radiance);
       }
     }
-    const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
-    const mechanismBeat = search !== null
-      ? { title: search.headline, detail: search.detail, color: 0x5b4820 }
-      : shrineUse !== null && shrineSummary !== null
-      ? { title: shrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS", detail: shrineSummary, color: 0x275b59 }
-      : latestDungeonMessage.includes("finds the Wayfinder Key")
-        ? { title: "KEY FOUND", detail: "WAYFINDER KEY · RETURN TO THE SEALED GATE", color: 0x5b4820 }
-      : latestDungeonMessage.includes("Wayfinder Gate is open")
-        ? { title: "GATE OPEN", detail: "SHORTCUT UNSEALED · CROSSING NEXT", color: 0x274f3d }
-        : latestDungeonMessage.includes("crosses the opened Wayfinder Gate")
-          ? { title: "SHORTCUT CROSSED", detail: latestDungeonMessage.includes("far stair") ? "THE FAR STAIR IS REACHED" : "THE MAZE FOLDS BEHIND THE HERO", color: 0x315766 }
-          : null;
     if (mechanismBeat !== null && hazardBeat === undefined) {
-      const bannerTextResolution = projectedTextResolution(
-        this.app.renderer.resolution,
-        calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight).scale,
-      );
-      const title = new Text({ text: mechanismBeat.title, style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: 0xffe4a1, fontWeight: "800", letterSpacing: 1.1 }, resolution: bannerTextResolution, roundPixels: true });
-      const detail = new Text({ text: mechanismBeat.detail, style: { fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xf5ead5, fontWeight: "700", letterSpacing: 0.35 }, resolution: bannerTextResolution, roundPixels: true });
-      this.scaleSensitiveTexts.push(title, detail);
-      title.position.set(110, 5);
-      detail.position.set(110, 15);
-      this.worldLayer.addChild(rect(101, 2, 181, 23, 0x111820, 0.94));
-      this.worldLayer.addChild(rect(101, 2, 4, 23, mechanismBeat.color));
-      this.worldLayer.addChild(title, detail);
+      this.drawDungeonCaption(mechanismBeat.title, mechanismBeat.detail, mechanismBeat.compact, mechanismBeat.color);
     }
     if (hazardBeat !== undefined) {
       const hazardCell = cellsById.get(hazardBeat.cellId);
@@ -5654,34 +5730,16 @@ export class GameRenderer {
         this.lightLayer.addChild(focus);
       }
       const alertLabel = triggeredTrap !== undefined ? "TRAP SPRUNG" : detectedTrap !== undefined ? "TRAP DETECTED" : "TRAP DISARMED";
-      const alertTextResolution = projectedTextResolution(
-        this.app.renderer.resolution,
-        calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight).scale,
-      );
-      const banner = new Text({
-        text: alertLabel,
-        style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: triggeredTrap !== undefined ? 0xffd37f : detectedTrap !== undefined ? 0xffe49b : 0xcce8c9, fontWeight: "800", letterSpacing: 1.1 },
-        resolution: alertTextResolution,
-        roundPixels: true,
-      });
-      const result = new Text({
-        // The exact consequence remains in Status/Chronicle and the existing
-        // dungeonTrapResult receipt. Keep this rail clear of the known rooms.
-        text: `${dungeonTrapKindLabel(hazardBeat.kind).toUpperCase()} · ${detectedTrap !== undefined ? "STILL ARMED" : "NO LONGER ARMED"}`,
-        style: { fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xffedc2, fontWeight: "700", letterSpacing: 0.35 },
-        resolution: alertTextResolution,
-        roundPixels: true,
-      });
-      this.scaleSensitiveTexts.push(banner, result);
+      // Exact consequence remains in Status/Chronicle and dungeonTrapResult.
+      const trapName = dungeonTrapKindLabel(hazardBeat.kind).toUpperCase();
+      const [banner, result] = this.drawDungeonCaption(alertLabel,
+        `${trapName} · ${detectedTrap !== undefined ? "STILL ARMED" : "NO LONGER ARMED"}`,
+        `${trapName} · ${detectedTrap !== undefined ? "ARMED" : "SPENT"}`,
+        triggeredTrap !== undefined ? 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d,
+        triggeredTrap !== undefined ? 0xffd37f : detectedTrap !== undefined ? 0xffe49b : 0xcce8c9, 0xffedc2);
       this.dungeonAlertTexts.push(banner, result);
       this.host.dataset.dungeonAlertLabel = alertLabel;
       this.host.dataset.dungeonAlertPlacement = "reserved-top-rail";
-      banner.position.set(110, 5);
-      result.position.set(110, 15);
-      this.worldLayer.addChild(rect(101, 2, 181, 23, 0x111820, 0.94));
-      this.worldLayer.addChild(rect(101, 2, 4, 23, triggeredTrap !== undefined ? 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d));
-      this.worldLayer.addChild(banner);
-      this.worldLayer.addChild(result);
     }
   }
 

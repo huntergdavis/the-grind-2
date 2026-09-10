@@ -90,7 +90,7 @@ Immediate queue:
     not a guaranteed final-damage difference through armor/Guard/minimum damage.
     Preserve Inkcap evidence on migration and reuse Codex disclosures. No power
     grant, actor-policy change, hidden comparison or general research framework.
-12. **Next — V04.18a presentation subset, mobile dungeon caption readability.**
+12. **In progress — V04.18a presentation subset, mobile dungeon caption readability (v0.5.150).**
     Replace fixed 7/4.5-design-pixel receipt typography with a responsive caption
     layout for the existing reserved top rail. Keep a readable narrow-screen
     headline and concise detail; full exact consequences remain in Status.
@@ -98,6 +98,21 @@ Immediate queue:
     the actual search→disarm journey at 320/1280; no new panel, hidden facts,
     mechanics, inference or expanded test matrix. Existing landmark collision
     suppression already works and should not be reimplemented.
+13. **Next — V04.20l2b, Familiar Opening: one earned weapon art.** Promote the
+    existing tactical-sidegrade proposal into a bounded first implementation:
+    a genuine equipped-weapon Use-L4 unlock receipt enables one 2-MP piercing
+    weapon strike per combat, only against an actually guarded enemy. Preserve
+    Guard's damage reduction, with no extra potency or passive multiplier.
+    Keep emergency recovery and cheaper guaranteed finishes ahead of the art;
+    otherwise use it only when its minimum damage improves on equal-or-cheaper
+    available strikes. Persist exact weapon/unlock/spent provenance in a small
+    versioned combat-local record; old active combats remain inert. Reuse the
+    current weapon animation and action record, clearly naming the art rather
+    than disguising it as Attack. First acceptance must show an actual live
+    Actor-Policy enemy Guard followed by the autonomous art, exact MP/HP,
+    once-only behavior, L3/insufficient-MP rejection and exact reload. Validate
+    occurrence and bounded pacing with existing seeded journeys before shipping;
+    do not add a general mastery framework, enemy policy change or ledger dependency.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -627,6 +642,55 @@ the committed field-research, migration, core, projection and main modules.
 The public bundle contains the Moonhowl study and its no-health-drain clue.
 Verified live on hunterdavis.com at 2026-09-09 19:06 PDT. Mobile dungeon-caption
 readability is next; LLM work remains paused at the existing baseline.
+
+### V04.18a — mobile dungeon caption readability (v0.5.150, in progress)
+
+Reuses `deja "mobile dungeon caption readability"`, session 09's 2026-09-09
+18:50 council recommendation and the reviewed v148 mobile search capture. The
+Watch dungeon's existing result rail now responds to actual scene scale, not
+just device-pixel resolution. At the 320px layout, its headline/detail target
+12/11 CSS pixels instead of 7/4.5. A wider compact rail ends at design y30,
+above the unchanged discovered-room rectangle beginning at y32. Large scenes
+retain the existing rail and metrics. Very small/short scenes retain a readable
+headline when possible instead of cramming in illegible detail.
+
+Concise copy preserves the actual outcome: marked traps remain armed, an empty
+search leaves passages unverified, partial shrine healing is not full recovery,
+and opening a gate is not crossing it. Trap names and armed/spent state stay
+visible. Full exact consequences remain in Status/Chronicle. Measured width
+overflow chooses the short factual variant, never a smaller font. Compact lines
+are centered using their actual measured glyph heights with a one-CSS-pixel
+gap; the first browser attempt exposed nominal line-height overlap and drove
+this correction. The caption recomputes on paused resize and clears with its scene. The existing landmark
+suppression now also covers key-found/gate-open/shortcut-crossed rail ownership.
+
+Exact resize-back checks also found an existing Watch geometry defect: after a
+toolbar top-offset change, its border-box size could stay unchanged, leaving a
+stale stage-top reservation. A paused four-snapshot diagnostic confirmed equal
+desktop chrome rectangles but a different cached stage offset, with saved tick
+unchanged. The existing inspection observer now recalculates Watch geometry
+after synchronizing the toolbar offset, matching the established startup order.
+Watch also derives the toolbar boundary from the same header measurement plus
+toolbar height, reusing inspection's existing workaround for stale position
+reads inside resize callbacks. Observer ordering alone was insufficient.
+No extra observer or timer is introduced; exact resize-back assertions remain.
+The corrected paused diagnostic passes: initial and returned desktop rectangles,
+all chrome properties and stage metrics, and saved tick are exactly equal
+(stage y132 / height495 / scale2.75 in the representative layout).
+
+No new panel, CSS, framing transform, hidden fact, canonical state, action,
+save schema, narrator, or compact-ledger change. Five new focused layout tests
+and 34 existing layout/framing/search/visibility tests pass. Version, boundaries,
+TypeScript and the production build pass; the simulation worker and CSS are
+unchanged. Independent source review finds no blocker. The existing bounded
+search→entry→failed-disarm browser journey passes in 58.1s under its unchanged
+120s budget. Actual glyph bounds, 12/11 CSS-pixel minimums, all three exact
+actions, native Chronicle consequence, paused resize-back and genuine persisted
+reload pass. The trap still inflicts its own four HP on the failed disarm;
+research/search is not immunity. Root reviewed all four 1280/320 search/disarm
+captures: readable labels, separate lines and no room/hero overlap or horizontal
+overflow. Zero browser errors, inference or external requests. Live deployment
+is pending.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

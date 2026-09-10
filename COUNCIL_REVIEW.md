@@ -2,6 +2,69 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — readable dungeon captions (v0.5.150, in progress)
+
+Reuses session 09's mobile-caption review. The pure helper depends only on
+actual scene scale: compact 12/11 CSS-pixel targets, a rail ending at y30 above
+the unchanged y32 room area, and established wide-screen metrics. Short or
+extremely small scenes use a readable headline or no rail, not microscopic text.
+The renderer updates fonts, positions and factual short copy during paused
+resize, and its common world cleanup removes the binding and new attributes.
+
+Independent review finds no source blocker. Compact variants preserve armed
+versus spent traps, unverified passages, partial shrine restoration and the
+distinction between gate opening/crossing. The existing landmark suppression
+now includes all mechanism-rail owners. Exact results remain in Status and
+Chronicle; measured width fallback selects short copy without shrinking fonts.
+No canonical state, policy, narrator, ledger, CSS or public-room framing change.
+
+Five new and 34 existing focused tests, version/boundaries, TypeScript and
+production build pass. The simulation worker and CSS stay unchanged. The
+existing actual search/entry/failed-disarm browser journey retains its 120s
+budget and exact saves/actions; one-shot Pause requests reuse the previously
+proved harness correction. Actual Pixi glyph bounds, desktop/mobile captures,
+paused resize and reload remain the browser acceptance gate. The first browser
+attempt found a one-pixel overlap of measured mobile text boxes despite nominal
+line-height separation. The corrected compact rail uses y0→30 and centers the
+actual measured glyph heights with a one-CSS-pixel gap; font sizes and room
+bounds are unchanged. The five helper tests and corrected build pass. The same
+browser assertions are rerunning without a longer timeout. A later exact
+resize-back assertion exposed an existing position-only observer gap: the
+toolbar rectangles returned to their original desktop values, but the Watch
+stage retained an intermediate top offset. The four paused snapshots in
+`scratch/dungeon-caption-geometry-evidence.json` preserve the actual evidence.
+The existing inspection observer now synchronizes toolbar geometry and then
+Watch reservations, as startup already does. Independent review confirms no
+new observer/timer, initialization problem or apparent feedback loop. Exact
+caption/save/resize assertions are retained, not loosened. The observer-order
+change alone was insufficient: Watch now also uses the existing inspection
+strategy of header-derived toolbar position plus measured toolbar height,
+instead of rereading a possibly stale position in the callback. Final source
+review finds no blocker. The fresh paused diagnostic now passes exact equality
+of initial/returned desktop rectangles, chrome properties, all stage metrics
+and saved tick: stage y132 / height495 / scale2.75. The strict full journey now
+passes in 58.1s under its unchanged 120s budget: three exact canonical actions,
+12/11 CSS-pixel minimums, actual glyph containment/separation, exact resize-back,
+genuine reload and native Chronicle consequence. Root reviewed all four final
+1280/320 search/disarm captures; no hero/room overlap or horizontal overflow.
+Zero browser errors, inference or external requests. Release review is clear;
+deployment pending.
+
+Next gameplay recommendation: promote V04.20l2b Familiar Opening into one
+receipt-earned, 2-MP, once-per-combat piercing weapon art against existing Guard,
+without extra potency or a passive multiplier. Use the real Use-L4 unlock and
+current weapon identity, preserve restoration/cheaper-finish precedence, and
+require a useful minimum-damage improvement plus real guard→art pacing evidence.
+New bounded combat-local provenance must migrate old active combats inert;
+protected compact-ledger work remains separate.
+
+The council's first recommendation incorrectly inferred enemy behavior from
+the standalone `chooseCombatAction`. Root checked the actual `advanceWorld` →
+Campaign Director → Actor Policy path. The active enemy enters `direCombat`
+at HP≤⅓ and can already choose `dire.guard`; no new enemy-Guard rule is needed.
+The reviewer corrected the recommendation after tracing that live path. These
+are next-slice design choices, not gameplay changes in this UI release.
+
 ## Gameplay-first council — Moonhowl field research (v0.5.149)
 
 Implements the previously queued two-observation Wolf study, not a generic
