@@ -302,7 +302,7 @@ Immediate queue:
     CSS `index-DjMkgq3A.css`, unchanged simulation worker and exact committed
     projection/Gazetteer/renderer source-map comparisons all pass. Owned
     preview 19880 is closed; protected ledger work and parked drafts are intact.
-21. **Implemented, release verification pending — V04.18a tools/supplies subset: one dungeon disarming kit (v0.5.157).**
+21. **Delivered — V04.18a tools/supplies subset: one dungeon disarming kit (v0.5.157).**
     Give the existing recorded town smith one small, fixed-price supply service:
     buy a single capped kit, then consume it for +2 on an actually detected
     trap's existing disarm check. Keep the same fixed roll, one attempt and
@@ -326,8 +326,17 @@ Immediate queue:
     toolbar clearance, readable scrolled mobile proof and exact reload.
     Existing recovery, route, XP and research fixtures now account for actual
     supply turns; all identified local failures pass their focused reruns.
-    Version/boundary/type/build checks pass; no narrator, CSS or new panel.
-    Clean Pages CI and public deployment verification are pending.
+    Version/boundary/type/build checks pass; no narrator-runtime, CSS or new
+    panel changes. Feature `1c119b4` and compatibility fix `c3a2732` are pushed
+    and live. First CI caught the purchase consequence's missing terminal
+    period and a changed production-scene fingerprint; the corrected receipt
+    now has an explicit first-purchase narrator regression. Pages run
+    `34466214650` passes all3,399 tests across228 files (270.36s release suite,
+    5m29s deployment). At2026-09-10 03:34PDT public version/cache, entry
+    `index-DelP2Sq_.js`, simulation `simulation.worker-C_OwipAB.js`, unchanged
+    CSS/narrator workers and11 exact committed browser/worker source-map
+    comparisons pass. Protected ledger work and parked drafts remain intact;
+    owned preview19880 is closed. No further work is required for this slice.
 22. **Queued — V04.18a/V04.18c richer traps: one mana-draining mechanism.**
     Add one generated trap family whose failure drains a bounded amount of MP,
     not HP, making dungeon hazards interact with ability affordability and
@@ -339,6 +348,15 @@ Immediate queue:
     Prove one generated mechanism's actual MP loss with unchanged HP, assisted
     disarming, no repeated loss on revisit and exact saved reload. No new panel,
     general status framework, narrator work or protected-ledger dependency.
+    Council contract: a mana siphon detects with spirit and disarms with
+    intellect; failure drains `min(current MP, ceil(max MP / 4))`, including
+    a legitimate zero-MP spent result. Version dungeon-local trap-generation
+    rules so legacy migration still uses its fixed two-family generator.
+    Preserve old HP consequences and V1/V2 presentation packets; use an explicit
+    MP-loss consequence and V3 packet for the new family, with optional actual
+    kit proof. Do not infer trap loss from net shrine/resource changes. Reuse
+    seed8/location3 geometry for bounded acceptance, but new-family placement
+    there is not yet verified; no natural-pacing claim or seed sweep.
     This is a source-backed council recommendation, not implemented gameplay.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below

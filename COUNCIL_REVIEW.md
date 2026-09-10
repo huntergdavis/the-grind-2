@@ -89,8 +89,21 @@ purchase/presentation checks pass (81.80s). The sole production delta from the
 browser-approved build is that terminal period; narrator/runtime/model code,
 gameplay arithmetic and renderer source remain unchanged. Corrected build:
 entry `index-DelP2Sq_.js`, simulation `simulation.worker-C_OwipAB.js`, same
-stylesheet and narrator workers. The compatibility fix will receive its own
-commit and clean full Pages run before a live claim.
+stylesheet and narrator workers. The exact finite-arc fingerprint also passes
+(42.23s test body), as does final TypeScript. Compatibility commit
+`c3a2732b82e96f9eb51b53d15e6ee6c503772530` is pushed and deployed.
+[Pages run34466214650](https://github.com/huntergdavis/the-grind-2/actions/runs/34466214650)
+passes all3,399 tests across228 files:270.36s release suite, with the existing
+progression check completing in4.240s, and5m29s deployment
+(10:28:18–10:33:47UTC). At2026-09-10 03:34PDT the actual public version/cache,
+entry `index-DelP2Sq_.js`, CSS `index-DjMkgq3A.css`, simulation worker
+`simulation.worker-C_OwipAB.js`, both unchanged narrator-worker references and
+11 exact committed browser/worker source maps verify. Ignored
+`scratch/verify-disarming-kit-live.mjs` provides local-build/public-site modes;
+both pass. The protected ledger edits and parked drafts remain untouched.
+This slice is complete and live. The next queued mana-siphon contract reuses
+the same detection/disarm/kit/receipt UI, preserving old-family generation
+and consequences explicitly; no next-slice gameplay is implemented yet.
 
 ## Gameplay-first council — recorded road-battle memory (v0.5.156)
 
