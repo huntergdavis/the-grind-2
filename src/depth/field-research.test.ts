@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createCombat, isValidCombatState, resolveCombatTurn } from "./combat";
-import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState } from "./field-research";
+import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState, upgradeFieldResearchState } from "./field-research";
 import { createDepthState, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
-import type { CombatAction, CombatState, DepthState, FieldResearchStateV1 } from "./types";
+import type { CombatAction, CombatState, DepthState, FieldResearchStateV2 } from "./types";
 
 const seed = "browser-field-research:0";
 const heroId = "hero:campaign:browser-field-research";
@@ -58,7 +58,7 @@ function controlledPair(otherPoison = false): CombatState {
   return result;
 }
 
-function resolve(research: FieldResearchStateV1, before: CombatState, action: CombatAction) {
+function resolve(research: FieldResearchStateV2, before: CombatState, action: CombatAction) {
   const after = resolveCombatTurn(before, action, seed);
   expect(isValidCombatState(after)).toBe(true);
   return { combat: after, research: advanceFieldResearch(research, before, after, { heroId, depthTick: after.turn + 10 }) };
@@ -70,13 +70,13 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const initialBytes = JSON.stringify(initial);
     expect(isValidCombatState(initial.combat)).toBe(true);
     const applied = apply(initial);
-    const application = applied.fieldResearch.application!;
+    const application = applied.fieldResearch.inkcap.application!;
     expect(application).toMatchObject({ speciesId: "inkcap-mimic", abilityId: secretId,
       sourceEventId: `${initial.combat!.id}:1:3`, sourceTurn: 1, sourceTick: initial.tick + 1,
       actorId: `${initial.combat!.id}:enemy:0`, targetId: heroId, potency: 2, duration: 3, targetHealthAfter: 5 });
-    expect(applied.fieldResearch.aftereffect).toBeNull();
+    expect(applied.fieldResearch.inkcap.aftereffect).toBeNull();
     const finished = stepDepth(applied, { type: "combat-action", action: guard(applied.combat!) });
-    expect(finished.fieldResearch.aftereffect).toEqual({ combatId: initial.combat!.id,
+    expect(finished.fieldResearch.inkcap.aftereffect).toEqual({ combatId: initial.combat!.id,
       sourceEventId: `${initial.combat!.id}:2:1`, sourceTick: initial.tick + 2, sourceTurn: 2,
       applicationEventId: application.sourceEventId, targetId: heroId, potency: 2,
       durationBefore: 3, durationAfter: 2, healthBefore: 5, amount: 2, healthAfter: 3 });
@@ -86,7 +86,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     expect(finished.hero.monsterLore).toEqual(initial.hero.monsterLore);
     expect(JSON.stringify(initial)).toBe(initialBytes);
     expect(isValidFieldResearchState(finished.fieldResearch, heroId, finished.tick)).toBe(true);
-    for (const value of [applied.fieldResearch, application, finished.fieldResearch, finished.fieldResearch.aftereffect]) expect(Object.isFrozen(value)).toBe(true);
+    for (const value of [applied.fieldResearch, application, finished.fieldResearch, finished.fieldResearch.inkcap.aftereffect]) expect(Object.isFrozen(value)).toBe(true);
   });
 
   it("resumes exact proof through JSON and retains it after the four-battle/event histories disappear", () => {
@@ -105,23 +105,45 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const finished = complete();
     const { fieldResearch: _research, ...previous } = finished;
     const upgraded = upgradeDepthState({ ...previous, schemaVersion: 21 }, seed, heroId, "Mara");
-    expect(upgraded.schemaVersion).toBe(23);
+    expect(upgraded.schemaVersion).toBe(24);
     expect(upgraded.fieldResearch).toEqual(createFieldResearchState());
     expect(upgraded.hero.monsterLore).toEqual(finished.hero.monsterLore);
     expect(upgraded.combat).toEqual(finished.combat);
     expect(createDepthState(seed, heroId, "Mara").fieldResearch).toEqual(createFieldResearchState());
   });
 
+  it("migrates a complete legacy Inkcap proof unchanged and does not retrospectively credit Moonhowl", () => {
+    const finished = complete();
+    const legacy = JSON.parse(JSON.stringify(finished.fieldResearch.inkcap));
+    const bytes = JSON.stringify(legacy);
+    const upgraded = upgradeFieldResearchState(legacy, heroId, finished.tick);
+    expect(upgraded.inkcap).toEqual(legacy);
+    expect(upgraded.moonhowl).toEqual({ taskId: "lantern-wolf:moonhowl@1", application: null, aftereffect: null });
+    expect(JSON.stringify(legacy)).toBe(bytes);
+    expect(Object.isFrozen(upgraded.inkcap.application)).toBe(true);
+    expect(Object.isFrozen(upgraded.inkcap.aftereffect)).toBe(true);
+    expect(upgradeFieldResearchState(JSON.parse(JSON.stringify(upgraded)), heroId, finished.tick)).toEqual(upgraded);
+    const loaded = upgradeDepthState({ ...finished, schemaVersion: 23, fieldResearch: legacy }, seed, heroId, "Mara");
+    expect(loaded.schemaVersion).toBe(24);
+    expect(loaded.fieldResearch).toEqual(upgraded);
+    for (const invalid of [null, { ...legacy, schemaVersion: 3 }, { ...upgraded, extra: true },
+      { ...upgraded, moonhowl: null }, { ...upgraded, schemaVersion: 1 },
+      { ...legacy, application: { ...legacy.application, sourceTick: finished.tick + 1 } }]) {
+      expect(() => upgradeFieldResearchState(invalid, heroId, finished.tick)).toThrow("malformed");
+      expect(() => upgradeDepthState({ ...finished, schemaVersion: 23, fieldResearch: invalid }, seed, heroId, "Mara")).toThrow();
+    }
+  });
+
   it("refreshes unfinished evidence to the latest genuine application but repeated casts alone remain one observation", () => {
     const initial = controlledPair();
     const first = resolve(createFieldResearchState(), initial, cast(initial));
     const second = resolve(first.research, first.combat, cast(first.combat));
-    expect(second.research.aftereffect).toBeNull();
-    expect(second.research.application!.sourceEventId).not.toBe(first.research.application!.sourceEventId);
-    expect(second.research.application!.actorId).toBe(initial.turnOrder[1]);
+    expect(second.research.inkcap.aftereffect).toBeNull();
+    expect(second.research.inkcap.application!.sourceEventId).not.toBe(first.research.inkcap.application!.sourceEventId);
+    expect(second.research.inkcap.application!.actorId).toBe(initial.turnOrder[1]);
     const finished = resolve(second.research, second.combat, guard(second.combat));
-    expect(finished.research.aftereffect!.applicationEventId).toBe(second.research.application!.sourceEventId);
-    expect(first.research.application!.sourceTurn).toBe(1);
+    expect(finished.research.inkcap.aftereffect!.applicationEventId).toBe(second.research.inkcap.application!.sourceEventId);
+    expect(first.research.inkcap.application!.sourceTurn).toBe(1);
   });
 
   it("rejects identical-potency poison overwritten by a different species or ability", () => {
@@ -131,7 +153,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     expect(overwritten.research).toBe(first.research);
     const harmed = resolve(overwritten.research, overwritten.combat, guard(overwritten.combat));
     expect(harmed.combat.eventStream.events).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "status-tick", status: "poisoned", amount: 2 })]));
-    expect(harmed.research.aftereffect).toBeNull();
+    expect(harmed.research.inkcap.aftereffect).toBeNull();
   });
 
   it("does not credit a retained poison status when its original application packet is unavailable", () => {
@@ -147,12 +169,12 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const applied = apply();
     const before = applied.combat!;
     const after = resolveCombatTurn(before, guard(before), seed);
-    const application = applied.fieldResearch.application!;
-    const variations: FieldResearchStateV1[] = [
+    const application = applied.fieldResearch.inkcap.application!;
+    const variations: FieldResearchStateV2[] = [
       createFieldResearchState(),
-      { ...applied.fieldResearch, application: { ...application, sourceEventId: `${before.id}:1:4` } },
-      { ...applied.fieldResearch, application: { ...application, actorId: `${before.id}:enemy:1` } },
-      { ...applied.fieldResearch, application: { ...application, sourceTick: applied.tick + 2 } },
+      { ...applied.fieldResearch, inkcap: { ...applied.fieldResearch.inkcap, application: { ...application, sourceEventId: `${before.id}:1:4` } } },
+      { ...applied.fieldResearch, inkcap: { ...applied.fieldResearch.inkcap, application: { ...application, actorId: `${before.id}:enemy:1` } } },
+      { ...applied.fieldResearch, inkcap: { ...applied.fieldResearch.inkcap, application: { ...application, sourceTick: applied.tick + 2 } } },
     ];
     for (const state of variations) {
       expect(advanceFieldResearch(state, before, after, { heroId, depthTick: applied.tick + 1 })).toBe(state);
@@ -172,7 +194,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
     const finished = stepDepth(critical, { type: "combat-action", action: guard(critical.combat!) });
     expect(finished.combat).toBeNull();
     expect(finished.completedCombats.at(-1)!.outcome).toBe("defeat");
-    expect(finished.fieldResearch.aftereffect).toMatchObject({ healthBefore: 1, amount: 1, healthAfter: 0 });
+    expect(finished.fieldResearch.inkcap.aftereffect).toMatchObject({ healthBefore: 1, amount: 1, healthAfter: 0 });
     expect(isValidFieldResearchState(finished.fieldResearch, heroId, finished.tick)).toBe(true);
   });
 
@@ -189,7 +211,7 @@ describe("Inkcap False Treasure two-observation field research", () => {
 
   it("validates exact bounded persisted source identities, chronology and HP arithmetic", () => {
     const finished = complete();
-    const proof = finished.fieldResearch;
+    const proof = finished.fieldResearch.inkcap;
     const application = proof.application!;
     const aftereffect = proof.aftereffect!;
     for (const invalid of [
@@ -208,8 +230,8 @@ describe("Inkcap False Treasure two-observation field research", () => {
       { ...proof, aftereffect: { ...aftereffect, applicationEventId: "unrelated-source" } },
       { ...proof, aftereffect: { ...aftereffect, durationAfter: 3 } },
     ]) {
-      expect(isValidFieldResearchState(invalid, heroId, finished.tick)).toBe(false);
-      expect(() => upgradeDepthState({ ...finished, fieldResearch: invalid }, seed, heroId, "Mara")).toThrow();
+      expect(isValidFieldResearchState({ ...finished.fieldResearch, inkcap: invalid }, heroId, finished.tick)).toBe(false);
+      expect(() => upgradeDepthState({ ...finished, fieldResearch: { ...finished.fieldResearch, inkcap: invalid } }, seed, heroId, "Mara")).toThrow();
     }
   });
 });

@@ -448,6 +448,56 @@ export interface FieldResearchStateV1 {
   readonly aftereffect: FalseTreasureAftereffectV1 | null;
 }
 
+export interface MoonhowlApplicationV1 {
+  readonly speciesId: "lantern-wolf";
+  readonly abilityId: "secret:lantern-wolf:moonhowl";
+  readonly combatId: string;
+  readonly sourceEventId: string;
+  readonly sourceTick: number;
+  readonly sourceTurn: number;
+  readonly actorId: string;
+  readonly targetId: string;
+  readonly potency: number;
+  readonly duration: 2;
+  readonly targetHealthAfter: number;
+}
+
+export interface MoonhowlStrikeV1 {
+  readonly combatId: string;
+  /** The pre-action weakened status tick, not an inferred damage comparison. */
+  readonly sourceEventId: string;
+  readonly sourceTick: number;
+  readonly sourceTurn: number;
+  readonly applicationEventId: string;
+  readonly targetId: string;
+  readonly potency: number;
+  readonly durationBefore: 2;
+  readonly durationAfter: 1;
+  readonly healthBefore: number;
+  readonly amount: 0;
+  readonly healthAfter: number;
+  readonly intentEventId: string;
+  readonly damageEventId: string;
+  readonly action: "attack" | "ability" | "joint-action";
+  readonly abilityId: string | null;
+  readonly strikeTargetId: string;
+  readonly targetHealthBefore: number;
+  readonly damage: number;
+  readonly targetHealthAfter: number;
+}
+
+export interface MoonhowlResearchStateV1 {
+  readonly taskId: "lantern-wolf:moonhowl@1";
+  readonly application: MoonhowlApplicationV1 | null;
+  readonly aftereffect: MoonhowlStrikeV1 | null;
+}
+
+export interface FieldResearchStateV2 {
+  readonly schemaVersion: 2;
+  readonly inkcap: FieldResearchStateV1;
+  readonly moonhowl: MoonhowlResearchStateV1;
+}
+
 export interface DetailedHeroState {
   id: string;
   name: string;
@@ -1056,7 +1106,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 23;
+  schemaVersion: 24;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -1064,7 +1114,7 @@ export interface DepthState {
   companions: CompanionRosterState;
   dungeon: DungeonState | null;
   hero: DetailedHeroState;
-  fieldResearch: FieldResearchStateV1;
+  fieldResearch: FieldResearchStateV2;
   heroGrowth: HeroGrowthState;
   quest: QuestState;
   completedQuests: readonly CompletedQuestSummary[];

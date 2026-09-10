@@ -94,7 +94,7 @@ describe("autonomous cautious dungeon search", () => {
     const { search: _search, ...releasedDungeon } = before.dungeon!;
     const old = { ...before, schemaVersion: 22, dungeon: releasedDungeon };
     const migrated = upgradeDepthState(JSON.parse(JSON.stringify(old)), before.seed, before.hero.id, before.hero.name);
-    expect(migrated.schemaVersion).toBe(23);
+    expect(migrated.schemaVersion).toBe(24);
     expect(migrated.dungeon!.search).toEqual({ schemaVersion: 1, searchedCellIds: [], latestReceipt: null });
     expect(migrated.hero).toEqual(before.hero);
     const after = stepDepth(migrated, depthCommandCandidates(migrated)[0]!.command);

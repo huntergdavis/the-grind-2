@@ -42,15 +42,30 @@ async function savedCampaign(page: Page, campaignId: string): Promise<string> {
 }
 
 async function automaticStep(page: Page, before: WorldState): Promise<WorldState> {
-  await page.locator("#pause-button").click();
-  await page.waitForFunction(({ campaignId, tick }) => {
-    const raw = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
-    if (raw === null || JSON.parse(raw).tick <= tick) return false;
+  const raw = await page.evaluate(({ campaignId, tick }) => new Promise<string>((resolve, reject) => {
     const app = document.querySelector<HTMLElement>("#app")!;
-    if (app.dataset.presentationPaused !== "true") document.querySelector<HTMLButtonElement>("#pause-button")!.click();
-    return app.dataset.presentationPaused === "true";
-  }, { campaignId: before.campaignId, tick: before.tick }, { polling: 20, timeout: 20_000 });
-  const after = JSON.parse(await savedCampaign(page, before.campaignId)) as WorldState;
+    const pause = document.querySelector<HTMLButtonElement>("#pause-button")!;
+    let pauseRequested = false;
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(poll);
+      reject(new Error("The actual automatic combat step did not settle within 20 seconds"));
+    }, 20_000);
+    const poll = window.setInterval(() => {
+      const saved = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+      if (saved === null || JSON.parse(saved).tick <= tick) return;
+      // Pause acknowledgement is deferred while saving; do not toggle it off.
+      if (!pauseRequested && app.dataset.presentationPaused !== "true") {
+        pauseRequested = true;
+        pause.click();
+      }
+      if (app.dataset.presentationPaused !== "true" || Number(app.dataset.simulationTick) <= tick) return;
+      window.clearInterval(poll);
+      window.clearTimeout(timeout);
+      resolve(saved);
+    }, 20);
+    pause.click();
+  }), { campaignId: before.campaignId, tick: before.tick });
+  const after = JSON.parse(raw) as WorldState;
   expect(after).toEqual(advanceWorld(before));
   return after;
 }
@@ -125,7 +140,7 @@ test("a natural Inkcap encounter completes two distinct Codex observations witho
     milestone("real rated encounter ready; Codex shows 0/2");
 
     const applied = await automaticStep(page, fixture);
-    const application = applied.depth.fieldResearch.application;
+    const application = applied.depth.fieldResearch.inkcap.application;
     if (application === null) throw new Error("Actual False Treasure must record its application");
     const sourceApplication = applied.depth.combat!.eventStream.events.find((event) => event.id === application.sourceEventId);
     expect(sourceApplication).toMatchObject({ kind: "status-applied", actorId: enemy.id, targetId: fixture.hero.id,
@@ -145,7 +160,7 @@ test("a natural Inkcap encounter completes two distinct Codex observations witho
     milestone("actual False Treasure application recorded; Codex shows 1/2");
 
     const completed = await automaticStep(page, applied);
-    const aftereffect = completed.depth.fieldResearch.aftereffect;
+    const aftereffect = completed.depth.fieldResearch.inkcap.aftereffect;
     if (aftereffect === null) throw new Error("The actual hero turn must record the sourced poison tick");
     const sourceTick = completed.depth.combat!.eventStream.events.find((event) => event.id === aftereffect.sourceEventId);
     expect(sourceTick).toMatchObject({ kind: "status-tick", actorId: fixture.hero.id, targetId: fixture.hero.id,

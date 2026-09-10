@@ -451,7 +451,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(23);
+    expect(upgraded.depth.schemaVersion).toBe(24);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -474,7 +474,7 @@ describe("autonomous simulation", () => {
     expect(upgraded).toMatchObject({
       schemaVersion: 9,
       hero: { experience: 30_000, level: 51 },
-      depth: { schemaVersion: 23, hero: { experience: 30_000, level: 51 } },
+      depth: { schemaVersion: 24, hero: { experience: 30_000, level: 51 } },
     });
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });
@@ -638,9 +638,11 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    // v147 search turns change the journey: audited completion T9229, visit 22,
-    // within the unchanged 12,000-step bound and with all no-power checks intact.
-    expect(canonicalHash(state), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("46d6832c4f655ac7");
+    // v149 adds observational research only. Removing that wrapper/new task
+    // must preserve v147/v148's exact mentor journey (T9229, visit 22).
+    const releasedState = { ...state, depth: { ...state.depth, schemaVersion: 23,
+      fieldResearch: state.depth.fieldResearch.inkcap } };
+    expect(canonicalHash(releasedState), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("46d6832c4f655ac7");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
@@ -2024,7 +2026,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(23);
+    expect(upgraded.depth.schemaVersion).toBe(24);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",
@@ -2064,7 +2066,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(23);
+      expect(upgraded.depth.schemaVersion).toBe(24);
       expect(upgraded.depth.companions).toEqual({
         schemaVersion: 2,
         kitRulesVersion: "explicit-companion-kit-v1",
@@ -2204,7 +2206,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(23);
+    expect(upgraded.depth.schemaVersion).toBe(24);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",
@@ -2259,7 +2261,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(23);
+    expect(upgraded.depth.schemaVersion).toBe(24);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",
@@ -2381,7 +2383,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(23);
+    expect(upgraded.depth.schemaVersion).toBe(24);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",

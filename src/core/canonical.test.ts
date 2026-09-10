@@ -25,15 +25,17 @@ describe("canonical state serialization", () => {
   }, 20_000);
 
   it("produces ten stable golden campaign hashes", () => {
+    const releasedHashes: string[] = [];
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
+      releasedHashes.push(canonicalHash({ ...world, depth: { ...world.depth, schemaVersion: 23,
+        fieldResearch: world.depth.fieldResearch.inkcap } }));
       return canonicalHash(world);
     });
-    // v147's first divergences are actual low-health searches, at ticks
-    // 81/271/25/26/810/154/17/195/23/18. All earlier normalized states match v146.
-    // The 10,000-turn audit observed 201 searches and 28 discoveries; saves resume.
-    expect(hashes).toEqual([
+    // v149 changes only observational research: stripping the wrapper/new task
+    // must retain v147/v148's exact gameplay AND existing Inkcap evidence.
+    expect(releasedHashes).toEqual([
       "fd4d03b97a0c5856",
       "678308f5167006b2",
       "ec96b70d03d9afdc",
@@ -44,6 +46,19 @@ describe("canonical state serialization", () => {
       "8b31cb74297eac95",
       "947ac94e8f4a74d3",
       "6c32de4c400ecfbf",
+    ]);
+    // Audited alongside exact JSON resume and empty legacy Moonhowl migration.
+    expect(hashes).toEqual([
+      "2258a13ef4b03fe4",
+      "4147c7bd618943dd",
+      "b639d1704e956a0d",
+      "a0af50da14d28ffe",
+      "cdbe37e87e79b955",
+      "1c1fb1f102332fc0",
+      "6047f93a6f91f87d",
+      "242346fa2521fb52",
+      "4f81e6eac2a61567",
+      "7c64e78d795da701",
     ]);
   }, 80_000);
 });

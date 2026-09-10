@@ -1,11 +1,11 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import { inkcapResearchClue, isValidFieldResearchState } from "../depth/field-research";
+import { inkcapResearchClue, isValidFieldResearchState, moonhowlResearchClue } from "../depth/field-research";
 import { counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel, secretTechniqueInsightRequired, weaponUseExperienceFloors } from "../depth/rpg";
 import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
-import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, CounterDuelState, EquipmentSlot, FalseTreasureAftereffectV1, FalseTreasureApplicationV1, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
+import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, CounterDuelState, EquipmentSlot, FalseTreasureAftereffectV1, FalseTreasureApplicationV1, ItemModifier, ItemState, MoonhowlApplicationV1, MoonhowlStrikeV1, ObjectiveStatus, QuestStatus } from "../depth/types";
 import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./pattern-break-signature";
 import { projectAtlasPartyMarker, type AtlasPartyMarkerV1 } from "./atlas-party-marker";
@@ -165,23 +165,26 @@ export interface CodexMonsterView {
   fieldResearch?: CodexFieldResearchView;
 }
 
-export interface CodexFieldResearchView {
-  taskId: "inkcap:false-treasure@1";
+interface CodexResearchPresentation {
+  title: string;
   progress: 0 | 1 | 2;
   clue: string | null;
-  application: FalseTreasureApplicationV1 | null;
-  aftereffect: FalseTreasureAftereffectV1 | null;
   applicationText: string | null;
   aftereffectText: string | null;
 }
 
-export function projectInkcapFieldResearch(state: WorldState): CodexFieldResearchView {
+export type CodexFieldResearchView = CodexResearchPresentation & (
+  | { taskId: "inkcap:false-treasure@1"; application: FalseTreasureApplicationV1 | null; aftereffect: FalseTreasureAftereffectV1 | null }
+  | { taskId: "lantern-wolf:moonhowl@1"; application: MoonhowlApplicationV1 | null; aftereffect: MoonhowlStrikeV1 | null }
+);
+
+export function projectInkcapFieldResearch(state: WorldState): Extract<CodexFieldResearchView, { taskId: "inkcap:false-treasure@1" }> {
   const source = state.depth.fieldResearch;
   const valid = isValidFieldResearchState(source, state.depth.hero.id, state.depth.tick);
-  const application = valid ? source.application : null;
-  const aftereffect = valid ? source.aftereffect : null;
+  const application = valid ? source.inkcap.application : null;
+  const aftereffect = valid ? source.inkcap.aftereffect : null;
   return {
-    taskId: "inkcap:false-treasure@1",
+    taskId: "inkcap:false-treasure@1", title: "Study False Treasure",
     progress: application === null ? 0 : aftereffect === null ? 1 : 2,
     clue: aftereffect === null ? null : inkcapResearchClue,
     application, aftereffect,
@@ -189,6 +192,23 @@ export function projectInkcapFieldResearch(state: WorldState): CodexFieldResearc
       : `T${application.sourceTick} · Combat turn ${application.sourceTurn}: False Treasure applied poison to the hero · potency ${application.potency} · ${application.duration} turns · HP ${application.targetHealthAfter} after application.`,
     aftereffectText: aftereffect === null ? null
       : `T${aftereffect.sourceTick} · Combat turn ${aftereffect.sourceTurn}: poison harmed the hero before acting · HP ${aftereffect.healthBefore}→${aftereffect.healthAfter} (−${aftereffect.amount}) · duration ${aftereffect.durationBefore}→${aftereffect.durationAfter}.`,
+  };
+}
+
+export function projectMoonhowlFieldResearch(state: WorldState): Extract<CodexFieldResearchView, { taskId: "lantern-wolf:moonhowl@1" }> {
+  const source = state.depth.fieldResearch;
+  const valid = isValidFieldResearchState(source, state.depth.hero.id, state.depth.tick);
+  const application = valid ? source.moonhowl.application : null;
+  const aftereffect = valid ? source.moonhowl.aftereffect : null;
+  return {
+    taskId: "lantern-wolf:moonhowl@1", title: "Study Moonhowl",
+    progress: application === null ? 0 : aftereffect === null ? 1 : 2,
+    clue: aftereffect === null ? null : moonhowlResearchClue,
+    application, aftereffect,
+    applicationText: application === null ? null
+      : `T${application.sourceTick} · Combat turn ${application.sourceTurn}: Moonhowl weakened the hero · potency ${application.potency} · ${application.duration} turns · Hero HP ${application.targetHealthAfter} after application.`,
+    aftereffectText: aftereffect === null ? null
+      : `T${aftereffect.sourceTick} · Combat turn ${aftereffect.sourceTurn}: weakening remained before the hero's strike · Hero HP ${aftereffect.healthBefore}→${aftereffect.healthAfter} (no status damage) · duration ${aftereffect.durationBefore}→${aftereffect.durationAfter} · raw-power penalty ${aftereffect.potency}. The hero then struck a foe · Foe HP ${aftereffect.targetHealthBefore}→${aftereffect.targetHealthAfter} (−${aftereffect.damage}). This is the recorded hit, not an unweakened damage comparison.`,
   };
 }
 
@@ -405,7 +425,8 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
 }
 
 export function projectCodexView(state: WorldState): CodexViewProjection {
-  const fieldResearch = projectInkcapFieldResearch(state);
+  const inkcapResearch = projectInkcapFieldResearch(state);
+  const moonhowlResearch = projectMoonhowlFieldResearch(state);
   const sortedLore = [...state.depth.hero.monsterLore].sort((left, right) => {
     const nameOrder = left.monsterName.localeCompare(right.monsterName, "en", { sensitivity: "base" });
     return nameOrder !== 0 ? nameOrder : left.monsterId < right.monsterId ? -1 : left.monsterId > right.monsterId ? 1 : 0;
@@ -502,21 +523,27 @@ export function projectCodexView(state: WorldState): CodexViewProjection {
       techniqueStatus,
       technique,
       discoveryOutcome,
-      ...(lore.monsterId === "inkcap-mimic" ? { fieldResearch } : {}),
+      ...(lore.monsterId === "inkcap-mimic" ? { fieldResearch: inkcapResearch }
+        : lore.monsterId === "lantern-wolf" ? { fieldResearch: moonhowlResearch } : {}),
     };
   });
   // Real combat-start already records lore. A legacy/directly witnessed battle
   // can lack that record; show only this evidenced species, without inventing
   // an encounter or victory count, and retain it if its canonical research lasts.
-  const witnessedInkcap = fieldResearch.progress > 0 || state.depth.combat?.combatants.some((unit) => unit.side === "enemies" && unit.speciesId === "inkcap-mimic") === true;
-  if (witnessedInkcap && !projected.some((entry) => entry.monsterId === "inkcap-mimic")) {
-    const definition = monsterDefinition("inkcap-mimic");
+  let addedWitness = false;
+  for (const [monsterId, fieldResearch] of [["inkcap-mimic", inkcapResearch], ["lantern-wolf", moonhowlResearch]] as const) {
+    const witnessed = fieldResearch.progress > 0 || state.depth.combat?.combatants.some((unit) => unit.side === "enemies" && unit.speciesId === monsterId) === true;
+    if (!witnessed || projected.some((entry) => entry.monsterId === monsterId)) continue;
+    const definition = monsterDefinition(monsterId);
     if (definition !== undefined) projected.push({
-      monsterId: definition.id, monsterName: definition.name, visualKey: "inkcap-mimic",
+      monsterId: definition.id, monsterName: definition.name, visualKey: monsterId,
       encounters: 0, victories: 0, insight: 0, requiredInsight: secretTechniqueInsightRequired,
       remainingVictories: secretTechniqueInsightRequired, habit: null,
       techniqueStatus: "studying", technique: null, discoveryOutcome: null, observedOnly: true, fieldResearch,
     });
+    addedWitness = true;
+  }
+  if (addedWitness) {
     projected.sort((left, right) => left.monsterName.localeCompare(right.monsterName, "en", { sensitivity: "base" })
       || (left.monsterId < right.monsterId ? -1 : left.monsterId > right.monsterId ? 1 : 0));
   }

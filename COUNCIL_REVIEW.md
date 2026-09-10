@@ -2,6 +2,56 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — Moonhowl field research (v0.5.149, in progress)
+
+Implements the previously queued two-observation Wolf study, not a generic
+research engine. The source is an actual surviving-hero Moonhowl application;
+the consequence joins its still-live weakened status tick, hero strike intent
+and later real enemy damage. Three retained event identities separate zero
+status HP loss from the foe's actual hit. Latest-source identity prevents
+overwriting or reassigning credit. Guard, restoration, expiry, unavailable
+history, pre-action death and fatal applications do not satisfy the strike.
+
+The Codex reuses its existing card, progress and native evidence disclosure.
+Both studies retain independent disclosure/focus state. The public study title
+does not grant a learned technique or reveal private ability mechanics; two old
+whole-card name checks now distinguish that title while retaining redaction of
+the unavailable learned-technique view. No new panel, CSS, power, reward, actor
+policy, combat mechanic, narrator or compact-ledger dependency is added.
+
+Depth23→24 preserves validated V1 Inkcap proof exactly and creates empty
+Moonhowl in a fixed V2 wrapper. Both tasks validate before use; invalid/future
+old evidence is rejected. Independent review finds no blocker. All 120 focused
+research/UI/migration/state checks pass, as do version/boundaries, TypeScript
+and the corrected production build. Ten existing 1,000-turn snapshots retain
+their exact released gameplay/Inkcap hashes after the research-only projection;
+canonical resume and empty legacy Moonhowl migration pass. Nine journeys reach
+2/2. The audited new raw hashes and released-normalized mentor hash are pinned
+without increasing any test budget. Moonhowl's actual browser journey passes in
+63.6s under the unchanged 120s bound. It proves 0/1/2 progress, source-linked
+hero/foe HP outcomes, only ordinary Strike XP and an exact persisted reload.
+Root reviewed 1280/320 captures: wrapped evidence, native 44px disclosure,
+no horizontal overflow or browser/model/external errors. Initial harness-only
+failures were signed-zero JSON transport and repeated clicks cancelling a
+pending Pause; exact state assertions remain, with one-shot Pause requests.
+The expanded mobile card remains narrow beside its portrait: later layout
+polish, not a new always-on panel. Inkcap's representative regression passes in
+59.4s, preserving the actual poison 5→3/tonic recovery to 14 and no research
+reward. Root reviewed its two captures too; all four are retained separately.
+The owned preview is closed. Live deployment is pending.
+
+Next recommendation: V04.18a mobile dungeon caption readability. Root verified
+the current 7/4.5-design-pixel mechanism and hazard text in `game-renderer.ts`;
+the existing framing enlarged the rooms, not those captions. Use one responsive
+layout inside the reserved rail, retaining concise labels and exact Status
+consequences, and reuse the actual search→disarm browser journey at 320/1280.
+The read-only council reused `deja "mastery sidegrade settlement"` (session 06)
+and checked the current backlog: Familiar Opening still needs pacing/action/
+policy/balance decisions; settlement chains need a new front-state contract.
+Those larger mechanics remain queued, rather than pretending another research
+clone or a UI-only marker completes them. No implementation of the next slice
+is included here.
+
 ## Gameplay-first council — discovered-room framing (v0.5.148)
 
 Reuses session 09's v147 capture review. The new pure helper accepts public

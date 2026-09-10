@@ -3524,10 +3524,12 @@ function presentViewScreens(): void {
   elements.journalGrowthRecords.replaceChildren(...growthRecords);
 
   const codex = projectCodexView(state);
-  const previousResearch = elements.codexGrid.querySelector<HTMLDetailsElement>(".codex-research-evidence");
   const sameResearchCampaign = elements.codexGrid.dataset.researchCampaign === state.campaignId;
-  const researchWasOpen = sameResearchCampaign && previousResearch?.open === true;
-  const researchHadFocus = sameResearchCampaign && previousResearch?.querySelector("summary") === document.activeElement;
+  const previousResearch = new Map(sameResearchCampaign
+    ? Array.from(elements.codexGrid.querySelectorAll<HTMLDetailsElement>(".codex-research-evidence"), (details) => [
+      details.dataset.taskId,
+      { open: details.open, focused: details.querySelector("summary") === document.activeElement },
+    ] as const) : []);
   elements.codexRecorded.textContent = String(codex.recordedCount);
   elements.codexLearned.textContent = String(codex.learnedCount);
   elements.codexHeld.textContent = String(codex.heldCount);
@@ -3695,7 +3697,7 @@ function presentViewScreens(): void {
       const label = document.createElement("div");
       label.className = "codex-research-heading";
       const title = document.createElement("h4");
-      title.textContent = "Study False Treasure";
+      title.textContent = research.title;
       const count = document.createElement("strong");
       count.textContent = `${research.progress}/2`;
       label.append(title, count);
@@ -3711,7 +3713,8 @@ function presentViewScreens(): void {
         : "Technique application recorded. A different observation is still needed.");
       const evidence = document.createElement("details");
       evidence.className = "codex-research-evidence";
-      evidence.open = researchWasOpen;
+      evidence.dataset.taskId = research.taskId;
+      evidence.open = previousResearch.get(research.taskId)?.open === true;
       const toggle = document.createElement("summary");
       toggle.textContent = "Observed evidence";
       const records = document.createElement("ol");
@@ -3727,15 +3730,27 @@ function presentViewScreens(): void {
         record.dataset.sourceTurn = String(fact.sourceTurn);
         record.dataset.combatId = fact.combatId;
         record.dataset.targetId = fact.targetId;
+        record.dataset.potency = String(fact.potency);
         record.textContent = text;
         if ("applicationEventId" in fact) {
           record.dataset.applicationEvent = fact.applicationEventId;
           record.dataset.healthBefore = String(fact.healthBefore);
           record.dataset.amount = String(fact.amount);
           record.dataset.healthAfter = String(fact.healthAfter);
+          record.dataset.durationBefore = String(fact.durationBefore);
+          record.dataset.durationAfter = String(fact.durationAfter);
+          if ("damageEventId" in fact) {
+            record.dataset.intentEvent = fact.intentEventId;
+            record.dataset.damageEvent = fact.damageEventId;
+            record.dataset.strikeTargetId = fact.strikeTargetId;
+            record.dataset.strikeAction = fact.action;
+            record.dataset.strikeAbilityId = fact.abilityId ?? "";
+            record.dataset.targetHealthBefore = String(fact.targetHealthBefore);
+            record.dataset.damage = String(fact.damage);
+            record.dataset.targetHealthAfter = String(fact.targetHealthAfter);
+          }
         } else {
           record.dataset.abilityId = fact.abilityId;
-          record.dataset.potency = String(fact.potency);
           record.dataset.duration = String(fact.duration);
           record.dataset.targetHealthAfter = String(fact.targetHealthAfter);
         }
@@ -3764,7 +3779,9 @@ function presentViewScreens(): void {
   }
   elements.codexGrid.replaceChildren(...codexCards);
   elements.codexGrid.dataset.researchCampaign = state.campaignId;
-  if (researchHadFocus) elements.codexGrid.querySelector<HTMLElement>(".codex-research-evidence > summary")?.focus({ preventScroll: true });
+  const focusedResearch = Array.from(elements.codexGrid.querySelectorAll<HTMLDetailsElement>(".codex-research-evidence"))
+    .find((details) => previousResearch.get(details.dataset.taskId)?.focused === true);
+  focusedResearch?.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
   elements.codexOverflow.hidden = codex.hiddenCount === 0;
   elements.codexOverflow.textContent = codex.hiddenCount === 0
     ? ""

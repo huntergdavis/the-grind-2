@@ -81,7 +81,7 @@ Immediate queue:
     and preserve saves, reduced-motion readability and existing controls. No
     new panel or navigation. This improves the miniature action but does not by
     itself solve narrow-screen canvas-caption typography, which remains noted.
-11. **Next — V04.16e2, Lantern Wolf: study Moonhowl.** Extend field research
+11. **In progress — V04.16e2, Lantern Wolf: study Moonhowl (v0.5.149).** Extend field research
     with one fixed task: witness the actual wolf apply weakening to the hero,
     then witness the hero strike while that same application is still active.
     Join the status tick, intent and actual damage receipt; an overwritten or
@@ -90,6 +90,14 @@ Immediate queue:
     not a guaranteed final-damage difference through armor/Guard/minimum damage.
     Preserve Inkcap evidence on migration and reuse Codex disclosures. No power
     grant, actor-policy change, hidden comparison or general research framework.
+12. **Next — V04.18a presentation subset, mobile dungeon caption readability.**
+    Replace fixed 7/4.5-design-pixel receipt typography with a responsive caption
+    layout for the existing reserved top rail. Keep a readable narrow-screen
+    headline and concise detail; full exact consequences remain in Status.
+    Preserve discovered-room framing, reduced motion and all save bytes. Reuse
+    the actual search→disarm journey at 320/1280; no new panel, hidden facts,
+    mechanics, inference or expanded test matrix. Existing landmark collision
+    suppression already works and should not be reimplemented.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -561,6 +569,55 @@ service-worker cache are verified. Entry `index-DX3JuEYu.js`, the unchanged
 `simulation.worker-DVTUICeY.js` and CSS exactly match the built bytes; both
 framing/renderer source-map modules match the commit. The closer dungeon view
 is live on hunterdavis.com. Lantern Wolf/Moonhowl field research is next.
+
+### V04.16e2 — Lantern Wolf: study Moonhowl (v0.5.149, in progress)
+
+Reuses `deja "Moonhowl study"`, council session 09's 2026-09-09 18:17:08
+recommendation. A second fixed Codex study observes the real Lantern Wolf's
+weakening application to a surviving hero, then that hero's actual strike while
+the same application remains active. The second receipt joins the intent,
+zero-health-loss weakening tick (2→1) and later enemy-target damage event. It
+keeps hero-status HP and foe-strike HP separate. Overwritten, expired, pruned,
+foreign or fatal sources, Guard and restorative items cannot complete the study.
+
+The clue teaches reduced raw strike power and no direct health drain from
+weakening, not a guaranteed damage difference through armor or Guard. The
+existing Codex card shows 0/2→1/2→2/2 with its native progress meter and collapsed
+evidence. Each study retains its own disclosure/focus state. Its public study
+title is not a learned technique: unrevealed ability mechanics and provenance
+remain unavailable. No Watch panel, CSS, power grant, research XP, ability,
+decision-policy, combat rule, narrator or compact-ledger change is included.
+
+Depth schema 24 wraps validated existing Inkcap proof and an empty Moonhowl
+study in field-research schema 2. Old partial/completed Inkcap receipts remain
+exact; old wolf lore/history never receives retrospective credit. Malformed or
+future evidence fails closed rather than being erased. Both fixed studies keep
+bounded proof after the combat history is gone.
+
+120 focused research/UI/migration/state tests pass. Version, boundaries,
+TypeScript and production build pass. Ten seeded 1,000-turn final snapshots
+match released v147/v148 hashes after removing only the new wrapper/Moonhowl
+record; existing Inkcap, gameplay and all other fields remain unchanged.
+All ten canonical saves resume exactly and legacy snapshots migrate with empty
+Moonhowl. Nine of these journeys completed the study. New raw save hashes were
+pinned after that audit; the existing mentor assertion retains the released
+normalized journey and its unchanged test budget. Independent council review
+finds no blocker. The natural Lantern Wolf browser journey passes in 63.6s under
+the unchanged 120s budget: actual 0/2→1/2→2/2, hero HP 17→17 on weakening,
+foe HP 46→33 on the later Strike, and only the existing eight Strike XP. Both
+1280/320 captures were root-reviewed; evidence wraps without horizontal
+overflow, has a native 44px disclosure target and retains exact saves through
+reload. No browser errors, model calls or external requests occurred.
+
+Earlier browser attempts exposed test-fixture signed-zero JSON normalization
+and a repeated Pause-click race in the harness, not a research mechanic defect.
+One-shot pause requests preserve exact single-step equality and original time
+limits. The existing Inkcap journey passes in 59.4s with that same correction,
+preserving its real poison 5→3 followed by tonic recovery to 14, without research
+power or XP. All four 1280/320 captures were root-reviewed; the owned preview is
+closed. Live deployment is pending. A later Codex mobile-layout
+cleanup can give expanded evidence more width than the current portrait column
+permits; the default evidence remains collapsed.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

@@ -402,8 +402,13 @@ describe("view-only screen projections", () => {
           },
         },
       });
-      expect(mismatched.monsters[0]).toMatchObject({ techniqueStatus: "unverified", technique: null });
-      expect(JSON.stringify(mismatched)).not.toContain(lore.secretTechniqueName);
+      expect(mismatched.monsters[0]).toMatchObject({ techniqueStatus: "unverified", technique: null, discoveryOutcome: null });
+      expect(mismatched.monsters[0]!.fieldResearch).toMatchObject({
+        taskId: "lantern-wolf:moonhowl@1", title: "Study Moonhowl", progress: 0,
+        clue: null, application: null, aftereffect: null,
+      });
+      const learnedTechniqueView = { ...mismatched, monsters: mismatched.monsters.map(({ fieldResearch: _publicStudy, ...card }) => card) };
+      expect(JSON.stringify(learnedTechniqueView)).not.toContain(lore.secretTechniqueName);
     }
 
     for (const mismatch of [
@@ -419,8 +424,13 @@ describe("view-only screen projections", () => {
           discoveries: [{ ...discovery, ...mismatch }],
         },
       });
-      expect(mismatched.monsters[0]).toMatchObject({ techniqueStatus: "unverified", technique: null });
-      expect(JSON.stringify(mismatched)).not.toContain(lore.secretTechniqueName);
+      expect(mismatched.monsters[0]).toMatchObject({ techniqueStatus: "unverified", technique: null, discoveryOutcome: null });
+      expect(mismatched.monsters[0]!.fieldResearch).toMatchObject({
+        taskId: "lantern-wolf:moonhowl@1", title: "Study Moonhowl", progress: 0,
+        clue: null, application: null, aftereffect: null,
+      });
+      const learnedTechniqueView = { ...mismatched, monsters: mismatched.monsters.map(({ fieldResearch: _publicStudy, ...card }) => card) };
+      expect(JSON.stringify(learnedTechniqueView)).not.toContain(lore.secretTechniqueName);
     }
   });
 
