@@ -5,6 +5,32 @@ import type { WorldState } from "../src/core/types";
 import { dungeonTrapAt, projectDungeonSearchExits, resolveDungeonTrapCheck } from "../src/depth/dungeon";
 import { effectiveAttribute, heroMechanicalLevel } from "../src/depth/rpg";
 import { selectDungeonEntryPlan, stepDepth } from "../src/depth/state";
+import { projectDungeonFraming } from "../src/render/dungeon-framing";
+
+function publicFrame(world: WorldState) {
+  const dungeon = world.depth.dungeon!;
+  const known = new Set(dungeon.discoveredCellIds);
+  const frame = projectDungeonFraming(dungeon.cells.filter((cell) => known.has(cell.id)).map(({ x, y }) => ({ x, y })));
+  if (frame === null) throw new Error("The canonical dungeon must have public rooms to frame");
+  return frame;
+}
+
+function expectFrame(stage: Record<string, string | undefined>, world: WorldState): void {
+  const frame = publicFrame(world);
+  expect(stage).toMatchObject({ dungeonFraming: "discovered-rooms", dungeonFrameCellSize: String(frame.cellSize),
+    dungeonFrameOffset: `${frame.offsetX},${frame.offsetY}`,
+    dungeonFrameBounds: `${frame.bounds.minX},${frame.bounds.minY},${frame.bounds.maxX},${frame.bounds.maxY}`,
+    dungeonFrameRooms: String(frame.roomCount) });
+}
+
+async function pauseOnReady(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app")!;
+    if (app.dataset.presentationPaused !== "true") document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+}
 
 function cautiousDungeon(): WorldState {
   // The bounded lookup found this naturally generated one-exit entry. Only the
@@ -83,7 +109,9 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     }, fixture.seed);
     expect(baseline).toMatchObject({ skill: 10, roll: 0, total: 10, difficulty: 11, success: false });
     await page.addInitScript((saved) => {
-      sessionStorage.setItem(`the-grind-2:campaign:${saved.campaignId}`, JSON.stringify(saved));
+      const key = `the-grind-2:campaign:${saved.campaignId}`;
+      // Reload the actually persisted result, never replace it with the fixture.
+      if (sessionStorage.getItem(key) === null) sessionStorage.setItem(key, JSON.stringify(saved));
       sessionStorage.setItem("the-grind-2:activeCampaignId", saved.campaignId);
       localStorage.setItem(`the-grind-2:last-active:${saved.campaignId}`, String(Date.now() + 3_600_000));
       localStorage.setItem("the-grind-2:play-mode:v1", '{"schemaVersion":1,"mode":"deterministic"}');
@@ -93,17 +121,15 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("./", { timeout: 25_000 });
-    await page.waitForFunction(() => {
-      if (document.documentElement.dataset.ready !== "true") return false;
-      const app = document.querySelector<HTMLElement>("#app")!;
-      if (app.dataset.presentationPaused !== "true") document.querySelector<HTMLButtonElement>("#pause-button")!.click();
-      return app.dataset.presentationPaused === "true";
-    }, undefined, { polling: 20, timeout: 20_000 });
+    await pauseOnReady(page);
     const initial = await presentation(page, fixture.campaignId);
     expect(JSON.parse(initial.saved!)).toEqual(fixture);
     expect(initial.stage.dungeonHeroCell).toBe(dungeon.currentCellId);
     expect(initial.stage.dungeonSearch).toBeUndefined();
     expect(initial.traversal.trapsArmed).toBe("0");
+    expectFrame(initial.stage, fixture);
+    expect(publicFrame(fixture)).toMatchObject({ cellSize: 40, roomCount: 2, bounds: { minX: 0, minY: 0, maxX: 0, maxY: 1 } });
+    expect(initial.stage.dungeonHeroScale).toBe("0.8");
     milestone("canonical hidden trap loaded; no public hazard marker or search credit");
 
     const searched = await automaticStep(page, fixture);
@@ -121,6 +147,8 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     expect(dungeonTrapAt(searched.depth.dungeon!, targetId)?.phase).toBe("detected");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(searched)))).toEqual(searched);
     const shown = await presentation(page, fixture.campaignId);
+    expectFrame(shown.stage, searched);
+    expect(publicFrame(searched)).toEqual(publicFrame(fixture));
     expect(shown.stage).toMatchObject({ dungeonSearch: "marked", dungeonSearchCell: dungeon.currentCellId,
       dungeonSearchTick: String(searched.tick), dungeonSearchEvent: source.id, dungeonSearchExits: "south",
       dungeonSearchDiscoveries: targetId, dungeonSearchResult: source.consequence,
@@ -131,18 +159,40 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
       text: "TRAP MARKED · 1 TRAP MARKED · STILL ARMED", title: source.consequence });
     milestone("actual search spends one turn: same roll +2 marks trap, no movement, HP or XP");
 
-    for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
-      await page.setViewportSize(viewport);
-      await page.locator("#stage").scrollIntoViewIfNeeded();
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-      if (process.env.TG2_VISUAL_CAPTURE === "1") {
-        const path = testInfo.outputPath(`dungeon-search-${viewport.width}.png`);
-        await page.screenshot({ path, timeout: 8_000 });
-        await testInfo.attach(`Dungeon search ${viewport.width}`, { path, contentType: "image/png" });
+    const captureFrame = async (phase: "search" | "disarm", world: WorldState): Promise<void> => {
+      for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
+        await page.setViewportSize(viewport);
+        await page.locator("#stage").scrollIntoViewIfNeeded();
+        const layout = await page.evaluate(() => ({
+          fits: document.documentElement.scrollWidth <= innerWidth + 1,
+          stage: { ...document.querySelector<HTMLElement>("#stage")!.dataset },
+        }));
+        expect(layout.fits).toBe(true);
+        expectFrame(layout.stage, world);
+        if (phase === "search") {
+          expect(layout.stage.dungeonFrameCellSize).toBe("40");
+          expect(layout.stage.dungeonHeroScale).toBe("0.8");
+        } else {
+          expect(layout.stage.dungeonAlertPlacement).toBe("reserved-top-rail");
+          expect(layout.stage.dungeonTrapResult).toBe(world.scene.consequence);
+        }
+        if (process.env.TG2_VISUAL_CAPTURE === "1") {
+          const path = testInfo.outputPath(`dungeon-${phase}-${viewport.width}.png`);
+          await page.screenshot({ path, timeout: 8_000 });
+          await testInfo.attach(`Dungeon ${phase} ${viewport.width}`, { path, contentType: "image/png" });
+        }
+        milestone(`${viewport.width}px discovered-room ${phase} frame captured`);
       }
-      milestone(`${viewport.width}px stationary search captured`);
-    }
+    };
+    await captureFrame("search", searched);
     expect((await presentation(page, fixture.campaignId)).saved).toBe(shown.saved);
+    await page.reload({ timeout: 25_000 });
+    await pauseOnReady(page);
+    const reloaded = await presentation(page, fixture.campaignId);
+    expect(reloaded.saved).toBe(shown.saved);
+    expectFrame(reloaded.stage, searched);
+    expect(reloaded.stage.dungeonSearchEvent).toBe(source.id);
+    milestone("actual persisted search reload keeps the exact public camera and save");
     const entered = await automaticStep(page, searched);
     expect(entered.chronicle.at(-1)?.commandType).toBe("move-dungeon");
     expect(entered.depth.dungeon!.currentCellId).toBe(targetId);
@@ -153,6 +203,10 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     expect(enteredView.stage.dungeonSearch).toBeUndefined();
     expect(enteredView.stage.dungeonHeroCell).toBe(targetId);
     expect(enteredView.stage.dungeonTrap).toBe("armed");
+    expectFrame(enteredView.stage, entered);
+    expect(publicFrame(entered).roomCount).toBeGreaterThan(publicFrame(searched).roomCount);
+    expect(publicFrame(entered).bounds).not.toEqual(publicFrame(searched).bounds);
+    expect(enteredView.stage.dungeonAlertPlacement).toBe("reserved-top-rail");
     milestone("next automatic action enters the marked room; trap remains armed");
 
     const resolved = await automaticStep(page, entered);
@@ -164,6 +218,24 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     expect(resolved.hero.experience).toBe(entered.hero.experience);
     expect(resolved.depth.dungeon!.search).toEqual(searched.depth.dungeon!.search);
     expect(upgradeWorldState(JSON.parse(JSON.stringify(resolved)))).toEqual(resolved);
+    const resolvedSave = (await presentation(page, fixture.campaignId)).saved;
+    const history = await page.evaluate((eventId) => {
+      // Use the real existing outcome control, then the read-only Status tab.
+      const outcome = document.querySelector<HTMLButtonElement>("#trap-cutaway-outcome")!;
+      if (!outcome.hidden && !outcome.disabled) outcome.click();
+      document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="journal"]')!.click();
+      document.querySelector<HTMLButtonElement>("#journal-status-button")!.click();
+      document.querySelector<HTMLButtonElement>("#journal-status-refresh")!.click();
+      const row = [...document.querySelectorAll<HTMLElement>('#journal-status-list [data-source="chronicle"]')]
+        .find((entry) => entry.dataset.eventId === eventId);
+      return { source: row?.dataset.source, eventId: row?.dataset.eventId,
+        consequence: row?.querySelector(".journal-status-consequence")?.textContent };
+    }, resolved.chronicle.at(-1)!.id);
+    expect(history).toEqual({ source: "chronicle", eventId: resolved.chronicle.at(-1)!.id, consequence: resolved.scene.consequence });
+    await page.evaluate(() => document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="watch"]')!.click());
+    expect((await presentation(page, fixture.campaignId)).saved).toBe(resolvedSave);
+    await captureFrame("disarm", resolved);
+    expect((await presentation(page, fixture.campaignId)).saved).toBe(resolvedSave);
     expect(errors).toEqual([]);
     expect(inference).toEqual([]);
     expect(external).toEqual([]);

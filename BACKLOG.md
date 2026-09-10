@@ -73,7 +73,7 @@ Immediate queue:
    Migrate search history empty. Compact
    ledger support remains deferred. A second species research task is the
    lower-risk alternate, not part of the Inkcap release.
-10. **Next — V04.18a presentation subset, discovered-room framing.** Fit the
+10. **In progress — V04.18a presentation subset, discovered-room framing (v0.5.148).** Fit the
     Watch dungeon camera to publicly discovered room coordinates, with bounded
     zoom/offset and space reserved for the existing receipt rail. Make the hero,
     hazards and known routes larger when only a few rooms are explored. Hidden
@@ -511,6 +511,40 @@ presentation are verified. Entry `index-CGMQT3gp.js` and worker
 `simulation.worker-DVTUICeY.js` contain all 13 checked source-map copies exactly
 matching the corrected commit. Active dungeon searching is live on
 hunterdavis.com; discovered-room framing is next.
+
+### V04.18a — discovered-room framing (v0.5.148, in progress)
+
+Reuses `deja "discovered-room framing"`, council session 09's recommendation
+from the reviewed v0.5.147 search captures. A pure renderer helper frames only
+public discovered coordinates, not hidden room contents or full maze dimensions.
+Rooms, routes, the hero and hazard glyphs share the same centered transform;
+all known rooms stay visible as exploration expands. One or two known rooms
+use 40-pixel design cells instead of 18.86 for the old 7×7 frame. Hero scale
+grows with the room, capped at 0.8 rather than 0.58. Framing is independent of
+coordinate order, duplicate coordinates and JSON reload; it adds no camera save.
+
+The existing trap result box moves out of the maze into the same reserved top
+strip used for mechanism receipts. A short armed/spent caption replaces repeated
+canvas prose; exact consequences remain in the existing Status/Chronicle record
+and source-bound result attribute. Search/shrine/trap receipts suppress the
+otherwise competing landmark caption. No panel, navigation, inference, command,
+resource, reward, schema or policy changes. The simulation worker is unchanged.
+
+Thirty-four focused framing/layout/search/visibility tests pass, including full
+24×24 known-room containment, public-coordinate stability and invalid-input
+handling. Version, boundaries,
+TypeScript and production build pass. Independent review finds no blocker:
+fixed-size halos can extend just outside the camera's room gutter on the largest
+map but stay inside the visible background and clear of the receipt rail.
+Existing narrow-screen caption size and landmark/key-gate caption competition
+remain noted follow-ups. The first strengthened built-browser journey passes
+in 51.8 seconds under the unchanged 120-second budget. Actual search leaves the
+camera unchanged; entry expands known bounds; a persisted reload restores the
+exact framing and saved bytes. The real failed disarm retains its exact native
+Status consequence while the stage uses the compact top rail. Outcome controls,
+history browsing and 1280/320 resizing do not alter the saved game. All four
+search/disarm captures were reviewed; no overlap, overflow, browser errors,
+inference or external requests. Deployment is pending.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

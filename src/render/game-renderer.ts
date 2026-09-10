@@ -103,6 +103,7 @@ import {
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 import { projectPaidInnRestScene } from "./paid-inn-rest";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
+import { projectDungeonFraming } from "./dungeon-framing";
 import {
   projectCounterDuelPatternBreakSignature,
   type PatternBreakSignatureV1,
@@ -1110,6 +1111,7 @@ export class GameRenderer {
     delete this.host.dataset.dungeonTriggeredTraps;
     delete this.host.dataset.dungeonTrapKind;
     delete this.host.dataset.dungeonAlertLabel;
+    delete this.host.dataset.dungeonAlertPlacement;
     delete this.host.dataset.dungeonAlertBannerResolution;
     delete this.host.dataset.dungeonAlertDetailResolution;
     delete this.host.dataset.dungeonAlertTextResolution;
@@ -1118,6 +1120,12 @@ export class GameRenderer {
     delete this.host.dataset.dungeonFrontierCell;
     delete this.host.dataset.dungeonNextDirections;
     delete this.host.dataset.dungeonHeroCell;
+    delete this.host.dataset.dungeonHeroScale;
+    delete this.host.dataset.dungeonFraming;
+    delete this.host.dataset.dungeonFrameCellSize;
+    delete this.host.dataset.dungeonFrameOffset;
+    delete this.host.dataset.dungeonFrameBounds;
+    delete this.host.dataset.dungeonFrameRooms;
     delete this.host.dataset.dungeonSearch;
     delete this.host.dataset.dungeonSearchCell;
     delete this.host.dataset.dungeonSearchTick;
@@ -5190,12 +5198,18 @@ export class GameRenderer {
       this.drawHero(state, 160, 103, palette);
       return;
     }
-    const areaX = 44;
-    const areaY = 24;
-    const cellSize = Math.min(232 / dungeon.width, 132 / dungeon.height);
-    const offsetX = areaX + (232 - dungeon.width * cellSize) / 2;
-    const offsetY = areaY + (132 - dungeon.height * cellSize) / 2;
     const discovered = new Set(dungeon.discoveredCellIds);
+    const discoveredCells = dungeon.cells.filter((cell) => discovered.has(cell.id));
+    // Only public coordinates frame the scene. Unseen rooms, features and
+    // maze dimensions cannot move the camera or expose their existence.
+    const framing = projectDungeonFraming(discoveredCells.map(({ x, y }) => ({ x, y })));
+    if (framing === null) return;
+    const { cellSize, offsetX, offsetY, bounds } = framing;
+    this.host.dataset.dungeonFraming = "discovered-rooms";
+    this.host.dataset.dungeonFrameCellSize = String(cellSize);
+    this.host.dataset.dungeonFrameOffset = `${offsetX},${offsetY}`;
+    this.host.dataset.dungeonFrameBounds = `${bounds.minX},${bounds.minY},${bounds.maxX},${bounds.maxY}`;
+    this.host.dataset.dungeonFrameRooms = String(framing.roomCount);
     const visited = new Set(dungeon.visitedCellIds);
     const cellsById = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
     const traps = projectDungeonTraps(dungeon);
@@ -5235,6 +5249,10 @@ export class GameRenderer {
       this.host.dataset.dungeonLandmark = landmark.kind;
       this.host.dataset.dungeonLandmarkStatus = landmark.status;
       if (landmark.cellId !== null) this.host.dataset.dungeonLandmarkCell = landmark.cellId;
+    }
+    // A transient result owns the existing top strip; do not draw the landmark
+    // caption underneath it. Its factual status remains in the normal HUD.
+    if (landmark !== null && hazardBeat === undefined && search === null && shrineUse === null) {
       const landmarkCopy = landmark.status === "promised"
         ? "LANDMARK · FAR-STAIR SHRINE"
         : landmark.status === "mapped"
@@ -5278,7 +5296,6 @@ export class GameRenderer {
       this.host.dataset.dungeonTrapKind = hazardBeat.kind;
       this.host.dataset.dungeonTrapResult = state.scene.consequence;
     }
-    const discoveredCells = dungeon.cells.filter((cell) => discovered.has(cell.id));
     for (const cell of discoveredCells) {
       const x = offsetX + cell.x * cellSize;
       const y = offsetY + cell.y * cellSize;
@@ -5549,8 +5566,10 @@ export class GameRenderer {
       const y = offsetY + (current.y + 0.5) * cellSize;
       this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
       this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
-      this.drawHero(state, x, y + cellSize * 0.05, palette, Math.max(0.13, Math.min(0.58, cellSize / 48)));
+      const heroScale = Math.max(0.08, Math.min(0.8, cellSize / 48));
+      this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale);
       this.host.dataset.dungeonHeroCell = current.id;
+      this.host.dataset.dungeonHeroScale = String(heroScale);
       if (search !== null) {
         // These marks inspect already-public exits, never an unrevealed hazard.
         // They remain complete and stationary under reduced motion.
@@ -5634,12 +5653,6 @@ export class GameRenderer {
         }
         this.lightLayer.addChild(focus);
       }
-      const currentY = current === undefined
-        ? designHeight / 2
-        : offsetY + (current.y + 0.5) * cellSize;
-      const panelX = 124;
-      const panelY = currentY < designHeight / 2 ? 130 : 24;
-      const panelWidth = 120;
       const alertLabel = triggeredTrap !== undefined ? "TRAP SPRUNG" : detectedTrap !== undefined ? "TRAP DETECTED" : "TRAP DISARMED";
       const alertTextResolution = projectedTextResolution(
         this.app.renderer.resolution,
@@ -5652,18 +5665,21 @@ export class GameRenderer {
         roundPixels: true,
       });
       const result = new Text({
-        text: `${dungeonTrapKindLabel(hazardBeat.kind)} · ${state.scene.consequence}`,
-        style: { fontFamily: "Georgia, serif", fontSize: 5.3, fill: 0xffedc2, wordWrap: true, wordWrapWidth: panelWidth - 12, lineHeight: 6.6 },
+        // The exact consequence remains in Status/Chronicle and the existing
+        // dungeonTrapResult receipt. Keep this rail clear of the known rooms.
+        text: `${dungeonTrapKindLabel(hazardBeat.kind).toUpperCase()} · ${detectedTrap !== undefined ? "STILL ARMED" : "NO LONGER ARMED"}`,
+        style: { fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xffedc2, fontWeight: "700", letterSpacing: 0.35 },
         resolution: alertTextResolution,
         roundPixels: true,
       });
       this.scaleSensitiveTexts.push(banner, result);
       this.dungeonAlertTexts.push(banner, result);
       this.host.dataset.dungeonAlertLabel = alertLabel;
-      banner.position.set(panelX + 6, panelY + 4);
-      result.position.set(panelX + 6, panelY + 15);
-      this.worldLayer.addChild(rect(panelX, panelY, panelWidth, Math.max(29, result.height + 20), 0x171014));
-      this.worldLayer.addChild(rect(panelX, panelY, panelWidth, 12, triggeredTrap !== undefined ? 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d));
+      this.host.dataset.dungeonAlertPlacement = "reserved-top-rail";
+      banner.position.set(110, 5);
+      result.position.set(110, 15);
+      this.worldLayer.addChild(rect(101, 2, 181, 23, 0x111820, 0.94));
+      this.worldLayer.addChild(rect(101, 2, 4, 23, triggeredTrap !== undefined ? 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d));
       this.worldLayer.addChild(banner);
       this.worldLayer.addChild(result);
     }

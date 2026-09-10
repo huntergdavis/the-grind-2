@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — discovered-room framing (v0.5.148, in progress)
+
+Reuses session 09's v147 capture review. The new pure helper accepts public
+coordinates only, fits every known room with bounded enlargement and feeds one
+shared renderer transform. Hidden geometry, trap contents and full maze size
+cannot influence framing. Search does not shift the camera when knowledge of
+room coordinates is unchanged. No canonical, ledger or narrator change.
+
+The hero grows with early rooms; trap outcomes use the existing fixed top strip
+instead of a floating prose box over known routes. Exact outcomes remain in the
+existing record. New framing/hero/alert attributes reset outside the scene.
+Independent review finds no blocking leak, clipping, stale cue or false hazard
+claim. Search/shrine/trap landmark-label competition is resolved. Remaining
+nonblocking notes: fixed halo minima slightly exceed the room-framing rectangle
+at 24 rows but remain inside the stage background and below the receipt strip;
+existing landmark/key-gate overlap and small canvas captions need later polish.
+
+Thirty-four focused framing/layout/search/visibility tests, version/boundaries,
+TypeScript and production build pass. The first actual search/entry/failed-disarm
+browser journey passes in 51.8 seconds under its unchanged 120-second budget.
+Search framing remains unchanged, entry expands only known bounds, and an actual
+reload preserves the exact camera and save. The source-bound consequence remains
+readable in native Status; outcome/history/resize actions never change saved
+bytes. Four 1280/320 search/disarm captures were independently and root-reviewed:
+larger centered hero/rooms, separate rail, no interior prose box or overflow.
+Zero browser errors, inference or external requests; owned preview closed.
+Deployment is pending.
+
 ## Gameplay-first council — cautious dungeon searching (v0.5.147)
 
 Implements the previously recommended V04.18a active-search subset: public
