@@ -102,6 +102,7 @@ import {
 } from "../ui/field-note-resolution-presentation";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 import { projectPaidInnRestScene } from "./paid-inn-rest";
+import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import {
   projectCounterDuelPatternBreakSignature,
   type PatternBreakSignatureV1,
@@ -1117,6 +1118,14 @@ export class GameRenderer {
     delete this.host.dataset.dungeonFrontierCell;
     delete this.host.dataset.dungeonNextDirections;
     delete this.host.dataset.dungeonHeroCell;
+    delete this.host.dataset.dungeonSearch;
+    delete this.host.dataset.dungeonSearchCell;
+    delete this.host.dataset.dungeonSearchTick;
+    delete this.host.dataset.dungeonSearchEvent;
+    delete this.host.dataset.dungeonSearchExits;
+    delete this.host.dataset.dungeonSearchDiscoveries;
+    delete this.host.dataset.dungeonSearchResult;
+    delete this.host.dataset.dungeonSearchVisual;
     delete this.host.dataset.dungeonKeyStatus;
     delete this.host.dataset.dungeonGateStatus;
     delete this.host.dataset.dungeonLandmark;
@@ -5190,6 +5199,7 @@ export class GameRenderer {
     const visited = new Set(dungeon.visitedCellIds);
     const cellsById = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
     const traps = projectDungeonTraps(dungeon);
+    const search = projectDungeonSearchView(state);
     const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
     const currentKnownTrap = traps.find((trap) => trap.current);
     const triggeredTrap = currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
@@ -5199,16 +5209,26 @@ export class GameRenderer {
     const wayfinding = projectDungeonWayfinding(dungeon);
     const keyGate = projectDungeonKeyGate(dungeon);
     const landmark = projectDungeonLandmark(dungeon);
-    const sightedKeyMove = projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
+    const sightedKeyMove = search === null ? projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey) : undefined;
     const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
     const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
     this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
     this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status !== "armed").length);
-    this.host.dataset.dungeonTraversalMode = wayfinding.mode;
-    this.host.dataset.dungeonBreadcrumbLength = String(Math.max(0, wayfinding.routeCellIds.length - 1));
-    this.host.dataset.dungeonNextDirections = wayfinding.nextPassageDirections.join(",");
+    this.host.dataset.dungeonTraversalMode = search === null ? wayfinding.mode : "search";
+    this.host.dataset.dungeonBreadcrumbLength = search === null ? String(Math.max(0, wayfinding.routeCellIds.length - 1)) : "0";
+    this.host.dataset.dungeonNextDirections = search === null ? wayfinding.nextPassageDirections.join(",") : "";
+    if (search !== null) {
+      this.host.dataset.dungeonSearch = search.outcome;
+      this.host.dataset.dungeonSearchCell = search.cellId;
+      this.host.dataset.dungeonSearchTick = String(search.tick);
+      this.host.dataset.dungeonSearchEvent = search.eventId;
+      this.host.dataset.dungeonSearchExits = search.exits.map((exit) => exit.direction).join(",");
+      this.host.dataset.dungeonSearchDiscoveries = search.discoveries.map((discovery) => discovery.cellId).join(",");
+      this.host.dataset.dungeonSearchResult = search.consequence;
+      this.host.dataset.dungeonSearchVisual = "stationary-hero|public-exit-inspection";
+    }
     if (keyGate?.key !== null && keyGate?.key !== undefined) this.host.dataset.dungeonKeyStatus = keyGate.key.status;
     if (keyGate?.gate !== null && keyGate?.gate !== undefined) this.host.dataset.dungeonGateStatus = keyGate.gate.status;
     if (landmark !== null) {
@@ -5245,7 +5265,7 @@ export class GameRenderer {
       this.host.dataset.dungeonShrineHealth = `${shrineUse.healthBefore}/${shrineUse.healthRestored}/${shrineUse.healthAfter}`;
       this.host.dataset.dungeonShrineMana = `${shrineUse.manaBefore}/${shrineUse.manaRestored}/${shrineUse.manaAfter}`;
     }
-    if (wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
+    if (search === null && wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
       ? currentKnownTrap !== undefined
         ? currentKnownTrap.status
@@ -5267,7 +5287,7 @@ export class GameRenderer {
       );
     }
 
-    const routeCells = wayfinding.routeCellIds.flatMap((cellId) => {
+    const routeCells = (search === null ? wayfinding.routeCellIds : []).flatMap((cellId) => {
       const cell = cellsById.get(cellId);
       return cell === undefined ? [] : [{ x: offsetX + (cell.x + 0.5) * cellSize, y: offsetY + (cell.y + 0.5) * cellSize }];
     });
@@ -5483,7 +5503,7 @@ export class GameRenderer {
       }
     }
 
-    if (wayfinding.frontierCellId !== null) {
+    if (search === null && wayfinding.frontierCellId !== null) {
       const frontier = cellsById.get(wayfinding.frontierCellId);
       if (frontier !== undefined) {
         const x = offsetX + frontier.x * cellSize;
@@ -5502,7 +5522,7 @@ export class GameRenderer {
 
     const passageAnchorId = wayfinding.mode === "explore" ? wayfinding.frontierCellId : dungeon.currentCellId;
     const passageAnchor = passageAnchorId === null ? undefined : cellsById.get(passageAnchorId);
-    const passageDirections = wayfinding.nextPassageDirections;
+    const passageDirections = search === null ? wayfinding.nextPassageDirections : [];
     if (passageAnchor !== undefined && passageDirections.length > 0) {
       const arrows = new Graphics();
       const centerX = offsetX + (passageAnchor.x + 0.5) * cellSize;
@@ -5531,6 +5551,22 @@ export class GameRenderer {
       this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
       this.drawHero(state, x, y + cellSize * 0.05, palette, Math.max(0.13, Math.min(0.58, cellSize / 48)));
       this.host.dataset.dungeonHeroCell = current.id;
+      if (search !== null) {
+        // These marks inspect already-public exits, never an unrevealed hazard.
+        // They remain complete and stationary under reduced motion.
+        const inspection = new Graphics();
+        for (const exit of search.exits) {
+          const vector = mazeDirectionVector[exit.direction];
+          const centerX = x + vector[0] * cellSize * 0.43;
+          const centerY = y + vector[1] * cellSize * 0.43;
+          const radius = Math.max(1.3, cellSize * 0.12);
+          inspection.circle(centerX, centerY, radius);
+          inspection.moveTo(centerX - vector[1] * radius * 1.55, centerY + vector[0] * radius * 1.55)
+            .lineTo(centerX - vector[1] * radius * 2.3, centerY + vector[0] * radius * 2.3);
+        }
+        inspection.stroke({ color: 0xffd166, width: Math.max(0.8, cellSize * 0.07), alpha: 0.88 });
+        this.worldLayer.addChild(inspection);
+      }
       if (keyGate?.key?.status === "carried") {
         const carriedX = x + Math.max(2.2, cellSize * 0.28);
         const carriedY = y - Math.max(2.2, cellSize * 0.28);
@@ -5553,7 +5589,9 @@ export class GameRenderer {
       }
     }
     const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
-    const mechanismBeat = shrineUse !== null && shrineSummary !== null
+    const mechanismBeat = search !== null
+      ? { title: search.headline, detail: search.detail, color: 0x5b4820 }
+      : shrineUse !== null && shrineSummary !== null
       ? { title: shrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS", detail: shrineSummary, color: 0x275b59 }
       : latestDungeonMessage.includes("finds the Wayfinder Key")
         ? { title: "KEY FOUND", detail: "WAYFINDER KEY · RETURN TO THE SEALED GATE", color: 0x5b4820 }

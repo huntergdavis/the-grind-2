@@ -1,6 +1,10 @@
 import { pick, randomInt } from "../core/rng";
 import type {
   DungeonKeyGateState,
+  DungeonSearchDiscoveryV1,
+  DungeonSearchExitV1,
+  DungeonSearchReceiptV1,
+  DungeonSearchStateV1,
   DungeonShrineUse,
   DungeonState,
   DungeonTrapKind,
@@ -19,6 +23,7 @@ const trapPhases: readonly DungeonTrapPhase[] = ["hidden", "detected", "disarmed
 const names = ["Ashen Archive", "Clockroot Vault", "Hollow Crown", "Moonkennel", "Salt Labyrinth"] as const;
 const validDungeonStateCache = new WeakSet<object>();
 export const dungeonKeyName = "Wayfinder Key";
+export const dungeonSearchBonus = 2 as const;
 
 export type DungeonTraversalMode =
   | "complete"
@@ -154,6 +159,7 @@ export function migrateDungeonTraps(
     layoutVersion: 1,
     keyGate: null,
     latestShrineUse: null,
+    search: createDungeonSearchState(),
     traps: state.cells
       .filter((cell) => cell.feature === "trap")
       .map((cell) => generatedTrap(
@@ -435,6 +441,144 @@ function effectiveNeighbor(
   return neighbor !== null && isDungeonPassageOpen(state, cell.id, neighbor.id) ? neighbor : null;
 }
 
+export function createDungeonSearchState(): DungeonSearchStateV1 {
+  return Object.freeze({ schemaVersion: 1, searchedCellIds: Object.freeze([]), latestReceipt: null });
+}
+
+/** Only public geometry: never inspect a frontier room's feature or hidden trap to admit a search. */
+export function projectDungeonSearchExits(state: DungeonState): readonly DungeonSearchExitV1[] {
+  if (state.completed || !state.visitedCellIds.includes(state.currentCellId)) return Object.freeze([]);
+  const byId = new Map(state.cells.map((cell) => [cell.id, cell]));
+  const current = byId.get(state.currentCellId);
+  if (current === undefined) return Object.freeze([]);
+  return Object.freeze(directions.flatMap((direction) => {
+    if (!current.exits.includes(direction)) return [];
+    const neighbor = effectiveNeighbor(state, byId, current, direction);
+    return neighbor === null || state.visitedCellIds.includes(neighbor.id) || !state.discoveredCellIds.includes(neighbor.id)
+      ? [] : [Object.freeze({ direction, cellId: neighbor.id })];
+  }));
+}
+
+function searchExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+}
+
+function searchInteger(value: unknown, minimum = 0, maximum = Number.MAX_SAFE_INTEGER): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= minimum && (value as number) <= maximum;
+}
+
+/** Validate historical public evidence against the persistent dungeon, not today's frontier/hero attributes. */
+export function isValidDungeonSearchState(
+  value: unknown,
+  dungeon: DungeonState,
+  currentTick = Number.MAX_SAFE_INTEGER,
+): value is DungeonSearchStateV1 {
+  if (!isRecord(value) || !searchExactKeys(value, ["schemaVersion", "searchedCellIds", "latestReceipt"])
+    || value.schemaVersion !== 1 || !searchInteger(currentTick)
+    || !Array.isArray(value.searchedCellIds) || value.searchedCellIds.length > 576
+    || !Array.isArray(dungeon.cells) || !Array.isArray(dungeon.visitedCellIds)
+    || !Array.isArray(dungeon.discoveredCellIds) || !Array.isArray(dungeon.traps)
+    || dungeon.cells.some((cell) => !isRecord(cell) || typeof cell.id !== "string"
+      || !Number.isSafeInteger(cell.x) || !Number.isSafeInteger(cell.y) || !Array.isArray(cell.exits))
+    || dungeon.traps.some((trap) => !isRecord(trap) || typeof trap.cellId !== "string")
+    || (dungeon.keyGate !== null && !isRecord(dungeon.keyGate))
+    || new Set(value.searchedCellIds).size !== value.searchedCellIds.length
+    || value.searchedCellIds.some((id) => typeof id !== "string" || !dungeon.visitedCellIds.includes(id)
+      || !dungeon.cells.some((cell) => cell.id === id))
+    || value.searchedCellIds.length > dungeon.cells.length || value.searchedCellIds.length > dungeon.turns) return false;
+  if (value.latestReceipt === null) return value.searchedCellIds.length === 0;
+  const receipt = value.latestReceipt;
+  if (!isRecord(receipt) || !searchExactKeys(receipt, ["schemaVersion", "dungeonId", "cellId", "tick", "bonus", "exits", "discoveries"])
+    || receipt.schemaVersion !== 1 || receipt.dungeonId !== dungeon.id || receipt.cellId !== value.searchedCellIds.at(-1)
+    || !searchInteger(receipt.tick, 1, currentTick) || receipt.bonus !== dungeonSearchBonus
+    || !Array.isArray(receipt.exits) || receipt.exits.length < 1 || receipt.exits.length > 4
+    || !Array.isArray(receipt.discoveries) || receipt.discoveries.length > receipt.exits.length) return false;
+  const byId = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
+  const room = typeof receipt.cellId === "string" ? byId.get(receipt.cellId) : undefined;
+  if (room === undefined) return false;
+  const exitIds = new Set<string>();
+  let previousDirection = -1;
+  for (const exit of receipt.exits) {
+    if (!isRecord(exit) || !searchExactKeys(exit, ["direction", "cellId"])
+      || !directions.includes(exit.direction as MazeDirection) || typeof exit.cellId !== "string") return false;
+    const direction = exit.direction as MazeDirection;
+    const index = directions.indexOf(direction);
+    const neighbor = effectiveNeighbor(dungeon, byId, room, direction);
+    if (index <= previousDirection || !room.exits.includes(direction) || neighbor?.id !== exit.cellId
+      || !dungeon.discoveredCellIds.includes(exit.cellId) || exitIds.has(exit.cellId)) return false;
+    previousDirection = index;
+    exitIds.add(exit.cellId);
+  }
+  const foundIds = new Set<string>();
+  let previousExit = -1;
+  for (const found of receipt.discoveries) {
+    if (!isRecord(found) || !searchExactKeys(found, ["cellId", "kind", "attribute", "skill", "roll", "total", "difficulty"])
+      || typeof found.cellId !== "string" || !exitIds.has(found.cellId) || foundIds.has(found.cellId)
+      || !trapKinds.includes(found.kind as DungeonTrapKind)
+      || !searchInteger(found.skill) || !searchInteger(found.roll, 0, 3) || !searchInteger(found.total)
+      || !searchInteger(found.difficulty, 10, 14) || found.total !== found.skill + found.roll + dungeonSearchBonus
+      || found.total < found.difficulty) return false;
+    const trap = dungeonTrapAt(dungeon, found.cellId);
+    const index = receipt.exits.findIndex((exit) => (exit as DungeonSearchExitV1).cellId === found.cellId);
+    // A released layout-v2 far-stair trap may later become the layout-v3 shrine; retain its historical evidence.
+    const migratedFarStair = trap === null && dungeon.layoutVersion === 3 && found.cellId === dungeon.exitCellId
+      && dungeon.visitedCellIds.includes(found.cellId) && byId.get(found.cellId)?.feature === "shrine";
+    if (index <= previousExit || found.attribute !== trapAttributes[found.kind as DungeonTrapKind].detect
+      || (!migratedFarStair && (trap === null || trap.phase === "hidden" || trap.kind !== found.kind
+        || trap.detectDifficulty !== found.difficulty))) return false;
+    previousExit = index;
+    foundIds.add(found.cellId);
+  }
+  return true;
+}
+
+export function migrateDungeonSearch(state: DungeonState): DungeonState {
+  if (state.search === undefined) return { ...state, search: createDungeonSearchState() };
+  if (!isValidDungeonSearchState(state.search, state)) throw new TypeError("Dungeon search evidence is malformed");
+  return state;
+}
+
+export function canSearchDungeon(state: DungeonState): boolean {
+  return !state.completed && (state.search === undefined || isValidDungeonSearchState(state.search, state))
+    && !(state.search?.searchedCellIds.includes(state.currentCellId) ?? false)
+    && dungeonTrapAt(state, state.currentCellId)?.phase !== "detected"
+    && projectDungeonSearchExits(state).length > 0;
+}
+
+/** Spend one stationary exploration turn; hidden failures are deliberately absent from the public receipt. */
+export function searchDungeon(state: DungeonState, aptitudes: DungeonTrapAptitudes, seed: string, tick: number): DungeonState {
+  if (!canSearchDungeon(state) || !searchInteger(tick, 1)
+    || (state.search?.latestReceipt !== null && state.search?.latestReceipt !== undefined && tick <= state.search.latestReceipt.tick)
+    || !searchInteger(state.turns, 0, Number.MAX_SAFE_INTEGER - 1)
+    || ![aptitudes.agility, aptitudes.intellect, aptitudes.spirit, aptitudes.level].every((value) => searchInteger(value, 0, Number.MAX_SAFE_INTEGER - 5))) {
+    throw new Error("Dungeon search is unavailable");
+  }
+  const exits = projectDungeonSearchExits(state);
+  const discoveries: DungeonSearchDiscoveryV1[] = [];
+  let searched = state;
+  for (const exit of exits) {
+    const trap = dungeonTrapAt(state, exit.cellId);
+    if (trap?.phase !== "hidden") continue;
+    const check = resolveDungeonTrapCheck(state, exit.cellId, "detect", aptitudes, seed);
+    const total = check.total + dungeonSearchBonus;
+    if (!Number.isSafeInteger(total)) throw new RangeError("Dungeon search arithmetic is outside its bound");
+    if (total < check.difficulty) continue;
+    searched = withDungeonTrapPhase(searched, exit.cellId, "detected");
+    discoveries.push(Object.freeze({ cellId: exit.cellId, kind: check.kind,
+      attribute: trapAttributes[check.kind].detect as "intellect" | "spirit", skill: check.skill,
+      roll: check.roll, total, difficulty: check.difficulty }));
+  }
+  const receipt: DungeonSearchReceiptV1 = Object.freeze({ schemaVersion: 1, dungeonId: state.id,
+    cellId: state.currentCellId, tick, bonus: dungeonSearchBonus, exits, discoveries: Object.freeze(discoveries) });
+  return { ...searched, turns: state.turns + 1,
+    search: Object.freeze({ schemaVersion: 1,
+      searchedCellIds: Object.freeze([...(state.search?.searchedCellIds ?? []), state.currentCellId]), latestReceipt: receipt }),
+    traversalLog: [...state.traversalLog.slice(-63), discoveries.length === 0
+      ? "Searched the visible unexplored exits; no new traps detected."
+      : `Searched the visible unexplored exits; ${discoveries.length} ${discoveries.length === 1 ? "trap detected" : "traps detected"}.`],
+  };
+}
+
 export function projectDungeonKeyGate(state: DungeonState): DungeonKeyGateView | null {
   const gate = state.keyGate;
   if ((state.layoutVersion !== 2 && state.layoutVersion !== 3) || gate === null) return null;
@@ -573,6 +717,7 @@ export function generateDungeon(
     layoutVersion,
     keyGate: generated.keyGate,
     latestShrineUse: null,
+    search: createDungeonSearchState(),
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
     width,
@@ -900,6 +1045,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isValidDungeonState(value: unknown): value is DungeonState {
   if (!isRecord(value)) return false;
+  if (value.search !== undefined && !isValidDungeonSearchState(value.search, value as unknown as DungeonState)) return false;
   if (validDungeonStateCache.has(value)) return true;
   const state = value as unknown as DungeonState;
   if (

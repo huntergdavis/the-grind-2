@@ -271,6 +271,9 @@ function scoreCandidate(
             : feature === "trap"
               ? "the trapped passage is accepted only if other routes are worse"
               : "the passage advances the maze without inventing unknown facts";
+  } else if (command.type === "search-dungeon") {
+    score = 70;
+    reason = "health at or below half calls for one careful look before entering an unexplored passage";
   } else if (command.type === "disarm-dungeon-trap") {
     score = 100;
     reason = "the detected mechanism blocks safe progress and permits one careful attempt";
@@ -461,6 +464,7 @@ function presentationLabels(
       };
     }
     case "disarm-dungeon-trap": return { actionLabel: "attempts to disarm", targetLabel: "the detected mechanism" };
+    case "search-dungeon": return { actionLabel: "searches from this room", targetLabel: "the unexplored passages" };
     case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };

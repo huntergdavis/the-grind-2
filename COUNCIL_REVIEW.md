@@ -2,6 +2,40 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — cautious dungeon searching (v0.5.147, in progress)
+
+Implements the previously recommended V04.18a active-search subset: public
+frontier/health admission, one stationary turn, +2 using the existing fixed
+detection roll, once per room. Zero-HP recovery, current disarming, gate unlock,
+immediately sighted keys and unspent adjacent shrines keep priority. Search
+success is discovery, not disarming or guaranteed safety. Failure receipts reveal
+no hidden checks and match trap-free public geometry.
+
+Depth schema 23 migrates empty bounded search history; one latest source receipt
+retains only public exits and successful discoveries. Historical proof survives
+the existing far-stair trap-to-shrine migration. The renderer uses the existing
+Watch dungeon-map stage, compact mechanism rail and traversal status, not a new
+panel or the top-level atlas tab. Exact latest-command/scene binding prevents
+stale search cues. The narrator and protected compact-ledger edits are unchanged.
+
+Sixty-seven focused engine/policy/projection/existing core checks pass. Independent review finds
+no hidden-knowledge admission or extra reward. A natural seed-8 browser fixture
+has baseline detection 10 vs 11; search reaches 12. Its later disarm naturally
+fails and costs four HP, explicitly proving search is not disarm success.
+Production build, version, boundaries and TypeScript pass. The first browser
+journey passes in 37.6 seconds with all three actions, retained evidence,
+unchanged paused saves, two reviewed captures and zero errors/external/model
+requests. The existing small-screen canvas-label scaling is a nonblocking
+readability follow-up; no new panel was added.
+
+All ten replay prefixes match v146 until their first actual search command.
+The 10,000-turn audit observes 201 searches and 28 discoveries; exact canonical
+save resumes pass. Golden updates reflect these inspected decisions. The mentor
+arc still completes within its unchanged 12,000-step budget (T9229/visit 22),
+retains all no-power checks and does not repeat. One old spent-shrine expectation
+was updated to assert the new finite search followed by its original treasure
+choice; unspent shrine/key priorities remain intact. Deployment pending.
+
 ## Gameplay-first council — Inkcap Mimic field research (v0.5.146)
 
 Reuses the prior council's V04.16e1 dependency review: one source-grounded task,

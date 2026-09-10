@@ -354,6 +354,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "enter-dungeon":
     case "invoke-dungeon-shrine":
     case "move-dungeon":
+    case "search-dungeon":
     case "disarm-dungeon-trap":
     case "unlock-dungeon-gate":
       return "dungeon";
@@ -382,6 +383,8 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "admit-successor-quest":
     case "restock-tonic":
     case "invoke-dungeon-shrine":
+      return 0;
+    case "search-dungeon":
       return 0;
     case "wait":
       return needsCriticalRoadsideRecovery(before) || selectPaidInnRest(before) !== null ? 0 : 1;
@@ -453,6 +456,8 @@ function describeBeat(
   )[0];
   const currentTrap = dungeon === null ? null : dungeonTrapAt(dungeon, dungeon.currentCellId);
   const shrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
+  const dungeonSearch = choice.command.type === "search-dungeon" && dungeon?.search?.latestReceipt?.tick === depth.tick
+    ? dungeon.search.latestReceipt : null;
   const shrineUseSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
   const activeCompanion = depth.companions.active[0];
   const departedCompanion = depth.companions.former.at(-1)?.departure.tick === depth.tick
@@ -559,6 +564,8 @@ function describeBeat(
     dungeon: {
       headline: dungeon === null
         ? "A sealed stair descends."
+        : dungeonSearch !== null
+          ? `${dungeon.name}: ${dungeonSearch.discoveries.length > 0 ? "a careful search marks danger" : "a cautious pause"}.`
         : shrineUse !== null
           ? `${dungeon.name}: the shrine awakens.`
         : trapTriggered
@@ -579,6 +586,8 @@ function describeBeat(
       action:
         dungeon === null
           ? `${state.hero.name} prepares to enter.`
+          : dungeonSearch !== null
+            ? `${state.hero.name} stays in this room and inspects the ${dungeonSearch.exits.map((exit) => exit.direction).join(" / ")} passages.`
           : shrineUse !== null
             ? `${shrineUseSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS"} · ${shrineUseSummary}`
           : trapTriggered
@@ -589,7 +598,7 @@ function describeBeat(
                 ? latestLog ?? `${state.hero.name} follows the Wayfinder mechanism.`
                 : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; the mapped floor reveals no marked hazard.`,
       consequence: dungeon?.traversalLog.at(-1) ?? latestLog ?? "The maze remains unsolved",
-      sensoryIntensity: trapTriggered ? 3 : shrineUse !== null || trapDetected || trapDisarmed || keyFound || gateOpened || crossedGate ? 2 : 1,
+      sensoryIntensity: trapTriggered ? 3 : dungeonSearch !== null || shrineUse !== null || trapDetected || trapDisarmed || keyFound || gateOpened || crossedGate ? 2 : 1,
     },
     battle: {
       headline:
@@ -1389,7 +1398,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 22 ||
+    state.depth.schemaVersion !== 23 ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

@@ -426,6 +426,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "enter-dungeon",
   "invoke-dungeon-shrine",
   "move-dungeon",
+  "search-dungeon",
   "disarm-dungeon-trap",
   "unlock-dungeon-gate",
   "start-combat",

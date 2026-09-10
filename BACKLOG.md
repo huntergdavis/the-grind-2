@@ -62,14 +62,15 @@ Immediate queue:
    old aggregate lore receives no retrospective credit. Completion reveals an
    actionable factual clue, not a stat bonus or new AI policy. Habitat, weather,
    hunting rewards, other species and a general research framework stay deferred.
-9. **Next — V04.18a subset, active dungeon searching.** One deliberate,
+9. **In progress — V04.18a subset, active dungeon searching (v0.5.147).** One deliberate,
    stationary search of a room's unexplored exits can reveal a trap before entry.
-   Reuse the existing deterministic detection/disarming rules and Map glyphs;
+   Reuse the existing deterministic detection/disarming rules and Watch dungeon-map glyphs;
    searching and disarming remain separate actions. Eligibility must use visible
    frontier/hero facts, never hidden trap existence. No repeat-search farming,
-   movement XP, new panel or narrator dependency. Before implementation, settle
-   the bounded detection advantage and search-cost policy; migrate any new
-   search history empty and preserve recovery/key/disarm priorities. Compact
+   movement XP, new panel or narrator dependency. A living hero at half health
+   or below spends one stationary turn for +2 detection on the existing fixed
+   roll, once per room; immediate keys/shrines and recovery/disarming keep priority.
+   Migrate search history empty. Compact
    ledger support remains deferred. A second species research task is the
    lower-risk alternate, not part of the Inkcap release.
 
@@ -435,6 +436,58 @@ the service-worker cache, research markup and CSS match the release. Entry
 checked source-map copies of the research, state, simulation, projection and
 main modules, exactly matching the commit. This first research task is live on
 hunterdavis.com; active dungeon searching is the next council-recommended slice.
+
+### V04.18a — cautious dungeon searching (v0.5.147, in progress)
+
+Reuses `deja "active dungeon searching"`: council session 06's 2026-09-09
+16:44:35 recommendation and the existing separate detection/disarming rules.
+One `search-dungeon` command inspects public, open, unexplored exits from the
+current visited room. Admission depends on visible frontier and hero condition,
+never hidden trap existence or rolls. Only a living hero at half health or below
+pauses to search. Current trap disarming, zero-HP recovery, gate unlocking, an
+immediately sighted Wayfinder Key and an unspent adjacent shrine keep priority.
+
+The action spends one dungeon/world turn, not movement, resources, XP, loot or
+quest progress. It adds +2 to the existing cell-bound detection result, with no
+new random roll, and can only be used once per room. Success marks an adjacent
+trap; entry and a later disarm attempt remain separate. A failed search is not
+a declaration of safety: its public receipt is identical to a trap-free search
+of the same geometry and never contains failed trap identities/checks.
+
+Depth schema 23 migrates old dungeons with empty search history. The bounded
+version-1 record retains searched room IDs and one latest receipt with at most
+four public exits and successful discoveries. Later traversal/disarming preserves
+that historical evidence, including the existing legacy far-stair shrine upgrade.
+No generic search framework, new trap families, supplies or compact-ledger work.
+
+The Watch dungeon-map stage keeps the hero still, adds restrained amber exit
+inspection marks, and suppresses future movement arrows on the search tick.
+An existing compact rail and traversal status report marked-but-armed traps or
+unverified passages. Top-level Map remains the world atlas; no panel, navigation
+change or narrator modification is added. Reduced motion keeps the full static
+result. Sixty-seven focused engine/policy/projection/existing core checks pass,
+as do version, boundaries, TypeScript and the production build. The existing
+spent-shrine policy test now proves one real cautious search followed by its
+original treasure choice; unspent shrine and visible-key priorities still pass.
+
+The v146/current replay audit finds each first behavioral divergence at an actual
+search replacing movement: seeds 0–9 at T81/271/25/26/810/154/17/195/23/18. Earlier
+states match after removing only the new search field/schema. Ten 1,000-turn
+journeys contain 201 searches and 28 discoveries, and every canonical JSON save
+resumes exactly. Their hashes were updated only after this evidence. The finite
+mentor arc completes at T9229/visit 22 inside the unchanged 12,000-step bound;
+no-power checks, 200 further turns without repetition and JSON resume pass.
+
+The first built-browser journey passes in 37.6 seconds within its 120-second
+budget. A naturally generated echo rune fails ordinary detection (10 vs 11),
+is found with the +2 search, then requires separate entry and disarming. That
+actual disarm fails and costs four HP, so the presentation never implies finding
+it guarantees safety. Stationary position, no search XP/HP/quest changes, retained
+receipts, unchanged paused-save bytes and 1280/320px captures pass, with zero
+errors, inference or external requests. Both captures were inspected. At 320px,
+the inherited full-canvas scaling leaves the mechanism-rail label small; native
+hero/status text remains readable without overflow. Queue a contained responsive
+viewing follow-up instead of adding another panel. Deployment is pending.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

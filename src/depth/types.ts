@@ -246,10 +246,44 @@ export interface DungeonShrineUse {
   manaAfter: number;
 }
 
+export interface DungeonSearchExitV1 {
+  readonly direction: MazeDirection;
+  readonly cellId: string;
+}
+
+export interface DungeonSearchDiscoveryV1 {
+  readonly cellId: string;
+  readonly kind: DungeonTrapKind;
+  readonly attribute: "intellect" | "spirit";
+  readonly skill: number;
+  readonly roll: number;
+  readonly total: number;
+  readonly difficulty: number;
+}
+
+export interface DungeonSearchReceiptV1 {
+  readonly schemaVersion: 1;
+  readonly dungeonId: string;
+  readonly cellId: string;
+  readonly tick: number;
+  readonly bonus: 2;
+  readonly exits: readonly DungeonSearchExitV1[];
+  /** Successful discoveries only. Failed checks never disclose their hidden target or arithmetic. */
+  readonly discoveries: readonly DungeonSearchDiscoveryV1[];
+}
+
+export interface DungeonSearchStateV1 {
+  readonly schemaVersion: 1;
+  readonly searchedCellIds: readonly string[];
+  readonly latestReceipt: DungeonSearchReceiptV1 | null;
+}
+
 export interface DungeonState {
   layoutVersion: DungeonLayoutVersion;
   keyGate: DungeonKeyGateState | null;
   latestShrineUse: DungeonShrineUse | null;
+  /** Absence is a legacy dungeon that has never searched; fresh and migrated saves store an explicit empty state. */
+  search?: DungeonSearchStateV1;
   id: string;
   name: string;
   width: number;
@@ -1022,7 +1056,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 22;
+  schemaVersion: 23;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -1057,6 +1091,7 @@ export type DepthCommand =
   | { type: "enter-dungeon"; dungeonId: string; width: number; height: number }
   | { type: "invoke-dungeon-shrine"; dungeonId: string; cellId: string }
   | { type: "move-dungeon"; direction: MazeDirection }
+  | { type: "search-dungeon"; dungeonId: string; cellId: string }
   | { type: "disarm-dungeon-trap" }
   | { type: "unlock-dungeon-gate" }
   | { type: "start-combat"; encounterId: string; enemyCount: number }

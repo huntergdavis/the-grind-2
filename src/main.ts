@@ -26,6 +26,7 @@ import { createNarrativeJournalView } from "./ui/narrative-journal-view";
 import { projectTownChroniclePlate } from "./ui/chronicle-plate";
 import { createChroniclePlateArchive } from "./ui/chronicle-plate-archive";
 import { createChroniclePlateView } from "./ui/chronicle-plate-view";
+import { projectDungeonSearchView } from "./ui/dungeon-search-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -4321,6 +4322,7 @@ function present(): void {
   const dungeonLandmark = dungeon === null ? null : projectDungeonLandmark(dungeon);
   const dungeonShrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
   const dungeonShrineSummary = dungeonShrineUse === null ? null : describeDungeonShrineUse(dungeonShrineUse);
+  const dungeonSearch = projectDungeonSearchView(state);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -4651,6 +4653,13 @@ function present(): void {
     elements.traversalDirective.dataset.shrineCell = dungeonShrineUse.cellId;
     elements.traversalDirective.dataset.shrineHealth = `${dungeonShrineUse.healthBefore}/${dungeonShrineUse.healthRestored}/${dungeonShrineUse.healthAfter}`;
     elements.traversalDirective.dataset.shrineMana = `${dungeonShrineUse.manaBefore}/${dungeonShrineUse.manaRestored}/${dungeonShrineUse.manaAfter}`;
+  } else if (dungeonSearch !== null) {
+    elements.traversalDirective.textContent = `${dungeonSearch.headline} · ${dungeonSearch.detail}`;
+    elements.traversalDirective.title = dungeonSearch.consequence;
+    elements.traversalDirective.dataset.reason = "dungeon-search";
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = dungeonSearch.cellId;
+    elements.traversalDirective.dataset.routeLength = "0";
   } else if (dungeonTraversal !== null && currentArmedTrap !== undefined) {
     const attribute = dungeonTrapCheckAttribute(currentArmedTrap.kind, "disarm");
     elements.traversalDirective.textContent = `Disarming · ${dungeonTrapKindLabel(currentArmedTrap.kind)} · ${attribute} vs ${currentArmedTrap.disarmDifficulty}`;

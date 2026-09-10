@@ -11,6 +11,7 @@ import {
   projectCounterDuelSpeciesHabit,
   projectDungeonMoveKnowledge,
   resolveCounterDuelRound,
+  stepDepth,
 } from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
@@ -249,8 +250,15 @@ describe("Visible Instinct actor profiles", () => {
 
     const spent = shrineChoiceWorld({ health: 1, mana: 0, spent: true });
     const spentChoice = actorPolicy(spent, campaignDirector(spent));
-    expect(spentChoice.command).toEqual({ type: "move-dungeon", direction: "east" });
-    expect(spentChoice.rationale).toContain("promises treasure");
+    expect(spentChoice.command).toEqual({ type: "search-dungeon", dungeonId: spent.depth.dungeon!.id,
+      cellId: spent.depth.dungeon!.currentCellId });
+    expect(spentChoice.rationale).toContain("one careful look");
+    // The shrine stays spent. One real search is finite, then treasure retains
+    // its original priority; no second shrine healing or repeated search occurs.
+    const searched = { ...spent, tick: spent.tick + 1, depth: stepDepth(spent.depth, spentChoice.command) };
+    const continued = actorPolicy(searched, campaignDirector(searched));
+    expect(continued.command).toEqual({ type: "move-dungeon", direction: "east" });
+    expect(continued.rationale).toContain("promises treasure");
   });
 
   it("keeps the sighted-key choice stable across JSON reload and serialized cell order", () => {

@@ -101,11 +101,11 @@ describe("Inkcap False Treasure two-observation field research", () => {
     expect(advanceFieldResearch(finished.fieldResearch, finished.combat!, next, { heroId, depthTick: finished.tick + 1 })).toBe(finished.fieldResearch);
   });
 
-  it("migrates schema21 empty despite old lore and retained qualifying receipts; fresh schema22 also starts empty", () => {
+  it("migrates schema21 empty despite old lore and retained qualifying receipts; the current schema also starts empty", () => {
     const finished = complete();
     const { fieldResearch: _research, ...previous } = finished;
     const upgraded = upgradeDepthState({ ...previous, schemaVersion: 21 }, seed, heroId, "Mara");
-    expect(upgraded.schemaVersion).toBe(22);
+    expect(upgraded.schemaVersion).toBe(23);
     expect(upgraded.fieldResearch).toEqual(createFieldResearchState());
     expect(upgraded.hero.monsterLore).toEqual(finished.hero.monsterLore);
     expect(upgraded.combat).toEqual(finished.combat);

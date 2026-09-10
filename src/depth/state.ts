@@ -37,17 +37,21 @@ import {
   dungeonTrapAt,
   dungeonTrapKindLabel,
   generateDungeon,
+  isValidDungeonSearchState,
   migrateDungeonFarStairShrine,
+  migrateDungeonSearch,
   migrateDungeonTraps,
   moveDungeon,
   projectDungeonTraversal,
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
+  searchDungeon,
   unlockDungeonGate,
   withDungeonTrapPhase,
   type DungeonTrapCheck,
   type DungeonTrapConsequence,
 } from "./dungeon";
+import { shouldSearchDungeon } from "./dungeon-search-policy";
 import {
   addItem,
   applyHeroExperience,
@@ -822,15 +826,20 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
     return upgradeDepthState({ ...value, schemaVersion: 22, fieldResearch: createFieldResearchState() }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 22) {
+    return upgradeDepthState({ ...value, schemaVersion: 23,
+      dungeon: value.dungeon === null ? null : migrateDungeonSearch(value.dungeon as DungeonState),
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 23) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -846,6 +855,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     if (
       !isValidDetailedHeroState(value.hero) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
+      (state.dungeon?.search !== undefined && !isValidDungeonSearchState(state.dungeon.search, state.dungeon, state.tick)) ||
       !isValidQuestState(value.quest) ||
       !isCanonicalQuestDefinition(value.seed as string, value.quest) ||
       !isValidQuestCompletionState(value.quest, value.completedQuests, value.totalCompletedQuests, value.tick as number) ||
@@ -1323,7 +1333,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 22,
+    schemaVersion: 23,
     seed,
     tick: 0,
     atlas,
@@ -1619,6 +1629,20 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         hero: restored.hero,
         quest,
       }, "dungeon", message);
+    }
+    case "search-dungeon": {
+      if (input.dungeon === null || command.dungeonId !== input.dungeon.id
+        || command.cellId !== input.dungeon.currentCellId || !shouldSearchDungeon(input)) {
+        throw new Error("A cautious search is unavailable in this room");
+      }
+      const dungeon = searchDungeon(input.dungeon, dungeonTrapAptitudes(input.hero), state.seed, state.tick);
+      const receipt = dungeon.search!.latestReceipt!;
+      const found = receipt.discoveries.length;
+      const result = found === 0
+        ? "Nothing was revealed; unmarked passages remain unverified."
+        : `${found} ${found === 1 ? "trap is" : "traps are"} marked and still armed. ${receipt.discoveries.map((entry) => `${dungeonTrapKindLabel(entry.kind)}: ${entry.skill} + roll ${entry.roll} + search ${receipt.bonus} = ${entry.total} vs ${entry.difficulty}`).join("; ")}.`;
+      const message = `${state.hero.name} searches ${receipt.exits.map((exit) => exit.direction).join(" / ")} from this room. ${result} One turn spent; no movement or XP.`;
+      return appendLog({ ...state, dungeon: { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(0, -1), message] } }, "dungeon", message);
     }
     case "move-dungeon": {
       if (state.dungeon === null) throw new Error("No dungeon traversal is active");
@@ -2292,6 +2316,7 @@ function heldSecretAdmissionCandidate(state: DepthState): SecretDiscoveryOutcome
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
+    (input.dungeon?.search !== undefined && !isValidDungeonSearchState(input.dungeon.search, input.dungeon, input.tick)) ||
     !isValidSecretDiscoveryGraph(input) || !isValidCounterDuelGraph(input) ||
     !isValidCompanionStateGraph(input)
   ) {
@@ -2300,6 +2325,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   const output = reduceDepth(input, command);
   if (
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
+    (output.dungeon?.search !== undefined && !isValidDungeonSearchState(output.dungeon.search, output.dungeon, output.tick)) ||
     !isValidSecretDiscoveryGraph(output) || !isValidCounterDuelGraph(output) ||
     !isValidCompanionStateGraph(output)
   ) {
@@ -2636,6 +2662,11 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         `turn the ${dungeonKeyName} in the Wayfinder Gate`,
         { type: "unlock-dungeon-gate" },
       )];
+    }
+    if (shouldSearchDungeon(state)) {
+      return [commandCandidate(state, `dungeon:${state.dungeon.id}:search:${state.dungeon.currentCellId}`,
+        "search the unexplored passages before moving",
+        { type: "search-dungeon", dungeonId: state.dungeon.id, cellId: state.dungeon.currentCellId })];
     }
     return dungeonMoveOptions(state.dungeon).map((direction) => commandCandidate(
       state,
