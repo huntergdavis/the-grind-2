@@ -73,6 +73,24 @@ timeouts; the independent63-case simulation/replay batch also passes. Final
 TypeScript, version and boundary checks pass. No full local narrator evaluation
 or full browser matrix is claimed. Source is ready for the existing clean
 Pages CI and public-asset verification; nothing is claimed live yet.
+Feature `1c119b4` is pushed. First Pages run34465279424 passes3,396 of3,399
+tests across228 files (265.26s suite), but correctly blocks deployment on
+three narrator-facing checks. The changed early town scenes require updating
+the20-prompt production-path fingerprint, not the sealed evaluation corpus.
+More importantly, the new purchase consequence omitted its terminal period,
+which the existing factual story realizer requires. Add that period to the
+new gameplay receipt and preserve an explicit purchase-event narrator
+regression; do not bypass the purchase fixture or change the narrator runtime.
+Both factual vertical-slice tests pass (11.19s), retaining their runtime,
+transport, repeated-click and no-busy-lockout assertions. Their fixture now
+requires the actual first purchase and valid terminal marks on all three
+narrative fragments, rather than searching past it. All20 canonical/evaluation/
+purchase/presentation checks pass (81.80s). The sole production delta from the
+browser-approved build is that terminal period; narrator/runtime/model code,
+gameplay arithmetic and renderer source remain unchanged. Corrected build:
+entry `index-DelP2Sq_.js`, simulation `simulation.worker-C_OwipAB.js`, same
+stylesheet and narrator workers. The compatibility fix will receive its own
+commit and clean full Pages run before a live claim.
 
 ## Gameplay-first council — recorded road-battle memory (v0.5.156)
 

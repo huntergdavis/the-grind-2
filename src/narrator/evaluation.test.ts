@@ -103,7 +103,9 @@ describe("narrator evaluation corpus", () => {
     }
     expect(prompts).toHaveLength(20);
     expect(prompts.every(isNarratorPromptV1)).toBe(true);
-    expect(canonicalHash(prompts)).toBe("2658c23702c3d037");
+    // v157 adds a quiet, real town-supply turn to these early gameplay scenes.
+    // The independent sealed evaluation corpus fingerprint above is unchanged.
+    expect(canonicalHash(prompts)).toBe("cbc119e3e3ded8dc");
     expect(JSON.stringify(prompts)).not.toMatch(/reward|objective|consequence|decision|gold|experience/iu);
   });
 

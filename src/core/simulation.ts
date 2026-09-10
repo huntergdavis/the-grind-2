@@ -543,7 +543,7 @@ function describeBeat(
           : `${state.hero.name} walks ${town.districts.length} districts known for ${town.specialty}.`,
       consequence:
         kitPurchase !== null
-          ? `Disarming Kit ×0→×1 · gold ${kitPurchase.goldBefore}→${kitPurchase.goldAfter} (−${kitPurchase.goldSpent}) · +2 to one disarm attempt; consumed on success or failure`
+          ? `Disarming Kit ×0→×1 · gold ${kitPurchase.goldBefore}→${kitPurchase.goldAfter} (−${kitPurchase.goldSpent}) · +2 to one disarm attempt; consumed on success or failure.`
         : tonicRestock !== null
           ? `${tonicRestock.itemName} ×${tonicRestock.quantityBefore}→×${tonicRestock.quantityAfter} (+${tonicRestock.quantityBought}) · gold ${tonicRestock.goldBefore}→${tonicRestock.goldAfter} · ${tonicRestock.unitPrice} gold each`
         : innRest !== null

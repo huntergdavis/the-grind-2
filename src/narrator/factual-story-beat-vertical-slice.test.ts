@@ -66,17 +66,23 @@ const capability: NarratorCapability = Object.freeze({
 });
 
 function committedFactualJob(): FactualStoryBeatJobV2 {
-  let before = createWorld(
+  const before = createWorld(
     "factual-story-beat-vertical-slice",
     "campaign:factual-story-beat-vertical-slice",
   );
-  for (let index = 0; index < 64; index += 1) {
-    const after = advanceWorld(before);
-    const job = projectFactualStoryBeatTransitionV2(before, after);
-    if (job !== null) return job;
-    before = after;
+  const after = advanceWorld(before);
+  const source = after.chronicle.at(-1)!;
+  expect(source.commandType).toBe("buy-disarming-kit");
+  expect(source.tick).toBe(1);
+  const job = projectFactualStoryBeatTransitionV2(before, after);
+  if (job === null) throw new Error("The first recorded purchase must remain an eligible factual story beat");
+  expect(job).toMatchObject({ eventId: source.id, tick: source.tick });
+  for (const fragment of ["headline", "action", "consequence"] as const) {
+    expect(job.facts.narrative[fragment]).toBe(source[fragment]);
+    expect(job.facts.narrative[fragment], `Committed purchase ${fragment}`).toMatch(/[.!?]$/u);
   }
-  throw new Error("Fixture did not reach a committed factual story beat");
+  expect(selectFactualStoryBeatFormEligibilityV2(job.facts, 0).forms.length).toBeGreaterThan(0);
+  return job;
 }
 
 class TestClock implements NarratorClock {
