@@ -220,7 +220,7 @@ Immediate queue:
     simulation worker `simulation.worker-DE6llA_g.js`, unchanged stylesheet,
     bundle bytes and exact committed browser/worker source maps all verify.
     Protected ledger edits, parked drafts and narrator workers remain unchanged.
-18. **In implementation — V04.16b portrait Codex readability follow-up (v0.5.155).** Complete the
+18. **Delivered — V04.16b portrait Codex readability follow-up (v0.5.155).** Complete the
     existing portrait-dossier/320px containment intent, also recorded under
     V04.19c2. The v154 capture has no horizontal overflow, but its permanent
     5.25rem portrait column leaves research clues and source receipts in an
@@ -233,16 +233,43 @@ Immediate queue:
     text width, reachable evidence, focus/open-state preservation, exact save
     and desktop agreement. This is readability completion, not a new mechanic,
     a whole Codex redesign or another broad browser matrix.
-    Implemented with only two rules inside the existing760px breakpoint:
-    one card column and a fixed8.75rem portrait header. Final council review,
+    Implemented with only two rules inside the existing 760px breakpoint:
+    one card column and a fixed 8.75rem portrait header. Final council review,
     version/boundary/type/build checks pass; simulation/narrator workers stay
     byte-identical. The strengthened existing natural Copperhorn journey
-    passes first-run in66.7s (1.4m runner, unchanged120s budget): >250px mobile
-    article width, bounded140px portrait, individually reachable heading,
+    passes first-run in 66.7s (1.4m runner, unchanged 120s budget): >250px mobile
+    article width, bounded 140px portrait, individually reachable heading,
     disclosure and source rows below navigation, unchanged fonts, exact desktop
     geometry after resize, retained focus/open-state and byte-identical saved
     reload. Both mobile captures reviewed; zero errors, inference or external
-    requests and owned preview closed. Deployment verification remains pending.
+    requests and owned preview closed. Feature `1f9c4eb` is pushed and live:
+    Pages run `34450778070` passes 3,372 tests across 224 files (285.27s release
+    suite, 5m53s deployment). At 2026-09-10 00:42 PDT public version/cache,
+    entry `index-DtPvUvr7.js`, CSS `index-CJXRzz2S.css`, the unchanged simulation
+    worker and committed stylesheet/main source comparisons all pass.
+    Protected ledger edits, parked drafts and narrator workers stay unchanged.
+19. **Next — V04.20k ally-restorative subset: emergency companion aid.**
+    Promote one explicitly deferred tonic behavior: on the hero's turn a living,
+    identity-bound active companion at or below one-third HP can receive one
+    hero-owned tonic, restoring `ceil(companion.maxHP / 4)` capped by missing
+    HP. Keep guaranteed battle-ending finishes and the hero's own emergency
+    recovery ahead of aid. Spend one normal turn and one item; no resurrection,
+    status cleansing, XP, mastery or new bond currency. Direct the existing
+    flask effect toward the named companion, show exact quantity/HP receipts
+    and synchronize Company health, without a new panel.
+    **Dependency:** current persisted tonic effects are schema-1 and explicitly
+    self-only. Design a versioned target contract/migration and update legal
+    intents, exact receipts and presentation together; do not silently widen
+    old item semantics or touch the protected compact-ledger work.
+    **First gate:** find a bounded, natural recruited-companion encounter where
+    that companion survives at critical HP, the hero has a tonic and no higher-
+    priority finish/recovery applies. Then prove autonomous aid, no tonic healing
+    credited to the hero, exact companion healing/item debit, zero action XP
+    and saved reload. Preserve normal start-of-turn status damage; a lethally
+    interrupted hero cannot heal the companion or consume the item.
+    If real journeys only yield healthy or immediately fallen companions,
+    reassess instead of manufacturing survivable HP. Companion-owned supplies,
+    MP/status restoration and general support policies remain separate.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

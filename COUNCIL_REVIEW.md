@@ -9,16 +9,16 @@ portrait-dossier contract and V04.19c2's remaining 320px containment intent.
 The v154 capture demonstrates that avoiding overflow is not enough: the
 permanent portrait column leaves clues and source receipts in a cramped
 adjacent article. Give that text the full available card width at the existing
-760px breakpoint, with the same silhouette in a fixed8.75rem header above it.
+760px breakpoint, with the same silhouette in a fixed 8.75rem header above it.
 Keep desktop composition, font sizes, every fact and native disclosure intact.
 No markup, script, save, engine, narrator, control or new panel changes.
 
 Independent source review confirms all existing creature bodies, heads,
 species-specific features, eyes and shadows fit the header. Use an actual
 height, not only a minimum, so expanded evidence cannot stretch the portrait.
-The existing genuine Copperhorn85→89 browser journey will cover full-width
+The existing genuine Copperhorn 85→89 browser journey will cover full-width
 text, bounded art, reachable evidence, native focus/open-state preservation,
-exact saved reload and desktop agreement within its unchanged120s budget.
+exact saved reload and desktop agreement within its unchanged 120s budget.
 No new encounter fixture, broad matrix or long replay is required for this CSS
 change; existing deployment CI remains the full regression gate.
 
@@ -26,16 +26,39 @@ Final independent CSS diff review is approved. Version, reducer-boundary,
 TypeScript and production-build checks pass. The entry is `index-DtPvUvr7.js`
 and stylesheet `index-CJXRzz2S.css`; simulation and both narrator workers retain
 their v154 hashes. The strengthened existing natural Copperhorn journey passes
-first-run in66.7s (1.4m runner, unchanged120s budget). It retains the actual
+first-run in 66.7s (1.4m runner, unchanged 120s budget). It retains the actual
 85→89 progression/source assertions and adds >250px full inner-card text width,
-bounded140px portrait, every heading/summary/source row scroll-reachable below
+bounded 140px portrait, every heading/summary/source row scroll-reachable below
 navigation, identical fonts, native collapsed/expanded controls, exact desktop
-geometry after1280→320→1280 resize, retained focus/open-state and exact saved
+geometry after 1280→320→1280 resize, retained focus/open-state and exact saved
 reload. Batching turn/save/view reads removes redundant browser round trips;
 no natural transition or source assertion is dropped. Root and browser reviewer
-inspected both actual320captures: the silhouette stays together above its name,
+inspected both actual 320px captures: the silhouette stays together above its name,
 and expanded evidence uses the full text width. No browser errors, inference or
-external requests; owned preview19880 closed. Public deployment remains pending.
+external requests; owned preview 19880 closed.
+
+Feature `1f9c4eb975a18d44e4544c393e6bd6e762939bc8` is pushed and live.
+[Pages run 34450778070](https://github.com/huntergdavis/the-grind-2/actions/runs/34450778070)
+passes 3,372 tests across 224 files; the release suite takes 285.27s and the
+deployment 5m53s (07:36:10–07:42:03 UTC). At 2026-09-10 00:42 PDT the actual
+public version/cache 0.5.155, entry `index-DtPvUvr7.js`, stylesheet
+`index-CJXRzz2S.css`, emitted compact-header rule and unchanged simulation
+worker match the verified build. The stylesheet matches committed source and
+the public entry source map matches unchanged main.ts. Narrator worker
+references remain unchanged. Ignored `scratch/verify-mobile-codex-live.mjs`
+records the verification procedure; protected ledger work and parked drafts
+remain untouched. No further implementation is required for this slice.
+
+The next gameplay recommendation reuses session28's companion/recovery
+groundwork and V04.20k1's explicit deferred-allies boundary. Source inspection
+confirms the emergency selector admits only the hero and item resolution
+requires self-targeting; schema-1 tonic effects persist `target: self`.
+Queue one hero-owned emergency tonic action for a critically wounded active
+companion, preserving existing finisher/self-recovery priority. First establish
+a natural surviving critical-HP companion witness; then version the target
+contract and join exact actor/target, quantity, healing and presentation facts.
+No fabricated HP, resurrection, new reward currency, narrator dependency or
+protected ledger edits. This is queued as item19, not included in v155.
 
 ## Gameplay-first council — Copperhorn final-ember research (v0.5.154)
 
