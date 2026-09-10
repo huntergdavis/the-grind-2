@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — efficient finishing strikes (v0.5.151, in progress)
+## Gameplay-first council — efficient finishing strikes (v0.5.151)
 
 The proposed Familiar Opening failed its promotion gate: committed-v150 golden
 0/1/2, 1,000 ticks each, retained only Use-L1 weapons. This bounded sample is not
@@ -27,7 +27,7 @@ must show exact save/reload and current weapon presentation at 1280/320. An L4
 unlocking terminal strike correctly retains its pre-unlock L3 pose; any new
 Familiar Form assertion must use a subsequent genuine strike. Existing golden
 hashes will change intentionally with the new policy, but exact deterministic
-JSON/replay checks stay. Verification and deployment are pending.
+JSON/replay checks stay.
 
 Actual pacing uncovered an existing settlement defect at golden 2 T476: a
 repeated path-derived combat ID had left the four-combat history but remained
@@ -63,6 +63,14 @@ validation rewrites from that timeout. Previous successful CI completed the
 actual 20,000 turns in 9.477s. Keep the existing CI gate and budgets unchanged.
 Whole-state goldens and the now-earlier finite mentor journey are intentionally
 updated for changed policy; exact JSON/replay assertions remain in place.
+
+Release complete: feature `4361f09` passed Pages run `34435682054` with 3,347
+tests / 222 files, a 267.04s release suite and a 5m27s deployment. The actual
+20,000-turn CI check passes in 9.610s versus prior 9.477s, without changing its
+60s limit. Public v0.5.151/cache, entry `index-mvNb2Rq3.js`, simulation worker
+`simulation.worker-ALgjj60V.js` and unchanged CSS `index-DeqLtJ6M.css` match local
+bytes. All four Actor Policy/RPG source-map copies across entry and worker
+match the exact committed files. Verified live at 2026-09-09 21:10 PDT.
 
 ## Gameplay-first council — readable dungeon captions (v0.5.150)
 

@@ -99,7 +99,7 @@ Immediate queue:
     mechanics, inference or expanded test matrix. Reuses existing landmark
     suppression, extending it to the remaining mechanism-rail owners. Also fixes
     stale Watch-stage positioning after toolbar changes during paused resize.
-13. **In progress — V04.20l2b prerequisite, efficient finishing strikes (v0.5.151).**
+13. **Delivered — V04.20l2b prerequisite, efficient finishing strikes (v0.5.151).**
     Within the existing hero-only, guaranteed battle-ending rule, prefer lower
     MP cost, then less minimum overkill, then a basic strike on an exact tie.
     Keep all abilities intact. Existing Guard/status forecasts, recovery rules,
@@ -720,7 +720,7 @@ relevant entry source-map copies (caption layout, renderer and main) match the
 exact feature commit. Verified live on hunterdavis.com at 2026-09-09 20:10 PDT.
 Familiar Opening is next; LLM work remains paused at the existing baseline.
 
-### V04.20l2b prerequisite — efficient finishing strikes (v0.5.151, in progress)
+### V04.20l2b prerequisite — efficient finishing strikes (v0.5.151)
 
 Reuses `deja "Familiar Opening"`, session 09's live Actor Policy correction,
 and the existing v143 Guard/status-aware damage forecast. Before promoting the
@@ -741,8 +741,7 @@ This deliberately changes autonomous actions and resulting progression, not
 combat damage, equipment stats or mastery rewards. Reuse the existing visible
 weapon strike, receipt, Inventory and Familiar Form paths. No new panel, save
 schema, narrator or compact-ledger change. The original art draft was parked
-before this smaller implementation; it is not part of v151. Verification and
-deployment are pending.
+before this smaller implementation; it is not part of v151.
 
 The new actual strikes exposed a pre-existing duplicate-settlement crash:
 golden 2 at T476 revisits `encounter:route:location:1>location:10`, whose Foxfire
@@ -772,7 +771,7 @@ feedback, no overlap or horizontal overflow. Zero browser errors, inference or
 external requests; owned preview closed. An initial harness assertion incorrectly
 expected the L4-only terminal-form marker; acceptance instead verifies the actual
 L2 victory/mastery fields without inventing an animation phase. Build/version/
-boundaries pass; source and save schemas remain unchanged. Deployment pending.
+boundaries pass; event and save schemas remain unchanged.
 
 Local performance audit: the existing 20,000-turn test completes behaviorally
 but exceeds its unchanged 60s limit at 96.309s on this busy machine. A matched,
@@ -784,6 +783,16 @@ validator hotspot was found. Previous Pages ran the actual 20,000-turn check
 in 9.477s. Do not raise timeouts or add another replay matrix: existing CI is
 the final performance/release gate. Intentional ten-campaign golden hashes and
 the mentor anchor (now T4109 / visit 23) are updated; exact JSON replay remains.
+
+Feature `4361f09` passed Pages run `34435682054`: 3,347 release tests / 222
+files, full release suite 267.04s, deployment 5m27s. The unchanged actual
+20,000-turn CI check passes in 9.610s (previous release 9.477s); no timeout or
+test-budget change was required. Public v0.5.151/cache, entry `index-mvNb2Rq3.js`,
+simulation worker `simulation.worker-ALgjj60V.js` and unchanged CSS
+`index-DeqLtJ6M.css` match local production bytes. Both entry/worker source-map
+copies of Actor Policy and RPG match the exact feature commit. Verified live
+on hunterdavis.com at 2026-09-09 21:10 PDT. Next is the existing inspection
+hint's paused/settled wording; the art remains held, and LLM work remains paused.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
