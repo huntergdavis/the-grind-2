@@ -2,6 +2,69 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Clean roadmap and story-producing mechanics — 2026-09-10
+
+The user's full collated catalog was saved to [ROADMAP.md](ROADMAP.md) before
+new research began. It is now the current planning source. The complete old
+[BACKLOG.md](BACKLOG.md) is retained behind a collapsed history disclosure;
+shipped and held work and paused LLM experiments are outside the new queue.
+Mana-siphon implementation remains local and unfinished. This planning work
+does not ship its runtime, change the model baseline or reopen protected ledger
+edits. Public gameplay remains v0.5.157 until a separately verified release.
+
+A dedicated flyting agent inspected the sibling project's real reading,
+vocabulary and banter paths. The repository is named `the-curse-of-the-herder`,
+not the initially supplied shorter path. Books genuinely unlock vocabulary
+packs, while its flyting queue stages banter without a scored duel. The new
+proposal extends the existing original repartee backlog rather than claiming
+an existing battle engine or copying the sibling's content wholesale. See
+[the source-backed flyting design](docs/design/FLYTING.md).
+
+The lifetime-story council approved these concrete scope corrections:
+
+- F1 is one book, learned options and one actual solo duel with a saved result.
+  A new expression opens an option; it does not guarantee a win.
+- F2 introduces one witnessed directional regard consequence only when a real
+  event producer exists. Trust needs its own reliability/promise facts later.
+  Existing shared-victory bond is not reinterpreted or incremented by flyting.
+- Winning, respect, amusement and kindness are distinct. A comic recovery may
+  be memorable without refunding a legitimately lost prize or opportunity.
+- Witness identity is captured at resolution; delayed rendering cannot use the
+  current roster as proof. Later callbacks revalidate presence and retained
+  evidence. Old saves do not acquire invented historical feelings.
+- Memory callbacks follow the duel and witness slices; they are not a reason
+  to require a universal relationship framework or archival engine before F1.
+
+The independent adventure-form research separates canonical rule changes from
+presentation: a board expedition has new progression rules, while first-person
+rendering can show the existing dungeon. Both retain the same characters and
+history. Original situations should cause later opportunities or consequences;
+they remain self-playing and client-only. See [adventure forms](docs/design/ADVENTURE_FORMS.md)
+and [lifetime stories](docs/design/LIFETIME_STORIES.md). Research proposals are
+not implemented features. Verification for this documentation change is link,
+structure and diff review; ordinary future slices use focused checks and the
+existing release CI rather than a new long-duration matrix.
+
+## Gameplay-first council — mana-siphon dungeon traps (v0.5.158)
+
+Reuses `deja "mana-siphon"` sessions03/06 and BACKLOG item22. One new trap
+detects with spirit and disarms with intellect; a failed attempt drains
+`min(current MP, ceil(max MP / 4))` with HP unchanged. Zero MP is a legitimate
+spent outcome. No new roll, XP, status framework, panel or LLM dependency.
+Depth27 initializes old dungeon trap rules to1 without rebuilding their rooms
+or mechanisms; new expeditions explicitly use rules2. Legacy reconstruction
+retains its fixed two-family generator. Preserve old HP consequences and
+V1/V2 packets; give the new MP consequence and V3 packet explicit resource
+arithmetic, including nullable actual +2 kit evidence.
+
+The engine, presentation and browser agents review separate bounded portions
+while root integrates migration and gameplay. Reuse generated seed8/location3
+geometry only if its new mechanism is actually verified. A staged location or
+resource handoff must be identified, not called uninterrupted natural travel.
+Acceptance uses focused tests, one desktop/mobile browser journey and existing
+release CI, without another model run or expanded long-duration matrix.
+Implementation and validation are in progress; nothing is claimed live yet.
+
 ## Gameplay-first council — smith supplies and assisted disarming (v0.5.157)
 
 Reuses `deja "dungeon tool"` and `deja "disarming kit"` sessions06/03, the

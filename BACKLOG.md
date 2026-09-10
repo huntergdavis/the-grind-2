@@ -1,4 +1,21 @@
-# The Grind 2 — Final Development Backlog
+# The Grind 2 — Backlog Index & History
+
+## Start here
+
+The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
+active planning source: finish the mana-siphon slice, then ship further playable
+features one at a time. Shipped work, held experiments and paused LLM work do
+not belong in that execution queue.
+
+The historical specifications and release receipts below are preserved in full
+for context and recovery. Their older priorities, duplicate IDs and stale
+umbrella statuses do not override the current roadmap. New research is linked
+from the roadmap and is not proof of shipped gameplay.
+
+<details>
+<summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
+
+## Historical development backlog
 
 Status: council-adjudicated backlog, updated 2026-09-10
 
@@ -337,7 +354,7 @@ Immediate queue:
     CSS/narrator workers and11 exact committed browser/worker source-map
     comparisons pass. Protected ledger work and parked drafts remain intact;
     owned preview19880 is closed. No further work is required for this slice.
-22. **Queued — V04.18a/V04.18c richer traps: one mana-draining mechanism.**
+22. **In implementation — V04.18a/V04.18c richer traps: one mana siphon (v0.5.158).**
     Add one generated trap family whose failure drains a bounded amount of MP,
     not HP, making dungeon hazards interact with ability affordability and
     existing shrine/inn recovery. Preserve both current trap families exactly;
@@ -357,7 +374,8 @@ Immediate queue:
     kit proof. Do not infer trap loss from net shrine/resource changes. Reuse
     seed8/location3 geometry for bounded acceptance, but new-family placement
     there is not yet verified; no natural-pacing claim or seed sweep.
-    This is a source-backed council recommendation, not implemented gameplay.
+    Engine, migration and existing cutaway integration are in progress; browser
+    acceptance, clean release CI and actual public delivery are not yet claimed.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -11041,3 +11059,5 @@ distinguishes ideas/methods from protected expression in
 originality rule, not legal advice. Every shipped line, character, UI, visual,
 animation, sound and corpus must be independently created and avoid protected
 traits, slurs, sexual humiliation, self-harm, body shaming and real-person abuse.
+
+</details>
