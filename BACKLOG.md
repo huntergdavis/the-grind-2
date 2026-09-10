@@ -81,7 +81,7 @@ Immediate queue:
     and preserve saves, reduced-motion readability and existing controls. No
     new panel or navigation. This improves the miniature action but does not by
     itself solve narrow-screen canvas-caption typography, which remains noted.
-11. **In progress — V04.16e2, Lantern Wolf: study Moonhowl (v0.5.149).** Extend field research
+11. **Delivered — V04.16e2, Lantern Wolf: study Moonhowl (v0.5.149).** Extend field research
     with one fixed task: witness the actual wolf apply weakening to the hero,
     then witness the hero strike while that same application is still active.
     Join the status tick, intent and actual damage receipt; an overwritten or
@@ -570,7 +570,7 @@ service-worker cache are verified. Entry `index-DX3JuEYu.js`, the unchanged
 framing/renderer source-map modules match the commit. The closer dungeon view
 is live on hunterdavis.com. Lantern Wolf/Moonhowl field research is next.
 
-### V04.16e2 — Lantern Wolf: study Moonhowl (v0.5.149, in progress)
+### V04.16e2 — Lantern Wolf: study Moonhowl (v0.5.149)
 
 Reuses `deja "Moonhowl study"`, council session 09's 2026-09-09 18:17:08
 recommendation. A second fixed Codex study observes the real Lantern Wolf's
@@ -615,9 +615,18 @@ One-shot pause requests preserve exact single-step equality and original time
 limits. The existing Inkcap journey passes in 59.4s with that same correction,
 preserving its real poison 5→3 followed by tonic recovery to 14, without research
 power or XP. All four 1280/320 captures were root-reviewed; the owned preview is
-closed. Live deployment is pending. A later Codex mobile-layout
+closed. A later Codex mobile-layout
 cleanup can give expanded evidence more width than the current portrait column
 permits; the default evidence remains collapsed.
+
+Feature `94a820d` passed Pages run `34427735125`: 3,329 release tests / 220
+files, deployed in 5m8s. Public v0.5.149/cache, entry `index-CUEfkbpq.js`,
+simulation worker `simulation.worker-CFEvwV8L.js` and unchanged CSS match the
+local production bytes. All eight relevant entry/worker source-map copies match
+the committed field-research, migration, core, projection and main modules.
+The public bundle contains the Moonhowl study and its no-health-drain clue.
+Verified live on hunterdavis.com at 2026-09-09 19:06 PDT. Mobile dungeon-caption
+readability is next; LLM work remains paused at the existing baseline.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

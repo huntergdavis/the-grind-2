@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — Moonhowl field research (v0.5.149, in progress)
+## Gameplay-first council — Moonhowl field research (v0.5.149)
 
 Implements the previously queued two-observation Wolf study, not a generic
 research engine. The source is an actual surviving-hero Moonhowl application;
@@ -38,7 +38,12 @@ The expanded mobile card remains narrow beside its portrait: later layout
 polish, not a new always-on panel. Inkcap's representative regression passes in
 59.4s, preserving the actual poison 5→3/tonic recovery to 14 and no research
 reward. Root reviewed its two captures too; all four are retained separately.
-The owned preview is closed. Live deployment is pending.
+The owned preview is closed. Feature `94a820d` passed Pages run `34427735125`
+with 3,329 release tests / 220 files and a 5m8s deployment. Public v0.5.149/cache,
+entry `index-CUEfkbpq.js`, simulation worker `simulation.worker-CFEvwV8L.js` and
+unchanged CSS match local production bytes. Eight relevant source-map copies
+match the exact committed modules; the Moonhowl title and no-health-drain clue
+are present. Verified live on hunterdavis.com at 2026-09-09 19:06 PDT.
 
 Next recommendation: V04.18a mobile dungeon caption readability. Root verified
 the current 7/4.5-design-pixel mechanism and hazard text in `game-renderer.ts`;
