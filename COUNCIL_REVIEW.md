@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — cautious dungeon searching (v0.5.147, in progress)
+## Gameplay-first council — cautious dungeon searching (v0.5.147)
 
 Implements the previously recommended V04.18a active-search subset: public
 frontier/health admission, one stationary turn, +2 using the existing fixed
@@ -34,7 +34,37 @@ save resumes pass. Golden updates reflect these inspected decisions. The mentor
 arc still completes within its unchanged 12,000-step budget (T9229/visit 22),
 retains all no-power checks and does not repeat. One old spent-shrine expectation
 was updated to assert the new finite search followed by its original treasure
-choice; unspent shrine/key priorities remain intact. Deployment pending.
+choice; unspent shrine/key priorities remain intact. The first Pages run
+`34423085703` stopped before deployment on two older immediate-movement test
+assumptions (3,302 other release tests passed). Updated successor allowlists
+retain all completion/migration checks; the full 57-test depth-state suite passes.
+Independent review confirms the recovery failure was the inserted search turn:
+its corrected test proves unchanged HP/MP/XP/position, one spent turn and exact
+JSON replay, then retains the original defeat/forced-wait/recovery checks. The
+test-only correction is `4388b59`; no release gate was removed or widened.
+
+The broader local simulation rerun passed 57 tests, skipped only the previously
+audited mentor arc, and timed out on the existing 20,000-step progression test
+(82.7s against its unchanged 60s limit). That same progression test passed the
+first CI run in 8.692s. No retry, timeout increase or production change was made;
+the targeted corrected recovery test passed independently and in the broader run.
+
+The corrected Pages run `34423707167` passed all 3,304 release tests / 217 files
+and deployed in 5m8s; its unchanged long progression check passed in 7.763s.
+Public v0.5.147, service-worker cache, CSS and search presentation are verified.
+All 13 checked entry/worker source-map copies match `4388b59` exactly; assets
+are `index-CGMQT3gp.js` and `simulation.worker-DVTUICeY.js`. Feature `258d1fa`
+and its test correction are live on hunterdavis.com.
+
+Next-slice presentation review inspected both actual search captures. The hero
+and two revealed rooms occupy a small portion of a mostly empty full-maze frame.
+Recommend V04.18a discovered-room framing: a small pure renderer helper derives
+bounded zoom/offset from public discovered coordinates only; the existing renderer
+uses that transform consistently for rooms, routes, hero and hazard glyphs.
+Acceptance: larger readable action at 320/1280, all discovered routes visible,
+hidden-room changes cannot alter framing, static/reloaded output stays stable,
+and saves remain untouched. No new panel. A text fallback is cheaper but leaves
+the miniature action unchanged; framing itself does not solve canvas caption size.
 
 ## Gameplay-first council — Inkcap Mimic field research (v0.5.146)
 

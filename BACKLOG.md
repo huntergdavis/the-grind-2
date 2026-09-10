@@ -62,7 +62,7 @@ Immediate queue:
    old aggregate lore receives no retrospective credit. Completion reveals an
    actionable factual clue, not a stat bonus or new AI policy. Habitat, weather,
    hunting rewards, other species and a general research framework stay deferred.
-9. **In progress — V04.18a subset, active dungeon searching (v0.5.147).** One deliberate,
+9. **Delivered — V04.18a subset, active dungeon searching (v0.5.147).** One deliberate,
    stationary search of a room's unexplored exits can reveal a trap before entry.
    Reuse the existing deterministic detection/disarming rules and Watch dungeon-map glyphs;
    searching and disarming remain separate actions. Eligibility must use visible
@@ -73,6 +73,14 @@ Immediate queue:
    Migrate search history empty. Compact
    ledger support remains deferred. A second species research task is the
    lower-risk alternate, not part of the Inkcap release.
+10. **Next — V04.18a presentation subset, discovered-room framing.** Fit the
+    Watch dungeon camera to publicly discovered room coordinates, with bounded
+    zoom/offset and space reserved for the existing receipt rail. Make the hero,
+    hazards and known routes larger when only a few rooms are explored. Hidden
+    room contents must not influence framing; keep all discovered routes visible
+    and preserve saves, reduced-motion readability and existing controls. No
+    new panel or navigation. This improves the miniature action but does not by
+    itself solve narrow-screen canvas-caption typography, which remains noted.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -437,7 +445,7 @@ checked source-map copies of the research, state, simulation, projection and
 main modules, exactly matching the commit. This first research task is live on
 hunterdavis.com; active dungeon searching is the next council-recommended slice.
 
-### V04.18a — cautious dungeon searching (v0.5.147, in progress)
+### V04.18a — cautious dungeon searching (v0.5.147)
 
 Reuses `deja "active dungeon searching"`: council session 06's 2026-09-09
 16:44:35 recommendation and the existing separate detection/disarming rules.
@@ -487,7 +495,22 @@ receipts, unchanged paused-save bytes and 1280/320px captures pass, with zero
 errors, inference or external requests. Both captures were inspected. At 320px,
 the inherited full-canvas scaling leaves the mechanism-rail label small; native
 hero/status text remains readable without overflow. Queue a contained responsive
-viewing follow-up instead of adding another panel. Deployment is pending.
+viewing follow-up instead of adding another panel. The initial Pages run
+`34423085703` stopped before deployment: 3,302 release tests passed, and two old
+traversal/recovery expectations did not account for the new search turn. The
+successor traversal allowlists now admit search; all 57 depth-state tests pass
+with the original completion and released-save repair checks intact. The recovery
+test now proves an unrewarded, stationary search and exact JSON replay before
+the original trap defeat and forced recovery. Both fixes are test-only in
+`4388b59`; no gameplay code or test budget changed.
+
+Feature `258d1fa` and test correction `4388b59` are on `origin/main`. Pages run
+`34423707167` passed all 3,304 release tests across 217 files and deployed in
+5m8s. Public v0.5.147, service-worker cache, CSS, search command and trap-marked
+presentation are verified. Entry `index-CGMQT3gp.js` and worker
+`simulation.worker-DVTUICeY.js` contain all 13 checked source-map copies exactly
+matching the corrected commit. Active dungeon searching is live on
+hunterdavis.com; discovered-room framing is next.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
