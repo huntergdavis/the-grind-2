@@ -710,7 +710,7 @@ describe("composed depth state", () => {
       const candidate = depthCommandCandidates(state)[0]?.command;
       if (
         candidate?.type !== "move-dungeon" && candidate?.type !== "disarm-dungeon-trap" &&
-        candidate?.type !== "unlock-dungeon-gate"
+        candidate?.type !== "unlock-dungeon-gate" && candidate?.type !== "search-dungeon"
       ) throw new Error(`Unexpected successor traversal command ${candidate?.type ?? "none"}`);
       state = stepDepth(state, candidate);
     }
@@ -760,7 +760,7 @@ describe("composed depth state", () => {
       const candidate = depthCommandCandidates(released)[0]?.command;
       if (
         candidate?.type !== "move-dungeon" && candidate?.type !== "disarm-dungeon-trap" &&
-        candidate?.type !== "unlock-dungeon-gate"
+        candidate?.type !== "unlock-dungeon-gate" && candidate?.type !== "search-dungeon"
       ) throw new Error(`Unexpected released traversal command ${candidate?.type ?? "none"}`);
       released = stepDepth(released, candidate);
     }

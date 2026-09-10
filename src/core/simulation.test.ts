@@ -961,7 +961,23 @@ describe("autonomous simulation", () => {
         },
       },
     };
-    const felled = advanceWorld(before);
+    // The wounded hero now spends one cautious turn inspecting this room's
+    // public frontier before entering it. This search does not find this trap.
+    const searched = advanceWorld(before);
+    expect(searched.chronicle.at(-1)?.commandType).toBe("search-dungeon");
+    expect(searched.hero.health).toBe(1);
+    expect(searched.depth.hero.resources).toEqual(before.depth.hero.resources);
+    expect(searched.hero.experience).toBe(before.hero.experience);
+    expect(searched.depth.dungeon?.currentCellId).toBe(before.depth.dungeon?.currentCellId);
+    expect(searched.depth.dungeon?.visitedCellIds).toEqual(before.depth.dungeon?.visitedCellIds);
+    expect(searched.depth.dungeon?.traps).toEqual(before.depth.dungeon?.traps);
+    expect(searched.depth.dungeon?.turns).toBe(before.depth.dungeon!.turns + 1);
+    expect(searched.depth.dungeon?.search?.latestReceipt?.discoveries).toEqual([]);
+    expect(searched.scene.consequence).toContain("Nothing was revealed");
+    expect(advanceWorld(JSON.parse(JSON.stringify(before)))).toEqual(searched);
+
+    const felled = advanceWorld(searched);
+    expect(felled.chronicle.at(-1)?.commandType).toBe("move-dungeon");
     expect(felled.hero.health).toBe(0);
     expect(felled.scene.consequence).toContain("knocks");
     const opportunity = campaignDirector(felled);
