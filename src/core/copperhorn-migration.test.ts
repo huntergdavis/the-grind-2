@@ -47,8 +47,10 @@ describe("Copperhorn world-save migration", () => {
 
   it("rejects an old research shape inside a current save and unsupported future depth", () => {
     const current = createWorld("copperhorn-migration-invalid", "campaign");
+    expect(upgradeWorldState(structuredClone(current))).toEqual(current);
     expect(() => upgradeWorldState({ ...current,
       depth: { ...current.depth, fieldResearch: previousSave(current).depth.fieldResearch } })).toThrow();
-    expect(() => upgradeWorldState({ ...current, depth: { ...current.depth, schemaVersion: 27 } })).toThrow();
+    expect(() => upgradeWorldState({ ...current,
+      depth: { ...current.depth, schemaVersion: current.depth.schemaVersion + 1 } })).toThrow();
   });
 });
