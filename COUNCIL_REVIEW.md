@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — discovered-room framing (v0.5.148, in progress)
+## Gameplay-first council — discovered-room framing (v0.5.148)
 
 Reuses session 09's v147 capture review. The new pure helper accepts public
 coordinates only, fits every known room with bounded enlargement and feeds one
@@ -28,7 +28,21 @@ readable in native Status; outcome/history/resize actions never change saved
 bytes. Four 1280/320 search/disarm captures were independently and root-reviewed:
 larger centered hero/rooms, separate rail, no interior prose box or overflow.
 Zero browser errors, inference or external requests; owned preview closed.
-Deployment is pending.
+Feature `019d20f` passed Pages run `34424913338`: 3,311 release tests / 218
+files, deployed in 5m4s. Public v0.5.148/cache, entry `index-DX3JuEYu.js`,
+unchanged simulation worker `simulation.worker-DVTUICeY.js` and CSS match the
+built bytes. Both framing/renderer source-map modules match the commit exactly.
+The slice is verified live on hunterdavis.com.
+
+Next bounded gameplay recommendation: V04.16e2 Lantern Wolf/Moonhowl research.
+The existing ability applies weakened; the later hero's status-tick/strike
+packet provides a distinct observable consequence. Reuse the actual
+status-to-strike joining pattern already exercised by Millstone Drag, including
+source ownership and overwrite/expiry rejection. Teach raw strike-power loss,
+not a guaranteed final HP-damage comparison. Keep existing Inkcap progress,
+bounded evidence and the Codex disclosure; no new combat event, power grant,
+ledger dependency or general framework. Root inspected the current Moonhowl
+definition and combat damage input before queuing the proposal.
 
 ## Gameplay-first council — cautious dungeon searching (v0.5.147)
 

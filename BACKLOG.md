@@ -73,7 +73,7 @@ Immediate queue:
    Migrate search history empty. Compact
    ledger support remains deferred. A second species research task is the
    lower-risk alternate, not part of the Inkcap release.
-10. **In progress — V04.18a presentation subset, discovered-room framing (v0.5.148).** Fit the
+10. **Delivered — V04.18a presentation subset, discovered-room framing (v0.5.148).** Fit the
     Watch dungeon camera to publicly discovered room coordinates, with bounded
     zoom/offset and space reserved for the existing receipt rail. Make the hero,
     hazards and known routes larger when only a few rooms are explored. Hidden
@@ -81,6 +81,15 @@ Immediate queue:
     and preserve saves, reduced-motion readability and existing controls. No
     new panel or navigation. This improves the miniature action but does not by
     itself solve narrow-screen canvas-caption typography, which remains noted.
+11. **Next — V04.16e2, Lantern Wolf: study Moonhowl.** Extend field research
+    with one fixed task: witness the actual wolf apply weakening to the hero,
+    then witness the hero strike while that same application is still active.
+    Join the status tick, intent and actual damage receipt; an overwritten or
+    expired application, healing or Guard alone cannot complete it. The clue
+    teaches reduced raw strike power and no direct health loss from weakening,
+    not a guaranteed final-damage difference through armor/Guard/minimum damage.
+    Preserve Inkcap evidence on migration and reuse Codex disclosures. No power
+    grant, actor-policy change, hidden comparison or general research framework.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -512,7 +521,7 @@ presentation are verified. Entry `index-CGMQT3gp.js` and worker
 matching the corrected commit. Active dungeon searching is live on
 hunterdavis.com; discovered-room framing is next.
 
-### V04.18a — discovered-room framing (v0.5.148, in progress)
+### V04.18a — discovered-room framing (v0.5.148)
 
 Reuses `deja "discovered-room framing"`, council session 09's recommendation
 from the reviewed v0.5.147 search captures. A pure renderer helper frames only
@@ -532,8 +541,8 @@ resource, reward, schema or policy changes. The simulation worker is unchanged.
 
 Thirty-four focused framing/layout/search/visibility tests pass, including full
 24×24 known-room containment, public-coordinate stability and invalid-input
-handling. Version, boundaries,
-TypeScript and production build pass. Independent review finds no blocker:
+handling. Version, boundaries, TypeScript and production build pass.
+Independent review finds no blocker:
 fixed-size halos can extend just outside the camera's room gutter on the largest
 map but stay inside the visible background and clear of the receipt rail.
 Existing narrow-screen caption size and landmark/key-gate caption competition
@@ -544,7 +553,14 @@ exact framing and saved bytes. The real failed disarm retains its exact native
 Status consequence while the stage uses the compact top rail. Outcome controls,
 history browsing and 1280/320 resizing do not alter the saved game. All four
 search/disarm captures were reviewed; no overlap, overflow, browser errors,
-inference or external requests. Deployment is pending.
+inference or external requests.
+
+Feature `019d20f` is on `origin/main`. Pages run `34424913338` passed all 3,311
+release tests across 218 files and deployed in 5m4s. Public v0.5.148 and its
+service-worker cache are verified. Entry `index-DX3JuEYu.js`, the unchanged
+`simulation.worker-DVTUICeY.js` and CSS exactly match the built bytes; both
+framing/renderer source-map modules match the commit. The closer dungeon view
+is live on hunterdavis.com. Lantern Wolf/Moonhowl field research is next.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
