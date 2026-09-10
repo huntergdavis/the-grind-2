@@ -51,6 +51,23 @@ or supply an empty invalid ID. This test-only correction leaves production
 and the verified browser build unchanged. Type checking and the 12-case rerun
 both pass before committing (7.94s test runner).
 
+Feature `06cc700d046b2d82749a3b0b34b647b44f7c7f37` is pushed and live.
+[Pages run 34438293091](https://github.com/huntergdavis/the-grind-2/actions/runs/34438293091)
+passes 3,355 tests in 222 files; the release suite takes 266.18s and deployment
+5m25s (04:43:39–04:49:04 UTC). At 2026-09-09 21:49 PDT, public version/cache
+0.5.152, entry `index-8qOZdAi9.js`, CSS `index-DeqLtJ6M.css` and simulation
+worker `simulation.worker-ALgjj60V.js` pass byte comparisons against the local
+build. Public entry maps exactly match committed main and inspection-projector
+sources. Protected ledger work and parked narrator/art drafts remain untouched.
+
+Next-slice council review confirms the collapsed mobile Map bottom anchor is
+the separate overflow cause. Reuse session09's existing header-derived inset
+and resize observer, bound only the collapsed panel and retain a visible map
+band. Preserve the expanded Gazetteer layout and sticky return. Extend the
+existing browser journey to assert vertical bounds, scroll reachability and
+paused round-trip resize; horizontal fit alone was insufficient. No new panel,
+measurement loop or renderer/gameplay change is needed.
+
 ## Gameplay-first council — efficient finishing strikes (v0.5.151)
 
 The proposed Familiar Opening failed its promotion gate: committed-v150 golden

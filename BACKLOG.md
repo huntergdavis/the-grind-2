@@ -131,9 +131,9 @@ Immediate queue:
     do not fake eligibility by removing abilities or manufacturing mastery.
     The incomplete art draft is preserved, unshipped, in ignored
     `scratch/parked-familiar-opening-unverified-2026-09-09.patch` (base `af5807f`).
-15. **Implemented; deployment pending — truthful inspection status (v0.5.152).** The v151 Inventory
+15. **Delivered — truthful inspection status (v0.5.152).** The v151 Inventory
     capture said the battle continued off-screen when the adventure was
-    paused on a settled victory. Make that existing hint distinguish playing,
+    paused on a settled victory. That existing hint now distinguishes playing,
     paused and completed combat, without another panel or gameplay mutation.
     The existing Map/inspection margin now receives effective playback state
     and refreshes immediately on Pause/Resume, including a deferred pause.
@@ -148,12 +148,23 @@ Immediate queue:
     Pause/Resume, Map/Inventory agreement, 1280/320 captures, exact saved reload
     and zero browser errors, inference or external requests. New notices fit;
     a separate existing mobile Map toolbar overlap is explicitly queued below.
+    Feature `06cc700` is live: Pages run `34438293091` passes 3,355 tests across
+    222 files (266.18s release suite, 5m25s deployment). Public version/cache,
+    entry `index-8qOZdAi9.js`, unchanged simulation worker/CSS and exact committed
+    UI source maps verified at 2026-09-09 21:49 PDT.
 16. **Next UI polish — mobile Map toolbar clearance.** The v152 320px Map
     capture has readable new status text, but the atlas panel's upper route
     details can sit behind the fixed toolbar. Bound the existing inspection
     panel to the usable viewport and keep its content scrollable, without
     hiding known-place navigation or adding another panel. Verify tall/short
     content and Pause/resize using the existing Map journey; no gameplay change.
+    Council source review reuses session09's header-derived
+    `--inspection-viewport-top` and existing resize observer. Cap only the
+    collapsed mobile panel, leaving a visible map band and vertical scrolling;
+    preserve open Gazetteer's existing full-height layout and sticky return.
+    Extend the existing inspection-status journey with vertical bounds,
+    scroll-reachable route/disclosure/return controls and paused 1280→320→1280
+    resize, rather than adding another broad browser matrix.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
