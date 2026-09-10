@@ -42,6 +42,60 @@ async function automaticStep(page: Page, before: WorldState): Promise<WorldState
 
 type Inspection = "inventory" | "map";
 
+async function mapGeometry(page: Page) {
+  return page.evaluate(() => {
+    const map = document.querySelector<HTMLElement>("#map-inspector")!;
+    const app = document.querySelector<HTMLElement>("#app")!;
+    const toolbar = document.querySelector<HTMLElement>("#view-toolbar")!;
+    const rect = (element: HTMLElement) => {
+      const { top, right, bottom, left, width, height } = element.getBoundingClientRect();
+      return { top, right, bottom, left, width, height };
+    };
+    return { map: rect(map), toolbar: rect(toolbar), app: rect(app),
+      inspectionTop: Number.parseFloat(getComputedStyle(app).getPropertyValue("--inspection-viewport-top")),
+      bottomInset: Number.parseFloat(getComputedStyle(map).bottom),
+      overflowY: getComputedStyle(map).overflowY, scrollTop: map.scrollTop,
+      scrollHeight: map.scrollHeight, clientHeight: map.clientHeight,
+      viewportHeight: innerHeight, pageScrollY: scrollY,
+      open: document.querySelector<HTMLDetailsElement>("#map-gazetteer")!.open };
+  });
+}
+
+function expectCollapsedMapClearance(layout: Awaited<ReturnType<typeof mapGeometry>>): void {
+  expect(layout.open).toBe(false);
+  expect(layout.map.top).toBeGreaterThanOrEqual(layout.toolbar.bottom - 1);
+  expect(layout.map.top).toBeGreaterThanOrEqual(layout.app.top + layout.inspectionTop - 1);
+  expect(layout.map.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.map.top - layout.toolbar.bottom).toBeGreaterThan(1);
+  const available = layout.app.height - layout.inspectionTop - layout.bottomInset;
+  expect(layout.map.height).toBeLessThanOrEqual(available * 0.65 + 1);
+  expect(layout.map.top - (layout.app.top + layout.inspectionTop)).toBeGreaterThanOrEqual(available * 0.35 - 1);
+  expect(layout.overflowY).toBe("auto");
+  expect(layout.pageScrollY).toBe(0);
+}
+
+async function mapReachability(page: Page) {
+  return page.evaluate(() => {
+    const map = document.querySelector<HTMLElement>("#map-inspector")!;
+    const targets = ["#map-current-place", "#map-route", "#map-discovery",
+      '#map-hero-activity [data-activity-field="notice"]', "#map-gazetteer > summary", ":scope > .view-close"];
+    const beforeScroll = scrollY;
+    const reached = targets.map((selector) => {
+      const element = map.querySelector<HTMLElement>(selector)!;
+      element.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+      const bounds = map.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
+      const card = element.closest<HTMLElement>(".hero-activity")?.getBoundingClientRect();
+      return { selector, text: element.textContent, visible: !element.hidden && rect.height > 0,
+        inside: rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1,
+        insideCard: card === undefined || rect.top >= card.top - 1 && rect.bottom <= card.bottom + 1,
+        belowToolbar: rect.top >= document.querySelector("#view-toolbar")!.getBoundingClientRect().bottom - 1 };
+    });
+    map.scrollTop = 0;
+    return { reached, beforeScroll, afterScroll: scrollY, scrollHeight: map.scrollHeight, clientHeight: map.clientHeight };
+  });
+}
+
 async function inspect(page: Page, view: Inspection, campaignId: string) {
   return page.evaluate(({ selectedView, id }) => {
     document.querySelector<HTMLButtonElement>(`#view-toolbar [data-view="${selectedView}"]`)!.click();
@@ -142,6 +196,7 @@ test("inspection hints distinguish paused battle, immediate resume, and the actu
       paused: terminal.notice, saved: terminal.saved });
     milestone("actual automatic victory is labeled complete and paused, never as a continuing battle");
 
+    let desktopMap: Awaited<ReturnType<typeof mapGeometry>> | undefined;
     for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
       await page.setViewportSize(viewport);
       for (const view of ["inventory", "map"] as const) {
@@ -149,7 +204,28 @@ test("inspection hints distinguish paused battle, immediate resume, and the actu
         expect(shown.notice).toBe(terminal.notice);
         expect(shown.saved).toBe(terminal.saved);
         const host = page.locator(view === "map" ? "#map-hero-activity" : "#screen-hero-activity");
-        await host.scrollIntoViewIfNeeded();
+        // The Map owns its scrollport. Scrolling the entire hero card into view
+        // can instead move the page/chrome when that card is taller than it.
+        if (view === "inventory") await host.scrollIntoViewIfNeeded();
+        else {
+          await page.waitForFunction(() => {
+            const app = document.querySelector<HTMLElement>("#app")!;
+            const toolbar = document.querySelector("#view-toolbar")!.getBoundingClientRect();
+            return Math.abs(app.getBoundingClientRect().top
+              + Number.parseFloat(getComputedStyle(app).getPropertyValue("--inspection-viewport-top")) - toolbar.bottom) <= 1;
+          }, undefined, { polling: "raf", timeout: 5_000 });
+          const geometry = await mapGeometry(page);
+          if (viewport.width === 320) {
+            expectCollapsedMapClearance(geometry);
+            const reachable = await mapReachability(page);
+            expect(reachable.beforeScroll).toBe(0);
+            expect(reachable.afterScroll).toBe(0);
+            expect(reachable.scrollHeight).toBeGreaterThan(reachable.clientHeight);
+            for (const target of reachable.reached) expect(target, target.selector).toMatchObject({
+              visible: true, inside: true, insideCard: true, belowToolbar: true,
+            });
+          } else desktopMap = geometry;
+        }
         const layout = await host.evaluate((element) => {
           const notice = element.querySelector<HTMLElement>('[data-activity-field="notice"]')!;
           const box = notice.getBoundingClientRect();
@@ -165,8 +241,55 @@ test("inspection hints distinguish paused battle, immediate resume, and the actu
           await testInfo.attach(`Inspection status ${view} ${viewport.width}`, { path, contentType: "image/png" });
         }
       }
-      milestone(`${viewport.width}px Map and Inventory completion hints visible without overflow or save mutation`);
+      milestone(`${viewport.width}px status stays truthful; Map metadata and notice remain reachable below navigation without save mutation`);
     }
+    const collapsed = await mapGeometry(page);
+    expectCollapsedMapClearance(collapsed);
+    const summary = page.locator("#map-gazetteer > summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#map-gazetteer")).toHaveJSProperty("open", true);
+    const opened = await page.evaluate(() => {
+      const map = document.querySelector<HTMLElement>("#map-inspector")!;
+      const app = document.querySelector<HTMLElement>("#app")!;
+      map.scrollTop = map.scrollHeight;
+      const box = map.getBoundingClientRect();
+      const close = map.querySelector<HTMLElement>(":scope > .view-close")!;
+      const button = close.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom, height: box.height, viewportHeight: innerHeight,
+        expectedTop: app.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(app).getPropertyValue("--inspection-viewport-top")),
+        stickyReturn: getComputedStyle(close).position, buttonTop: button.top, buttonBottom: button.bottom,
+        heroHidden: getComputedStyle(document.querySelector("#map-hero-activity")!).display === "none", pageScrollY: scrollY };
+    });
+    expect(opened.top).toBeCloseTo(opened.expectedTop, 0);
+    expect(opened.bottom).toBeCloseTo(opened.viewportHeight, 0);
+    expect(opened.height).toBeGreaterThan(collapsed.map.height);
+    expect(opened).toMatchObject({ stickyReturn: "sticky", heroHidden: true, pageScrollY: 0 });
+    expect(opened.buttonTop).toBeGreaterThanOrEqual(opened.top - 1);
+    expect(opened.buttonBottom).toBeLessThanOrEqual(opened.bottom + 1);
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#map-gazetteer")).toHaveJSProperty("open", false);
+    await expect(summary).toBeFocused();
+    const closed = await mapGeometry(page);
+    expectCollapsedMapClearance(closed);
+    expect(closed.map).toEqual(collapsed.map);
+    await page.setViewportSize({ width: 320, height: 480 });
+    expectCollapsedMapClearance(await mapGeometry(page));
+    milestone("native gazetteer opens full-height with sticky Return, closes with summary focus, and the 480px-tall Map stays bounded");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForFunction((expected) => {
+      const map = document.querySelector("#map-inspector")!.getBoundingClientRect();
+      const toolbar = document.querySelector("#view-toolbar")!.getBoundingClientRect();
+      return Math.abs(map.top - expected.map.top) < 0.01 && Math.abs(map.height - expected.map.height) < 0.01
+        && Math.abs(toolbar.bottom - expected.toolbar.bottom) < 0.01;
+    }, desktopMap!, { polling: "raf", timeout: 5_000 });
+    const returned = await mapGeometry(page);
+    expect(returned.map).toEqual(desktopMap!.map);
+    expect(returned.toolbar).toEqual(desktopMap!.toolbar);
+    expect(returned.pageScrollY).toBe(0);
+    expect((await inspect(page, "map", fixture.campaignId)).saved).toBe(terminal.saved);
+    milestone("paused 1280→320→1280 roundtrip restores exact Map/navigation geometry and canonical save");
     await page.reload({ timeout: 25_000 });
     await pauseOnReady(page);
     const reloaded = await inspect(page, "inventory", fixture.campaignId);

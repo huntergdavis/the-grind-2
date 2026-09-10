@@ -2,6 +2,40 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — mobile Map toolbar clearance (v0.5.153)
+
+Reuses session09's v152 browser finding and recorded BACKLOG item16: the
+collapsed mobile Map card grew upward behind fixed navigation, despite the
+new hint itself fitting horizontally. Existing header/toolbar measurements
+already expose `--inspection-viewport-top`; the expanded Gazetteer uses it.
+The fix stays in CSS, not a second measurement loop or renderer mutation.
+
+Only the collapsed Map card at the existing 760px breakpoint receives a height
+cap: 65% of the space below the actual toolbar and above its bottom margin.
+The remaining band keeps the map visible. Independent council review flagged
+implicit auto grid rows shrinking the overflow-hidden hero margin; explicit
+max-content rows preserve its complete contents within one scroll container.
+Expanded Gazetteer, sticky return control and desktop styling stay untouched.
+
+Acceptance extends the existing natural No-LLM T4→T5 inspection journey rather
+than adding another test case or duration matrix: actual vertical bounds,
+scroll-reachable details/disclosure/return, native Gazetteer open/close and
+keyboard focus, paused narrow/desktop round-trip resize, exact saved state and
+reload. Keep the unchanged 120s journey budget, normal release checks and CI.
+
+Independent final CSS review is clear. Version, canonical boundaries, production
+build and the final TypeScript check pass. Only CSS changes in production;
+simulation and both narrator workers retain their v152 hashes. The existing
+browser journey passes first-run in 74.4s / 1.5m runner under its unchanged
+120s budget. It verifies the 65% height cap/35% map band, every named target
+inside the scrollport and below navigation, and the notice inside its own
+hero card—not just horizontal fit. Native Gazetteer full-height/sticky Return,
+closing focus and bounds, 320×480 clearance, exact paused 1280→320→1280
+Map/navigation geometry, unchanged canonical save and actual reload all pass.
+Root inspected all four captures: mobile route details now clear navigation,
+the visible atlas band remains, and desktop/Inventory are unchanged. Zero
+browser errors, inference or external requests; owned preview 19880 is closed.
+
 ## Gameplay-first council — truthful inspection status (v0.5.152)
 
 Reuses the v151 Inventory screenshot finding recorded in BACKLOG.md item 15:

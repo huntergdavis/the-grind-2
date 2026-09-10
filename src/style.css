@@ -5132,6 +5132,16 @@ progress::-moz-progress-bar {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  .map-inspector:not(:has(.map-gazetteer[open])) {
+    /* Leave a map band above the card, measured below the actual toolbar. */
+    max-height: calc((100% - var(--inspection-viewport-top, 8.25rem) - 0.65rem) * 0.65);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    align-content: start;
+    /* Scroll complete rows instead of shrinking the overflow-hidden puppet. */
+    grid-auto-rows: max-content;
+  }
+
   .hero-activity--map {
     min-width: 0;
     grid-column: 1 / -1;

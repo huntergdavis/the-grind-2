@@ -152,7 +152,7 @@ Immediate queue:
     222 files (266.18s release suite, 5m25s deployment). Public version/cache,
     entry `index-8qOZdAi9.js`, unchanged simulation worker/CSS and exact committed
     UI source maps verified at 2026-09-09 21:49 PDT.
-16. **Next UI polish — mobile Map toolbar clearance.** The v152 320px Map
+16. **Implemented; deployment pending — mobile Map toolbar clearance (v0.5.153).** The v152 320px Map
     capture has readable new status text, but the atlas panel's upper route
     details can sit behind the fixed toolbar. Bound the existing inspection
     panel to the usable viewport and keep its content scrollable, without
@@ -165,6 +165,18 @@ Immediate queue:
     Extend the existing inspection-status journey with vertical bounds,
     scroll-reachable route/disclosure/return controls and paused 1280→320→1280
     resize, rather than adding another broad browser matrix.
+    The mobile-only collapsed card now occupies at most 65% of the space below
+    the measured toolbar, retaining a visible map band above it. Complete grid
+    rows scroll within the card instead of shrinking/clipping the hero margin.
+    Desktop and expanded Gazetteer styling remain unchanged. No new control,
+    measurement loop, narrator change or save/gameplay mutation.
+    Version/boundary/build/type checks and independent council review pass.
+    The strengthened existing browser journey passes first-run in 74.4s
+    (1.5m runner, unchanged 120s budget): exact 65% card cap/35% map band,
+    vertically reachable metadata/notice/disclosure/return, native Gazetteer
+    open/close and focus, 320×480 clearance, exact paused desktop→mobile→desktop
+    geometry, unchanged save and actual reload. All four 1280/320 captures
+    reviewed; zero errors, inference or external requests. Preview closed.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
