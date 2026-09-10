@@ -2,6 +2,41 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Gameplay-first council — readable mobile Codex dossiers (v0.5.155)
+
+Reuses `deja "Codex mobile"` sessions03/06/09, BACKLOG item18, V04.16b's
+portrait-dossier contract and V04.19c2's remaining 320px containment intent.
+The v154 capture demonstrates that avoiding overflow is not enough: the
+permanent portrait column leaves clues and source receipts in a cramped
+adjacent article. Give that text the full available card width at the existing
+760px breakpoint, with the same silhouette in a fixed8.75rem header above it.
+Keep desktop composition, font sizes, every fact and native disclosure intact.
+No markup, script, save, engine, narrator, control or new panel changes.
+
+Independent source review confirms all existing creature bodies, heads,
+species-specific features, eyes and shadows fit the header. Use an actual
+height, not only a minimum, so expanded evidence cannot stretch the portrait.
+The existing genuine Copperhorn85→89 browser journey will cover full-width
+text, bounded art, reachable evidence, native focus/open-state preservation,
+exact saved reload and desktop agreement within its unchanged120s budget.
+No new encounter fixture, broad matrix or long replay is required for this CSS
+change; existing deployment CI remains the full regression gate.
+
+Final independent CSS diff review is approved. Version, reducer-boundary,
+TypeScript and production-build checks pass. The entry is `index-DtPvUvr7.js`
+and stylesheet `index-CJXRzz2S.css`; simulation and both narrator workers retain
+their v154 hashes. The strengthened existing natural Copperhorn journey passes
+first-run in66.7s (1.4m runner, unchanged120s budget). It retains the actual
+85→89 progression/source assertions and adds >250px full inner-card text width,
+bounded140px portrait, every heading/summary/source row scroll-reachable below
+navigation, identical fonts, native collapsed/expanded controls, exact desktop
+geometry after1280→320→1280 resize, retained focus/open-state and exact saved
+reload. Batching turn/save/view reads removes redundant browser round trips;
+no natural transition or source assertion is dropped. Root and browser reviewer
+inspected both actual320captures: the silhouette stays together above its name,
+and expanded evidence uses the full text width. No browser errors, inference or
+external requests; owned preview19880 closed. Public deployment remains pending.
+
 ## Gameplay-first council — Copperhorn final-ember research (v0.5.154)
 
 Reuses the prior Copperhorn proposal recalled from sessions03/06 and BACKLOG

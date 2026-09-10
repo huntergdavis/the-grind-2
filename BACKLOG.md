@@ -220,7 +220,7 @@ Immediate queue:
     simulation worker `simulation.worker-DE6llA_g.js`, unchanged stylesheet,
     bundle bytes and exact committed browser/worker source maps all verify.
     Protected ledger edits, parked drafts and narrator workers remain unchanged.
-18. **Next — V04.16b portrait Codex readability follow-up.** Complete the
+18. **In implementation — V04.16b portrait Codex readability follow-up (v0.5.155).** Complete the
     existing portrait-dossier/320px containment intent, also recorded under
     V04.19c2. The v154 capture has no horizontal overflow, but its permanent
     5.25rem portrait column leaves research clues and source receipts in an
@@ -233,6 +233,16 @@ Immediate queue:
     text width, reachable evidence, focus/open-state preservation, exact save
     and desktop agreement. This is readability completion, not a new mechanic,
     a whole Codex redesign or another broad browser matrix.
+    Implemented with only two rules inside the existing760px breakpoint:
+    one card column and a fixed8.75rem portrait header. Final council review,
+    version/boundary/type/build checks pass; simulation/narrator workers stay
+    byte-identical. The strengthened existing natural Copperhorn journey
+    passes first-run in66.7s (1.4m runner, unchanged120s budget): >250px mobile
+    article width, bounded140px portrait, individually reachable heading,
+    disclosure and source rows below navigation, unchanged fonts, exact desktop
+    geometry after resize, retained focus/open-state and byte-identical saved
+    reload. Both mobile captures reviewed; zero errors, inference or external
+    requests and owned preview closed. Deployment verification remains pending.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.

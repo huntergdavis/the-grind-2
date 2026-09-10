@@ -1,4 +1,4 @@
-const cacheName = "the-grind-2:assets:v0.5.154";
+const cacheName = "the-grind-2:assets:v0.5.155";
 const shell = ["./", "./index.html"];
 const localNarratorSyntheticPathPrefix = "/__the_grind_2_local_narrator__/v1/";
 const localNarratorRuntimeAssetBasenamePattern =

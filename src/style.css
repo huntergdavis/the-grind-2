@@ -5273,9 +5273,14 @@ progress::-moz-progress-bar {
   }
 
   .codex-monster {
-    grid-template-columns: 5.25rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.65rem;
     padding: 0.7rem;
+  }
+
+  .codex-monster > .codex-portrait {
+    /* Keep the silhouette together while evidence uses the full card width. */
+    height: 8.75rem;
   }
 
   .inventory-grid {
