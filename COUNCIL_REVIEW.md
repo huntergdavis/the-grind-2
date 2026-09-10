@@ -36,6 +36,26 @@ Root inspected all four captures: mobile route details now clear navigation,
 the visible atlas band remains, and desktop/Inventory are unchanged. Zero
 browser errors, inference or external requests; owned preview 19880 is closed.
 
+Feature `5396ef07f8db298dc90bae4d3a1950acc017c6d7` is pushed and live.
+[Pages run 34441754329](https://github.com/huntergdavis/the-grind-2/actions/runs/34441754329)
+passes 3,355 tests across 222 files; the release suite takes 207.18s and the
+deployment 4m25s (05:36:32–05:40:57 UTC). At 2026-09-09 22:41 PDT, the public
+version/cache, entry `index-BFnQOE02.js`, stylesheet `index-C9e4LhCm.css` and
+unchanged simulation worker pass byte comparisons against the verified build.
+Stylesheet source equals the feature commit and the public main source map
+matches committed main. No protected ledger or parked narrator/art work ships.
+
+The next bounded gameplay recommendation promotes Copperhorn final-ember
+research under existing V04.16e, rather than claiming this exact subtask was
+already specified. Root confirmed only Inkcap/Moonhowl exist in the fixed
+research state; Bellmetal Charge applies two-turn burning, and prepareTurn
+records positive HP loss even on its 1→0 expiry before action resolution.
+Reuses recalled sessions06/09 and the existing species-research backlog.
+Require a natural encounter witness first: refreshes/early victory may prevent
+expiry. Preserve existing research evidence, exact source/HP receipts and empty
+migration for the new task. No LLM, reward, policy, new panel or ledger work is
+included; the held zero-potency Familiar Opening draft stays unshipped.
+
 ## Gameplay-first council — truthful inspection status (v0.5.152)
 
 Reuses the v151 Inventory screenshot finding recorded in BACKLOG.md item 15:

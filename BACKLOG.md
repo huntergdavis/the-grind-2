@@ -152,7 +152,7 @@ Immediate queue:
     222 files (266.18s release suite, 5m25s deployment). Public version/cache,
     entry `index-8qOZdAi9.js`, unchanged simulation worker/CSS and exact committed
     UI source maps verified at 2026-09-09 21:49 PDT.
-16. **Implemented; deployment pending — mobile Map toolbar clearance (v0.5.153).** The v152 320px Map
+16. **Delivered — mobile Map toolbar clearance (v0.5.153).** The v152 320px Map
     capture has readable new status text, but the atlas panel's upper route
     details can sit behind the fixed toolbar. Bound the existing inspection
     panel to the usable viewport and keep its content scrollable, without
@@ -177,6 +177,25 @@ Immediate queue:
     open/close and focus, 320×480 clearance, exact paused desktop→mobile→desktop
     geometry, unchanged save and actual reload. All four 1280/320 captures
     reviewed; zero errors, inference or external requests. Preview closed.
+    Feature `5396ef0` is live: Pages run `34441754329` passes 3,355 tests in
+    222 files (207.18s release suite, 4m25s deployment). At 2026-09-09 22:41 PDT,
+    public version/cache 0.5.153, entry `index-BFnQOE02.js`, stylesheet
+    `index-C9e4LhCm.css`, unchanged simulation worker and committed source/build
+    comparisons pass. Protected ledger work and parked drafts remain untouched.
+17. **Next gameplay slice — V04.16e3, Copperhorn: study the final ember.**
+    Newly promote one bounded subset of the existing monster field-research
+    backlog: witness actual Bellmetal Charge apply burning, then witness that
+    same application lose its final duration while still damaging the hero
+    before an action can resolve. Teach the non-obvious fact that expiring
+    burning still hurts; do not turn this into another cast/damage counter.
+    First find a natural encounter witness: repeated refreshes or early victory
+    can prevent the final tick, and fabricated stats/abilities are not proof
+    of useful pacing. Preserve exact application, intervening status chain,
+    final 1→0 expiry and HP receipts; reject unrelated fire, overwritten or
+    missing provenance. Migrate Inkcap/Moonhowl evidence unchanged and begin
+    Copperhorn empty, with no retrospective aggregate-lore credit. Reuse the
+    existing Codex disclosure and No-LLM autoplay; no reward, policy change,
+    new Watch panel, generic research framework or compact-ledger dependency.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
