@@ -2,6 +2,73 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## A useful reply — v0.5.165 implementation checkpoint
+
+F3a is in implementation, not yet publicly delivered. Reused the committed
+[F3a scope](docs/design/FLYTING.md#f3a-proposed-next-slice--a-useful-reply), prior
+`deja "flyting"`/Herder reading evidence and the actual F1/F2 memory journey.
+This slice adds one original book, **How to Chair a Meeting Without Becoming
+the Furniture**, and an explicitly unscored resident practice exchange.
+The learned “sounding board” expression opens a constructive answer about
+helping people be heard instead of equating loudness with leadership.
+
+Rules, presentation and browser acceptance are independently owned; root
+reviews integration and the release. Keep the new finite learning/reply receipt
+separate from frozen F1/F2 content and scores, with no XP, resource, reputation,
+regard or witness rewards. Existing Watch caption/staging and Journal retain
+the actual words and sources. LLM and protected ledger work remain untouched.
+Review separated historical venue validity from current companion admission:
+a practice partner's later recruitment cannot invalidate a genuine old lesson.
+Focused checks, natural reachability, browser captures, CI and public delivery
+remain pending. No new long-duration audit or expanded timeout is a release gate.
+
+The single bounded source probe subsequently passed: the existing
+`shared-road-playful:7` journey reaches actual recall T39, farewell T40, reading
+T41 and constructive reply T42 with Cato Ash at the recorded Candle Inn in
+location:0. The next ordinary opportunity is the existing Borrowed Bell.
+No town, health, roster or reading fields were staged. The learned option was
+absent before reading; both JSON upgrades are exact and old F1/F2 records,
+hero, quest, towns and companions remain unchanged across the two new actions.
+This proves reachability, not yet browser presentation. The atlas place name
+Elderwatch remains authoritative over the older stored town label Starharbor.
+
+Final focused gameplay checks passed 7/7 (9.02-second runner, 2.46-second
+bodies); presentation plus existing repartee checks passed 20/20. The full
+TypeScript check and production build passed (Vite 18.20 seconds). Seven
+required runtime source-map entries exactly match the frozen working sources.
+Both narrator worker identities and the existing CSS remain unchanged.
+No extra panel or imported asset was added. The final read-only council review
+found no release blocker, including later partner recruitment and source-bound
+once-only continuation.
+
+Initial local failures remain recorded: a nullable union needed an explicit
+lesson type guard; a legacy-save test incorrectly expected JSON to preserve an
+undefined field (raw present-undefined still rejects); and the boundary check
+needed `useful-reply.ts` added to its two existing evaluation source manifests.
+The corrected checks pass. The manifest recall query returned no match; the
+current derived dependency list supplied that two-line bookkeeping fix. No
+narrator runtime, model evaluation or test timeout was changed.
+
+The local canonical run failed: save/migrate/replay took 28.620 seconds and
+exceeded its existing 20-second cap; the ten-campaign snapshot test produced
+new full-state hashes in 92.184 seconds and failed the old expected hashes.
+Those ten expected values are updated for Depth 33's explicit lesson slot and
+the real two story turns wherever admitted; no fields or mechanics are normalized
+away. The 20/80-second limits remain unchanged. Clean CI must establish the
+final replay pass; the local timeout is not described as successful evidence.
+
+The final gameplay suite passed 8/8 in 8.90 seconds after root added the
+two-command foreground catch-up regression. Browser acceptance passed in
+41.8 seconds (1.0-minute runner) against the source-matched production build.
+It performs the actual reading and reply, reloads both exact saves, inspects
+both Journal sources and all three known responses, preserves old F1/F2 bytes,
+then resumes the ordinary Bell offer without a repeated lesson. No page/console
+errors, model activity or external requests occurred. All three native desktop/
+320px/Focus captures were directly inspected: readable words, visible actors
+and clear controls, with no extra panel or contest marks. The browser journey
+uses explicit fixture-fast mode; the existing source-keyed normal dwell is
+reused, not a newly measured normal-speed timing claim. CI/public delivery remain pending.
+
 ## Dungeon-search browser receipt — bounded maintenance, 2026-09-11
 
 Reused `deja "dungeon-search mana-siphon"`: Codex session 10 recovered the

@@ -142,6 +142,7 @@ export const narratorBrowserFullRunSourcePathsV3 = Object.freeze([
   "src/depth/roadside-rest.ts",
   "src/depth/town-rest.ts",
   "src/depth/types.ts",
+  "src/depth/useful-reply.ts",
   "src/narrator/blind-evaluation-v3.ts",
   "src/narrator/blind-evaluation.ts",
   "src/narrator/capability.ts",

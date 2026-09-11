@@ -133,7 +133,7 @@ describe("one source-backed shared memory before the actual oath farewell", () =
     const before = ready.depth, { reparteeCallback: _callback, ...prior } = before;
     const legacy = { ...prior, schemaVersion: 29 };
     const loaded = upgradeDepthState(legacy, before.seed, before.hero.id, before.hero.name);
-    expect(loaded.schemaVersion).toBe(32);
+    expect(loaded.schemaVersion).toBe(33);
     expect(loaded.reparteeCallback).toBeNull();
     expect(loaded.reparteeWitness).toEqual(before.reparteeWitness);
     expect(loaded.companions).toEqual(before.companions);

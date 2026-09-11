@@ -1,3 +1,4 @@
+import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCall } from "../depth/useful-reply";
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
@@ -345,6 +346,8 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "read-useful-book":
+    case "practice-useful-reply":
     case "start-bell":
     case "roll-bell":
     case "move-bell":
@@ -395,6 +398,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "read-useful-book":
+    case "practice-useful-reply":
     case "start-bell":
     case "roll-bell":
     case "move-bell":
@@ -480,6 +485,19 @@ function describeBeat(
       headline: `A quiet rest at ${location?.name ?? "the destination"}`,
       action: `${memory.witnessName}: “${memory.line}”`,
       consequence: "The exchange is remembered, not rewarded again. Regard, bond and resources unchanged.",
+      sensoryIntensity: 0,
+    };
+  }
+  if ((choice.command.type === "read-useful-book" || choice.command.type === "practice-useful-reply") && depth.usefulReply !== null) {
+    const lesson = depth.usefulReply;
+    return {
+      mode: "chronicle", location: town?.name ?? opportunity.location,
+      goal: "Learn a useful reply, not another way to win",
+      headline: lesson.reply === null ? usefulReplyBook.title : "A useful reply",
+      action: lesson.reply === null ? `“${usefulReplyBook.excerpt}” ${lesson.residentName}: “${usefulReplyCall.text}”`
+        : `${lesson.residentName}: “${lesson.reply.call}” ${state.hero.name}: “${lesson.reply.reply}”`,
+      consequence: lesson.reply === null ? `Learned “${usefulReplyBook.expression}”: a new constructive reply is now available.`
+        : `${lesson.reply.explanation} Unscored practice; resources and relationships unchanged.`,
       sensoryIntensity: 0,
     };
   }
@@ -1497,8 +1515,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 32 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) ||
+    state.depth.schemaVersion !== 33 ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

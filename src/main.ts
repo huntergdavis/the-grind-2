@@ -1070,6 +1070,7 @@ function narrativePresentationAvailable(allowGameMenu = false): boolean {
     || cutawayController.queue.active !== null || cutawayController.queue.pending !== null
     || state.scene.mode === "battle" || elements.stage.dataset.encounterEngine !== undefined
     || state.depth.repartee.active !== null || reparteeScene !== null || bellScene !== null
+    || state.depth.usefulReply !== null && state.depth.usefulReply.reply === null
     || state.depth.bellExpedition !== null && state.depth.bellExpedition.completion === null
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
     || document.querySelector(allowGameMenu ? "dialog[open]:not(#game-menu)" : "dialog[open]") !== null) return false;
@@ -4124,6 +4125,7 @@ function checkpointKey(campaignId: string): string {
 async function catchUp(world: WorldState): Promise<WorldState> {
   // Foreground conversations and board turns resume from saved facts, never hidden-time debt.
   if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null
+    || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.bellExpedition !== null && world.depth.bellExpedition.completion === null
     || projectBorrowedBellScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));

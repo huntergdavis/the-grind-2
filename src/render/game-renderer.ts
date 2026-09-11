@@ -1238,7 +1238,7 @@ export class GameRenderer {
     for (const key of ["reparteePhase", "reparteeCommand", "reparteeBook", "reparteeRound", "reparteeMomentum",
       "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
       "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
-      "reparteeHeroPosition", "reparteeWitnessPosition"]) delete this.host.dataset[key];
+      "reparteeHeroPosition", "reparteeWitnessPosition", "reparteeResidentPosition", "reparteeLesson", "reparteeClassification"]) delete this.host.dataset[key];
     for (const key of ["bellPhase", "bellCommand", "bellInstance", "bellCell", "bellTurn", "bellRoll", "bellOutcome",
       "bellPath", "bellSafeRect", "bellVisual", "bellHeroPosition", "bellKnownEffects", "bellMemorySource",
       "bellMemoryLocation", "bellMemoryInn", "bellMemoryRestKind", "bellCarried"]) delete this.host.dataset[key];
@@ -4944,6 +4944,11 @@ export class GameRenderer {
     this.host.dataset.reparteeWitnessPose = scene.witness?.reaction?.pose ?? (scene.witness === null ? "none" : "watching");
     this.host.dataset.reparteeRegard = scene.witness?.reaction === null || scene.witness === null
       ? "unestablished" : String(scene.witness.reaction.regardAfter);
+    if (scene.phase === "lesson-reading" || scene.phase === "lesson-practice") {
+      for (const key of ["reparteeRound", "reparteeMomentum", "reparteeOutcome", "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
+      this.host.dataset.reparteeLesson = scene.lessonId;
+      this.host.dataset.reparteeClassification = scene.classification;
+    }
     if (scene.phase === "memory") {
       this.host.dataset.reparteeOutcome = "not-a-contest";
       this.host.dataset.reparteeWitnessPose = scene.memory.pose;
@@ -4968,8 +4973,9 @@ export class GameRenderer {
       witness.rotation = scene.memory.pose === "nod" ? 0.04 : scene.memory.pose === "frown" ? -0.04 : scene.memory.pose === "laugh" ? -0.06 : 0;
       return;
     }
-    this.host.dataset.reparteeVisual = scene.phase === "reading"
+    this.host.dataset.reparteeVisual = scene.phase === "reading" || scene.phase === "lesson-reading"
       ? "actual-hero|public-copy|reading-desk|no-resource-damage"
+      : scene.phase === "lesson-practice" ? "actual-hero|actual-resident|speaking-gestures|unscored-practice|no-witness|no-score|no-new-reward"
       : scene.witness !== null ? "actual-hero|actual-resident|actual-companion|witnessed-encore|three-marks|no-resource-damage|bond-unchanged"
       : "actual-hero|actual-resident|speaking-gestures|three-marks|no-resource-damage";
     this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172331));
@@ -4999,8 +5005,9 @@ export class GameRenderer {
       }
       this.worldLayer.addChild(pages);
     };
-    if (scene.phase === "reading") {
+    if (scene.phase === "reading" || scene.phase === "lesson-reading") {
       this.worldLayer.addChild(rect(155, 135, 7, 29, 0x6b4832), rect(205, 135, 7, 29, 0x6b4832), rect(146, 128, 75, 9, 0x986e43));
+      this.host.dataset.reparteeHeroPosition = "122,139";
       this.drawHero(state, 122, 139, palette, 1.7, scene.heroId, false);
       book(176, 119, 1.7);
       this.lightLayer.addChild(circle(177, 115, 30, 0xefcd7c, 0.09));
@@ -5008,8 +5015,10 @@ export class GameRenderer {
     }
     const heroX = scene.witness === null ? 92 : 111;
     const residentX = scene.witness === null ? 232 : 242;
+    this.host.dataset.reparteeHeroPosition = `${heroX},139`;
     this.drawHero(state, heroX, 139, palette, 1.7, scene.heroId, false);
     if (scene.residentId !== null) {
+      this.host.dataset.reparteeResidentPosition = `${residentX},139`;
       const rival = this.drawHero(state, residentX, 139, palette, 1.7, scene.residentId, false);
       rival.scale.x = -1.7;
     }
@@ -5033,6 +5042,8 @@ export class GameRenderer {
     };
     speech(residentX, 0xbccbd9, -7);
     if (scene.reply !== null) speech(heroX, 0xefcb83, 7);
+    // Practice teaches a reply; it is not another scored contest or witness reaction.
+    if (scene.phase === "lesson-practice") return;
     for (let index = 0; index < 3; index += 1) {
       const delta = scene.marks[index];
       const x = 146 + index * 15;

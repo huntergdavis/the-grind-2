@@ -15,6 +15,7 @@ import { selectDisarmingKitPurchase } from "../depth/town-disarming-kit";
 import { selectDisarmingKit } from "../depth/disarming-kit";
 import { reparteeBook, reparteeResponses, type ReparteeResponse } from "../depth/repartee";
 import { isValidCampaignRepartee } from "../depth/repartee-campaign";
+import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCommandId, usefulReplyResponses } from "../depth/useful-reply";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -161,6 +162,14 @@ function dungeonMoveKnowledge(
     : undefined;
 }
 
+function knownUsefulReply(state: WorldState, candidate: DepthCommandCandidate) {
+  const command = candidate.command, lesson = state.depth.usefulReply;
+  if (command.type !== "practice-useful-reply" || lesson === null || lesson.reply !== null
+    || command.lessonId !== lesson.lessonId || candidate.deciderId !== state.depth.hero.id
+    || candidate.id !== usefulReplyCommandId(state.depth.tick + 1, command) || !isValidCampaignUsefulReply(state.depth)) return undefined;
+  return usefulReplyResponses(lesson).find((response) => response.id === command.responseId);
+}
+
 function scoreCandidate(
   state: WorldState,
   candidate: DepthCommandCandidate,
@@ -230,6 +239,16 @@ function scoreCandidate(
     if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
     if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
     reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
+  } else if (command.type === "read-useful-book") {
+    score = 60;
+    reason = `the prior road oath is complete; a real public copy of ${usefulReplyBook.title} offers a new way to answer without turning the room into a contest`;
+  } else if (command.type === "practice-useful-reply") {
+    const response = knownUsefulReply(state, candidate);
+    if (response === undefined) throw new Error("Actor Policy cannot select an unlearned or foreign practice reply");
+    score = response.classification === "constructive" ? 80 : response.classification === "concession" ? 20 : 0;
+    reason = response.classification === "constructive"
+      ? `the actual reading of ${usefulReplyBook.title} unlocked a constructive answer; practice tests that new idea without seeking applause or a reward; ${response.explanation}`
+      : `this plain response was already known before reading; ${response.explanation}`;
   } else if (command.type === "repartee-action") {
     const response = knownReparteeResponse(state, candidate, knowledge);
     if (response === undefined) throw new Error("Actor Policy cannot score an unknown repartee response");
@@ -509,6 +528,8 @@ function presentationLabels(
       actionLabel: "shares a memory before parting",
       targetLabel: state.depth.companions.active.find((entry) => entry.identity.residentId === command.witnessId)?.identity.name ?? command.witnessId,
     };
+    case "read-useful-book": return { actionLabel: "reads a new public book", targetLabel: usefulReplyBook.title };
+    case "practice-useful-reply": return { actionLabel: knownUsefulReply(state, candidate)?.text ?? "the unavailable practice reply", targetLabel: state.depth.usefulReply?.residentName ?? "the recorded resident" };
     case "read-book": return { actionLabel: "reads a public copy", targetLabel: reparteeBook.title };
     case "start-repartee": return {
       actionLabel: "accepts a flyting contest",
@@ -615,7 +636,9 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
   const knowledge = projectActorPolicyKnowledge(state);
   const candidates = opportunity.candidates.filter((candidate) => state.depth.repartee.active === null
     ? candidate.command.type !== "repartee-action"
-    : knownReparteeResponse(state, candidate, knowledge) !== undefined);
+    : knownReparteeResponse(state, candidate, knowledge) !== undefined)
+    .filter((candidate) => state.depth.usefulReply !== null && state.depth.usefulReply.reply === null
+      ? knownUsefulReply(state, candidate) !== undefined : candidate.command.type !== "practice-useful-reply");
   const context = contextFor(state, candidates);
   const profile = actorInstinctProfiles[context];
   const ranked = candidates
@@ -673,7 +696,7 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
     : `${combatFacts(state, guardedAlternative.candidate).target?.name ?? "The foe"}'s Guard prevents a guaranteed finish; ${selected.reason}`;
   const reasons = [forwardReason ?? selectedReason];
   const rationale = forwardReason === null
-    ? selectedCommand.type === "repartee-action"
+    ? selectedCommand.type === "repartee-action" || selectedCommand.type === "practice-useful-reply"
       ? `${actor.name} chose the reply “${selected.candidate.label}” because ${selectedReason.replace(/[.!?]+$/u, "")}.`
       : `${actor.name} chose to ${selected.candidate.label} because ${selectedReason}.`
     : `${actor.name} chose to ${selected.candidate.label} because ${forwardReason}.`;

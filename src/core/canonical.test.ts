@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v163 records Depth 32 and the once-only source-bound delivery memory.
+      // v165 records Depth 33 and the finite learned-reading/practice history.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "62035c3055535b45",
-      "eb7669b11bbed580",
-      "01bf601bde0ef66f",
-      "ac1c1faca2803c60",
-      "fdd1f8553ffb93d1",
-      "db9b5e55e75a0684",
-      "adad12f0397f5ec5",
-      "831925e2ced740dc",
-      "a31d3c57ef865f78",
-      "d1d72f57c6ffee28",
+      "3ba931efb5fa8f55",
+      "e533a5c376d71a43",
+      "07141b810d4877a0",
+      "a92b84a6112df1a1",
+      "5fe7a9730194be73",
+      "dc70f1b3e65df59f",
+      "d32844ba978abf7e",
+      "cd553b1b3e8a68cd",
+      "2347f1db46ca5cad",
+      "2bc77f762944d6b6",
     ]);
   }, 80_000);
 });

@@ -26,9 +26,46 @@ Native dialogue and a dedicated book/two-person stage replace duplicate Watch pa
 
 Recovery evidence reused before implementation: `deja "flyting"`, the committed design below and the pinned Herder reading/vocabulary findings (Claude session `7dc8bf11-9b0`). The runtime content here is original; no sibling book prose was copied.
 
+## F3a implementation — A useful reply (v0.5.165)
+
+Implemented and browser-verified, pending CI/public delivery. After the actual witnessed
+encore, arrival memory and farewell, a safe solo hero can read a second public
+book at a real visited hall/inn: **How to Chair a Meeting Without Becoming the
+Furniture**. Its original passage compares a useful chair with one that merely
+creaks loudly. Learning “sounding board” opens the constructive
+`turn-volume-into-service` frame; it was not part of the starter repertoire.
+
+The resident offers a public practice claim about loudness proving leadership.
+The hero can concede, compete in volume, or try the learned answer: invite the
+speaker to ask who needs a hand and listen. The autonomous practice policy
+prefers testing the newly learned constructive response. This is explicitly
+unscored: no victory, reputation, regard, bond, XP or resource change. Every
+legal reply consumes the one practice opportunity and normal adventure resumes.
+
+Depth 33 stores one separate nullable `usefulReply` record. Exact reading and
+reply sources bind the hero, real building/resident, original content and ticks.
+Old saves receive no invented learning, and the original F1/F2 tables,
+transcripts, witness judgment and memory remain unchanged. Later recruitment
+of the same practice partner cannot invalidate that historical lesson.
+
+The existing Watch caption shows a book desk, then two named speakers; there
+are no contest marks or invented witness. The existing eight-second foreground
+hold, pause/Focus controls and catch-up boundary apply. Journal → Adventure →
+Books & Flyting has a collapsed second-book entry with the exact passage,
+learned expression, reply, alternative known responses and both source IDs.
+It is learned repertoire, not an inventory-book acquisition. No new panel,
+CSS, external artwork or LLM is required.
+
+One bounded actual continuation proves reachability: recall T39 → farewell T40
+→ reading T41 → reply T42 with Cato Ash at Candle Inn, Elderwatch → the existing
+Bell offer. This uses the existing natural `shared-road-playful:7` journey,
+not staged health, roster, book or venue fields. Final release evidence belongs
+in [COUNCIL_REVIEW.md](../../COUNCIL_REVIEW.md).
+
 ## F3a proposed next slice — A useful reply
 
-Scoped by the read-only council follow-up on 2026-09-11; not implemented.
+Original read-only scope from 2026-09-11, retained for recovery; implementation
+and current delivery status are recorded above.
 One new original short public book teaches a constructive counter about useful
 leadership versus loud boasting. At a real safe, visited hall/inn, the hero
 reads it and then demonstrates the newly learned reply to an actual resident's

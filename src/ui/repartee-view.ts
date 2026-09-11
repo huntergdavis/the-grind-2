@@ -5,6 +5,7 @@ import {
   reparteeWitnessPreference,
 } from "../depth/repartee-witness";
 import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
+import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyResponses } from "../depth/useful-reply";
 
 export interface ReparteeContestSceneView {
   readonly phase: "reading" | "challenge" | "round" | "result";
@@ -46,7 +47,19 @@ export interface ReparteeMemorySceneView extends Omit<ReparteeContestSceneView, 
   };
 }
 
-export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView;
+export interface ReparteeLessonSceneView extends Omit<ReparteeContestSceneView, "phase" | "momentum"> {
+  readonly phase: "lesson-reading" | "lesson-practice";
+  readonly lessonId: string;
+  readonly classification: "learned" | "constructive" | "concession" | "boast";
+  readonly readingSourceCommandId: string;
+  readonly marks: readonly [];
+  readonly momentum: null;
+  readonly outcome: null;
+  readonly witness: null;
+  readonly encore: false;
+}
+
+export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView;
 
 export interface ReparteeWitnessView {
   readonly id: string;
@@ -139,8 +152,42 @@ export function projectReparteeMemory(state: WorldState): ReparteeMemorySceneVie
   });
 }
 
+/** A saved reading or reply owns its stage only during the exact committed command. */
+export function projectUsefulReplyScene(state: WorldState): ReparteeLessonSceneView | null {
+  const lesson = state.depth.usefulReply;
+  const source = state.chronicle.at(-1);
+  if (lesson === null || !isValidCampaignUsefulReply(state.depth) || source === undefined
+    || source.tick !== state.tick || state.depth.tick !== state.tick
+    || source.mode !== "chronicle" || state.scene.mode !== "chronicle"
+    || lesson.heroId !== state.depth.hero.id || lesson.locationId !== state.depth.atlas.currentLocationId) return null;
+  const practice = source.commandType === "practice-useful-reply";
+  const receipt = practice ? lesson.reply : source.commandType === "read-useful-book" && lesson.reply === null ? lesson.reading : null;
+  if (receipt === null || receipt.tick !== state.tick || source.commandId !== `${state.campaignId}:${receipt.sourceCommandId}`) return null;
+  const town = state.depth.towns[lesson.locationId];
+  const building = town?.buildings.find((entry) => entry.id === lesson.buildingId);
+  const resident = town?.residents.find((entry) => entry.id === lesson.residentId && entry.name === lesson.residentName);
+  if (town === undefined || building === undefined || resident === undefined) return null;
+  return Object.freeze({
+    phase: practice ? "lesson-practice" : "lesson-reading", commandId: source.commandId, tick: source.tick,
+    heroId: lesson.heroId, heroName: state.hero.name,
+    residentId: practice ? resident.id : null, residentName: practice ? resident.name : null,
+    buildingId: building.id, buildingName: building.name, bookId: usefulReplyBook.id,
+    lessonId: lesson.lessonId, classification: practice ? lesson.reply!.classification : "learned",
+    readingSourceCommandId: lesson.reading.sourceCommandId,
+    title: practice ? "Practice · unscored" : usefulReplyBook.title,
+    call: practice ? lesson.reply!.call : usefulReplyBook.excerpt,
+    reply: practice ? lesson.reply!.reply : null,
+    marks: Object.freeze([]) as readonly [], momentum: null, outcome: null, witness: null, encore: false,
+    consequence: !practice ? "One constructive reply learned · practice is unscored."
+      : lesson.reply!.classification === "constructive" ? "Constructive · leadership means helping others."
+      : lesson.reply!.classification === "concession" ? "Concession · volume alone does not establish leadership."
+      : "Boast · more volume, not more useful leadership.",
+  });
+}
+
 /** The current command must own the receipt; revisiting town cannot replay a duel. */
 export function projectReparteeScene(state: WorldState): ReparteeSceneView | null {
+  if (["read-useful-book", "practice-useful-reply"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectUsefulReplyScene(state);
   if (state.chronicle.at(-1)?.commandType === "recall-repartee") return projectReparteeMemory(state);
   const source = state.chronicle.at(-1);
   const progress = state.depth.repartee;
@@ -256,7 +303,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     }
     if (scene === null) {
       caption.replaceChildren();
-      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation"]) delete caption.dataset[key];
+      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource"]) delete caption.dataset[key];
       return;
     }
     caption.dataset.phase = scene.phase;
@@ -274,8 +321,24 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     caption.dataset.encore = String(scene.encore);
     delete caption.dataset.memorySource;
     delete caption.dataset.memoryLocation;
+    delete caption.dataset.lesson;
+    delete caption.dataset.classification;
+    delete caption.dataset.readingSource;
     const title = doc.createElement("h2");
     title.textContent = scene.title;
+    if ("lessonId" in scene) {
+      for (const key of ["round", "momentum", "outcome", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
+      caption.dataset.lesson = scene.lessonId;
+      caption.dataset.classification = scene.classification;
+      caption.dataset.readingSource = scene.readingSourceCommandId;
+      const children = [title, scene.phase === "lesson-reading"
+        ? paragraph(`“${scene.call}”`, "repartee-call")
+        : dialogue(scene.residentName!, scene.call, "repartee-call")];
+      if (scene.reply !== null) children.push(dialogue(scene.heroName, scene.reply, "repartee-reply"));
+      children.push(paragraph(scene.consequence, "repartee-note"));
+      caption.replaceChildren(...children);
+      return;
+    }
     if (scene.phase === "memory") {
       caption.dataset.reaction = "remembered";
       caption.dataset.regard = String(scene.memory.regard);
@@ -305,7 +368,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     if (latest === null) return;
     const state = latest;
     const progress = state.depth.repartee;
-    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}`;
+    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}:${JSON.stringify(state.depth.usefulReply)}`;
     if (key === shownKey || (!force && journal.open && shownCampaign === state.campaignId)) return;
     shownKey = key;
     shownCampaign = state.campaignId;
@@ -429,6 +492,46 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
         paragraph("One shared-road arrival memory. Regard, bond and resources were not changed; the earlier reaction was not awarded again."),
         paragraph(`Rest T${callback.tick} · Command ${callback.sourceCommandId}. Witness ${callback.witnessId}, joined T${callback.joinedTick}. Encounter ${callback.encounterId}.`, "journal-repartee-source"),
         paragraph(`Original reaction ${callback.sourceReactionId}: ${callback.sourceReactionCommandId}, T${callback.sourceReactionTick}. Remembered round ${callback.evidenceRoundIndex + 1}: ${callback.evidenceSourceCommandId}. Reading source: ${progress.reading?.sourceCommandId ?? "unavailable"}.`, "journal-repartee-source"));
+    }
+    const lesson = state.depth.usefulReply;
+    if (lesson !== null && isValidCampaignUsefulReply(state.depth)) {
+      const lessonTown = state.depth.towns[lesson.locationId];
+      const lessonLocation = state.depth.atlas.locations.find((entry) => entry.id === lesson.locationId);
+      const lessonBuilding = lessonTown?.buildings.find((entry) => entry.id === lesson.buildingId);
+      const record = doc.createElement("details");
+      record.dataset.usefulLesson = lesson.lessonId;
+      const summary = doc.createElement("summary");
+      summary.textContent = `${usefulReplyBook.title} · ${lesson.reply === null ? "read" : "unscored practice"}`;
+      const learned = doc.createElement("div");
+      learned.dataset.readingSource = lesson.reading.sourceCommandId;
+      learned.append(paragraph(usefulReplyBook.excerpt), paragraph(
+        `Learned “${usefulReplyBook.expression}”: ${usefulReplyBook.definition} Constructive frame: ${usefulReplyBook.frameId}.`,
+      ), paragraph(`${state.hero.name} read the public copy at ${lessonBuilding?.name ?? lesson.buildingId}, ${lessonLocation?.name ?? lesson.locationId}, T${lesson.reading.tick}. Reading source: ${lesson.reading.sourceCommandId}. Content v${lesson.contentVersion}. Learned repertoire, not an inventory book.`, "journal-repartee-source"));
+      record.append(summary, learned);
+      if (lesson.reply !== null) {
+        const reply = lesson.reply;
+        const practice = doc.createElement("div");
+        practice.dataset.replySource = reply.sourceCommandId;
+        practice.dataset.classification = reply.classification;
+        practice.append(heading(`${state.hero.name} & ${lesson.residentName} · unscored practice`),
+          dialogue(lesson.residentName, reply.call, "repartee-call"), dialogue(state.hero.name, reply.reply, "repartee-reply"),
+          paragraph(`${reply.classification} · ${reply.explanation}`),
+          paragraph(`T${reply.tick} · Command: ${reply.sourceCommandId}. Reading source: ${reply.readingSourceCommandId ?? "starter response"}. Resident: ${lesson.residentId}. No score, reputation, regard, bond or resource award.`, "journal-repartee-source"));
+        record.append(practice);
+      } else record.append(paragraph("One constructive reply learned. The resident’s practice exchange is still to come; it is not a scored contest."));
+      const choices = doc.createElement("details");
+      const choiceSummary = doc.createElement("summary");
+      choiceSummary.textContent = "Known replies and the reading that unlocked them";
+      const list = doc.createElement("ul");
+      for (const choice of usefulReplyResponses(lesson)) {
+        const item = doc.createElement("li");
+        item.dataset.response = choice.id;
+        item.textContent = `${choice.id === lesson.reply?.responseId ? "Chosen: " : "Known: "}${choice.text} — ${choice.explanation} ${choice.expressionId === null ? "Starter response." : `Learned “${usefulReplyBook.expression}”; reading source: ${lesson.reading.sourceCommandId}.`}`;
+        list.append(item);
+      }
+      choices.append(choiceSummary, list);
+      record.append(choices);
+      nodes.push(record);
     }
     content.replaceChildren(...nodes);
   }
