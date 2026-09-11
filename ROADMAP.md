@@ -5,16 +5,35 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: An old line returns, v0.5.178.** At a genuine reunion,
-   a former companion remembers an exact flyting line they actually witnessed.
-   The current T85 Ada Fen return and matching T32 witness are verified;
-   preserve her neutral reaction, old transcripts, and all resources/relationships.
+1. **Next proposal: Elsewhere — The Experimental Loaf.** A former baker
+   attempts a real, recorded task while the hero is away. First establish the
+   current participant/inn/away boundary and define supplied materials and
+   outcome rules; a profession label alone is not an accomplished activity.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
 <details>
-<summary>Latest verified release: Spare change, v0.5.177</summary>
+<summary>Latest verified release: An old line returns, v0.5.178</summary>
+
+Publicly source-verified **2026-09-11 14:55:31 PDT**. Newly earned matching
+reunions recall an exact flyting line the same former companion witnessed.
+Six authored response families preserve the original reaction rather than
+awarding automatic praise. The existing two-person scene and collapsed Company
+history retain the exact words and sources; old completed greetings do not change.
+No new panel, timer, model request, reward or relationship score.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34651143030)
+passes **3,800 tests in 289 files**, with two optional skips. The 54.5-second
+production browser and three inspected desktop/mobile/Focus captures pass.
+Twenty-four focused checks, exact old-save compatibility and canonical CI pass;
+three public assets and four source entries match the release. Initial test-loader
+and local replay findings remain in [the council record](COUNCIL_REVIEW.md).
+[Scope](docs/design/LIFETIME_STORIES.md#an-old-line-returns--v05178).
+</details>
+
+<details>
+<summary>Previous release: Spare change, v0.5.177</summary>
 
 Publicly source-verified **2026-09-11 14:13:01 PDT**. One actual later-market
 sale removes an unused, outclassed spare weapon for one gold. Equipped gear,
@@ -134,7 +153,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **An old line returns** | A returning former companion recalls a specific answer they actually witnessed | In progress; actual Ada Fen reunion and original neutral witness match verified |
+| **Elsewhere: The Experimental Loaf** | A former baker makes an actual cautious or experimental attempt, with an edible or bricklike outcome | Next proposal; new canonical worksite/activity required, not an existing off-screen accomplishment |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 

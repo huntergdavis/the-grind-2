@@ -1,6 +1,8 @@
 # Lifetime stories: regard, humor and consequences
 
-Status: F2a shipped in v0.5.160; F2b shipped in v0.5.161, publicly verified 2026-09-10 at 20:56 PDT. Broader systems below remain proposals unless included in a scope note.
+Latest: [An old line returns](#an-old-line-returns--v05178) shipped in v0.5.178,
+publicly source-verified 2026-09-11 14:55:31 PDT. Earlier explicitly delivered
+scopes remain shipped; broader systems below remain proposals.
 Owner: gameplay/story roadmap. LLM work remains paused.
 
 ## F2b shipped scope — a shared memory before parting
@@ -171,7 +173,7 @@ quotations remain later work.
 
 ## An old line returns — v0.5.178
 
-**In progress, not yet released.** A newly completed reunion may recall an
+**Live and source-verified 2026-09-11 14:55:31 PDT.** A newly completed reunion may recall an
 actual flyting answer witnessed by that same former companion. The earlier
 working title, “That line followed you home,” does not establish a home or
 an off-screen journey; staging stays at the recorded farewell town.
@@ -195,7 +197,14 @@ no migration backfill occurs. The actual v177 T86 save was preserved before
 implementation with canonical hash `d9cce50f7bc14aa8`, using one 426ms step from
 the already-earned T85 checkpoint rather than another journey replay. The
 unchanged full source proof took 2,643ms under the existing T320 bound.
-Browser acceptance, CI and live verification are still pending.
+Twenty-four focused checks pass. The 54.5-second production browser verifies
+actual T85→T86→T87, exact reload, Company history and unchanged prior reactions/
+resources, with three inspected desktop/mobile/Focus captures. The initial JSON
+test-loader correction is preserved in the council notes; no runtime fix was
+needed. [CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34651143030)
+passes 3,800 tests in 289 files, with two optional skips. Three public assets and
+four emitted source entries match feature `ceb83b6`; canonical CI passes without
+extending its gate. General lifetime memory and Elsewhere Callings remain future work.
 
 ## The point
 

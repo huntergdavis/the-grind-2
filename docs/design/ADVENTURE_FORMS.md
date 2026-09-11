@@ -6,8 +6,9 @@ is one small board expedition; the project-wide order lives in
 [ROADMAP.md](../../ROADMAP.md). The broader collection is a direction for authored
 adventures, not a request to build five engines together.
 
-Latest release: [Spare change](#spare-change--v05177) is live in v0.5.177,
-publicly source-verified 2026-09-11 14:13:01 PDT. Last exchange, Road Supper, D5 and earlier explicitly
+Latest release: [An old line returns](LIFETIME_STORIES.md#an-old-line-returns--v05178)
+is live in v0.5.178, publicly source-verified 2026-09-11 14:55:31 PDT.
+Spare change, Last exchange, Road Supper, D5 and earlier explicitly
 marked deliveries are shipped; unimplemented proposals retain their separate status.
 
 The promise is a familiar hero entering an unfamiliar situation: carrying a

@@ -32,10 +32,11 @@ terminal recap to the existing Watch ribbon and source notes to Status; no
 canonical or LLM changes. **Spare change (v0.5.177) is live:** sell one
 actual unused, outclassed spare weapon at a later market for one gold, preserving
 equipped gear and earned weapon history. Browser, CI and public-source checks
-pass; it adds no panel or LLM request. **An old line returns (v0.5.178)** is now
-in progress: the current Ada Fen reunion has a proven matching flyting witness.
-The new optional memory preserves her actual neutral reaction and old saves;
-browser acceptance, CI and live verification remain pending.
+pass; it adds no panel or LLM request. **An old line returns (v0.5.178)** is live:
+new matching reunions recall an actual witnessed reply and its original reaction.
+Browser acceptance, CI and public-source verification pass; old greetings remain
+unchanged. Next is **Elsewhere: The Experimental Loaf**, a proposed recorded
+activity for a former baker, not an already implemented off-screen accomplishment.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.
@@ -52,7 +53,23 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest verified release — Spare change (v0.5.177)
+## Latest verified release — An old line returns (v0.5.178)
+
+Publicly source-verified **2026-09-11 14:55:31 PDT**. Feature `ceb83b6` adds one
+optional witnessed memory to a newly earned matching reunion: an exact earlier
+flyting line, same companion/oath, and a response preserving the original
+judgment. Company keeps the full reply and sources. Existing completed greetings
+load unchanged; there is no new panel, timer, model, reward or relationship gain.
+
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34651143030):
+**3,800 passing tests / 289 files / 2 optional skips**. Twenty-four focused
+checks and the 54.5-second browser pass, with three inspected layouts and exact
+saves. Three public assets and four source entries match the release. Canonical
+CI passes under unchanged limits. The initial JSON-loader correction and local
+replay timeout remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+[Scope](docs/design/LIFETIME_STORIES.md#an-old-line-returns--v05178).
+
+## Previous verified release — Spare change (v0.5.177)
 
 Publicly source-verified **2026-09-11 14:13:01 PDT**. Feature `95d47dc` sells one
 genuine unused, outclassed weapon at an actual later market for one gold. The

@@ -2,7 +2,17 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## An old line returns — v0.5.178 in progress
+## An old line returns — v0.5.178 verified release
+
+**Live and publicly source-verified 2026-09-11 14:55:31 PDT.** Feature
+`ceb83b6d97ff60cb39dce064c9349ebe6a021e66` is pushed to `origin/main`.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34651143030)
+passes **3,800 tests in 289 files**, with two optional audits skipped. The main
+suite takes **310.84s**, canonical replay **4/4 in 26.291s**, and forward motion
+**8/8 in 9.095s**; deployment completes in **6m09s**. Three public assets and
+four emitted source entries match the exact feature commit. CSS, renderer,
+main shell and both LLM workers are unchanged. The local replay timeout below
+is not relabeled a local pass; CI passes without enlarging its limits.
 
 Reuses the prior council's witnessed-quotation proposal recovered with
 `deja "That line followed you home"`, and the explicit optional R1 memory
@@ -37,7 +47,7 @@ This is a test-loader issue, not a runtime game failure or a browser pass.
 Native Node loading demonstrated the same requirement for all six existing
 checkpoint imports; each now declares `with { type: "json" }`. The JSON bytes
 are unchanged. Test collection and TypeScript pass without a production rebuild.
-Browser acceptance, full CI and public verification remain pending.
+The corrected browser run and final CI/public checks pass.
 
 After the collection correction, the first complete production-browser scenario
 passes in **54.5s**, within the unchanged 100s limit. All three desktop/320px/
@@ -47,17 +57,38 @@ Actual T85→T86→T87 saves are exact; Company keeps the full original reply an
 all source IDs after reload and ordinary continuation. The T44 callback,
 fulfilled oath, neutral regard, resources and prior stories stay unchanged.
 There are no page/console errors, model workers/requests or external requests.
-The preview server closed normally. Full CI and public verification are pending.
+The preview server closed normally. Full CI and public verification pass as recorded above.
 
 The unchanged ten-seed / 1,000-command workload completed all results in
 **173.348s locally**, so its runner correctly reports the existing **80s timeout**;
 this is not called a passing local replay test. Six campaigns earn new memories:
 0/T617 (honest admission), 1/T92 (culinary absurdity), 2/T457 (precise counter),
 4/T91 (unmoved), 7/T90 (honest admission), 8/T735 (unmoved). Their entire-state
-anchors change; the other four remain byte-for-byte hash-identical to v177.
+anchors change; the other four retain their exact v177 hashes.
 No seeds, state fields or limits were changed to force those outcomes, and no
-second local replay matrix was added. CI will check the anchors under its
-unchanged canonical gate.
+second local replay matrix was added. CI checks the anchors successfully under
+its unchanged canonical gate.
+
+## Next proposal — Elsewhere: The Experimental Loaf
+
+The read-only council review at **2026-09-11 14:50:37 PDT** recommends a first
+profession-shaped Elsewhere Calling, reusing `deja`'s V04.9c2 proposal. Ada Fen's
+actual baker role, healthy fulfilled departure at location0 and known inns were
+confirmed from the preserved checkpoint. This proves a lead, not work performed,
+an existing oven, supplied ingredients or a successful bake.
+
+A new finite canonical activity would explicitly supply one batch of dough at
+a real known inn's newly authored worksite. One cautious versus experimental
+choice resolves an edible loaf or a gloriously bricklike one. Admission and
+completion are actual records alongside committed campaign turns, not a later
+invented anecdote. A short existing-style scene can show the named baker and
+task; delayed playback must say “Earlier, elsewhere.” Company retains the
+attempt and outcome. No hero food, money, XP, affection or automatic knowledge
+is granted, and the former does not take an unrecorded trip home.
+
+Before implementation, establish the current healthy former/known-inn/hero-away
+boundary and define the new worksite supplies, choice and completion rules.
+No new activity, journey replay, outcome or admission is claimed by this review.
 
 ## Spare change — v0.5.177 verified release
 
