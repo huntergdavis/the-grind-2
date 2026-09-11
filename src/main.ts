@@ -38,6 +38,7 @@ import {
 import { createNarrativeIntermission } from "./ui/narrative-intermission";
 import { readPlayModePreference, writePlayModePreference, type PlayMode } from "./ui/play-mode-preferences";
 import { adventureStepIntervalMs, normalizeAdventureSpeed, readAdventureSpeedPreference, writeAdventureSpeedPreference } from "./ui/adventure-speed";
+import { normalizeDungeonPerspective, readDungeonPerspectivePreference, writeDungeonPerspectivePreference } from "./ui/dungeon-perspective-preference";
 import { createPlayModeStartup } from "./ui/play-mode-startup";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
@@ -193,6 +194,8 @@ const beatDurationMs = fastMode
   : 4_800;
 let adventureSpeed = readAdventureSpeedPreference();
 let adventureSpeedSaved = true;
+let dungeonPerspective = readDungeonPerspectivePreference();
+let dungeonPerspectiveSaved = true;
 const checkpointPrefix = "the-grind-2:last-active:";
 const updateAttemptKey = "the-grind-2:update-attempt";
 
@@ -218,6 +221,8 @@ const elements = {
   campaignSelect: requiredElement<HTMLSelectElement>("#campaign-select"),
   adventureSpeedSelect: requiredElement<HTMLSelectElement>("#adventure-speed-select"),
   adventureSpeedStatus: requiredElement<HTMLElement>("#adventure-speed-status"),
+  dungeonPerspectiveSelect: requiredElement<HTMLSelectElement>("#dungeon-perspective-select"),
+  dungeonPerspectiveStatus: requiredElement<HTMLElement>("#dungeon-perspective-status"),
   pauseButton: requiredElement<HTMLButtonElement>("#pause-button"),
   newButton: requiredElement<HTMLButtonElement>("#new-button"),
   narratorButton: requiredElement<HTMLButtonElement>("#narrator-button"),
@@ -557,6 +562,7 @@ sharedOpeningPip.textContent = "◆ Shared Opening 1/1";
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
+void applyDungeonPerspective();
 let champions: readonly ChampionInduction[] = await repository.listChampions();
 const restoredWorld = await repository.loadActive();
 let state = restoredWorld ?? createNewWorld();
@@ -1383,6 +1389,7 @@ function revisitLastStory(): void {
 
 function openGameMenu(): void {
   if (startupHold || elements.gameMenu.open || elements.playStartDialog.open) return;
+  presentDungeonPerspectivePreference();
   menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   elements.gameMenu.showModal();
   renderLastStoryControl();
@@ -4891,6 +4898,7 @@ function present(): void {
   bellView.render(state);
   syncReparteePresentation();
   renderer.render(state);
+  presentDungeonPerspectivePreference();
   syncStoryBeatPresentation();
 }
 
@@ -5058,6 +5066,26 @@ function startRuntimeWatchdog(): void {
   }, 5_000);
 }
 
+function presentDungeonPerspectivePreference(): void {
+  elements.dungeonPerspectiveSelect.value = dungeonPerspective;
+  elements.app.dataset.dungeonPerspective = dungeonPerspective;
+  const status = elements.stage.dataset.dungeonPerspectiveStatus;
+  const detail = dungeonPerspective === "map" ? "The classic 2D dungeon map is selected."
+    : status === "failed" ? "Preview unavailable; using 2D. Reload to try again."
+    : status === "loading" ? "Loading the optional view; 2D remains available."
+    : "First-person preview is selected for dungeon scenes. Other scenes are unchanged.";
+  elements.dungeonPerspectiveStatus.textContent = `${detail} Changes visuals only, never adventure rules or turns. `
+    + (dungeonPerspectiveSaved ? "Your choice is remembered when browser storage is available." : "Storage unavailable; this choice applies to this page only.");
+}
+
+async function applyDungeonPerspective(): Promise<void> {
+  const requested = dungeonPerspective;
+  const ready = renderer.setDungeonPerspective(requested);
+  presentDungeonPerspectivePreference();
+  await ready;
+  if (dungeonPerspective === requested) presentDungeonPerspectivePreference();
+}
+
 function startLoop(): void {
   if (loop !== undefined) window.clearInterval(loop);
   const intervalMs = adventureStepIntervalMs(adventureSpeed, fastMode);
@@ -5207,6 +5235,11 @@ elements.adventureSpeedSelect.addEventListener("change", () => {
   adventureSpeed = normalizeAdventureSpeed(Number(elements.adventureSpeedSelect.value));
   adventureSpeedSaved = writeAdventureSpeedPreference(adventureSpeed);
   startLoop();
+});
+elements.dungeonPerspectiveSelect.addEventListener("change", () => {
+  dungeonPerspective = normalizeDungeonPerspective(elements.dungeonPerspectiveSelect.value);
+  dungeonPerspectiveSaved = writeDungeonPerspectivePreference(dungeonPerspective);
+  void applyDungeonPerspective();
 });
 elements.lastStoryButton.addEventListener("click", revisitLastStory);
 elements.gameMenu.addEventListener("cancel", (event) => {

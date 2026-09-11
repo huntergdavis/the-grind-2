@@ -106,6 +106,7 @@ import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recover
 import { projectPaidInnRestScene } from "./paid-inn-rest";
 import { projectDisarmingKitPurchaseScene } from "./disarming-kit-purchase";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
+import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "../ui/dungeon-perspective-view";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
@@ -470,6 +471,13 @@ export class GameRenderer {
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
   private lastState: WorldState | null = null;
+  private dungeonPerspectiveRequested: "map" | "first-person" = "map";
+  private dungeonPerspectiveStatus: "idle" | "loading" | "ready" | "failed" = "idle";
+  private dungeonPerspectiveModule: typeof import("./dungeon-perspective") | null = null;
+  private dungeonPerspectiveLoading: Promise<void> | null = null;
+  private dungeonPerspectiveFailed = false;
+  private dungeonFacing: MazeDirection = "north";
+  private dungeonPerspectiveLabels: readonly Text[] = [];
   private readonly heroRigs: HeroRigBinding[] = [];
   private readonly scaleSensitiveTexts: Text[] = [];
   private readonly dungeonAlertTexts: Text[] = [];
@@ -595,6 +603,92 @@ export class GameRenderer {
 
   refreshLayout(): void {
     if (!this.disposed) this.layout();
+  }
+
+  /** A display preference only. Optional loading/drawing failures never reject or advance the game. */
+  async setDungeonPerspective(mode: "map" | "first-person"): Promise<void> {
+    if (this.disposed) return;
+    const changed = this.dungeonPerspectiveRequested !== mode;
+    this.dungeonPerspectiveRequested = mode;
+    try {
+      if (mode === "map") {
+        this.dungeonPerspectiveFailed = false;
+        this.dungeonPerspectiveStatus = "idle";
+        this.syncDungeonPerspectiveStatus();
+        this.refreshDungeonPerspectiveState();
+        return;
+      }
+      // A failed frame/load stays on the map until an explicit toggle retries.
+      if (this.dungeonPerspectiveFailed && !changed) return;
+      if (this.dungeonPerspectiveModule !== null) {
+        this.dungeonPerspectiveFailed = false;
+        this.dungeonPerspectiveStatus = "ready";
+        this.syncDungeonPerspectiveStatus();
+        this.refreshDungeonPerspectiveState();
+        return;
+      }
+      this.dungeonPerspectiveStatus = "loading";
+      this.syncDungeonPerspectiveStatus();
+      if (this.dungeonPerspectiveLoading !== null) return this.dungeonPerspectiveLoading;
+      this.dungeonPerspectiveLoading = import("./dungeon-perspective").then((module) => {
+        if (this.disposed) return;
+        this.dungeonPerspectiveModule = module;
+        this.dungeonPerspectiveStatus = this.dungeonPerspectiveRequested === "first-person" ? "ready" : "idle";
+        this.syncDungeonPerspectiveStatus();
+        if (this.dungeonPerspectiveRequested === "first-person") this.refreshDungeonPerspectiveState();
+      }).catch(() => {
+        if (this.disposed) return;
+        this.dungeonPerspectiveFailed = true;
+        this.dungeonPerspectiveStatus = this.dungeonPerspectiveRequested === "first-person" ? "failed" : "idle";
+        this.syncDungeonPerspectiveStatus();
+      }).finally(() => { this.dungeonPerspectiveLoading = null; });
+      await this.dungeonPerspectiveLoading;
+    } catch {
+      this.dungeonPerspectiveFailed = true;
+      this.dungeonPerspectiveStatus = "failed";
+      this.syncDungeonPerspectiveStatus();
+    }
+  }
+
+  private syncDungeonPerspectiveStatus(): void {
+    this.host.dataset.dungeonPerspectiveRequested = this.dungeonPerspectiveRequested;
+    this.host.dataset.dungeonPerspectiveStatus = this.dungeonPerspectiveStatus;
+    this.host.dataset.dungeonPerspective ??= "map";
+  }
+
+  private refreshDungeonPerspectiveState(): void {
+    // A delayed import cannot replace a newer campaign, inspection view or live cutaway.
+    if (!this.disposed && this.lastState !== null && !this.hasActiveCutawayBinding()) this.render(this.lastState);
+  }
+
+  private drawOptionalDungeonPerspective(state: WorldState): boolean {
+    if (this.dungeonPerspectiveRequested !== "first-person" || this.dungeonPerspectiveStatus !== "ready"
+      || this.dungeonPerspectiveFailed || this.dungeonPerspectiveModule === null) return false;
+    const view = projectDungeonPerspectiveView(state, this.dungeonFacing);
+    if (view === null) return false;
+    try {
+      const drawing = this.dungeonPerspectiveModule.drawDungeonPerspective(view);
+      this.worldLayer.addChild(drawing.layer);
+      this.dungeonPerspectiveLabels = drawing.labels;
+      this.scaleSensitiveTexts.push(...drawing.labels);
+      this.host.dataset.dungeonPerspective = "first-person";
+      this.host.dataset.dungeonPerspectiveFacing = view.facing;
+      this.host.dataset.dungeonPerspectiveCell = view.currentCellId;
+      this.host.dataset.dungeonPerspectiveCommand = view.sourceCommandId ?? "initial-room";
+      this.host.dataset.dungeonPerspectiveExits = JSON.stringify(view.exits);
+      this.host.dataset.dungeonPerspectiveCurrentTrap = JSON.stringify(view.currentTrap);
+      this.host.dataset.dungeonPerspectiveViewport = [drawing.viewport.x, drawing.viewport.y, drawing.viewport.width, drawing.viewport.height].join(",");
+      this.host.dataset.dungeonFraming = "first-person-room";
+      this.host.dataset.dungeonFrameRooms = "1";
+      for (const key of ["dungeonFrameCellSize", "dungeonFrameOffset", "dungeonFrameBounds", "dungeonHeroScale"]) delete this.host.dataset[key];
+      this.host.dataset.dungeonHeroCell = view.currentCellId;
+      return true;
+    } catch {
+      this.dungeonPerspectiveFailed = true;
+      this.dungeonPerspectiveStatus = "failed";
+      this.syncDungeonPerspectiveStatus();
+      return false;
+    }
   }
 
   startCutaway(candidate: ProductionCutawayCandidate, options: CutawayPresentationOptions): boolean {
@@ -1076,6 +1170,7 @@ export class GameRenderer {
 
   render(state: WorldState): void {
     const previousState = this.lastState;
+    this.dungeonFacing = dungeonPerspectiveFacing(previousState, state, this.dungeonFacing);
     this.animateCounterDuelTransition = previousState !== null &&
       state.tick === previousState.tick + 1 &&
       state.chronicle.at(-1)?.commandType === "counter-duel-action" &&
@@ -1106,10 +1201,15 @@ export class GameRenderer {
     this.travelRoadBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
+    this.dungeonPerspectiveLabels = [];
     this.dungeonAlertTexts.length = 0;
     this.host.dataset.sceneMode = presentedMode;
     this.host.dataset.liveSceneMode = state.scene.mode;
     this.host.dataset.viewMode = this.viewMode;
+    this.host.dataset.dungeonPerspective = "map";
+    this.syncDungeonPerspectiveStatus();
+    for (const key of ["dungeonPerspectiveFacing", "dungeonPerspectiveCell", "dungeonPerspectiveCommand",
+      "dungeonPerspectiveExits", "dungeonPerspectiveCurrentTrap", "dungeonPerspectiveViewport"]) delete this.host.dataset[key];
     delete this.host.dataset.travelEdge;
     delete this.host.dataset.travelDirection;
     delete this.host.dataset.travelBiome;
@@ -4429,6 +4529,7 @@ export class GameRenderer {
       if (text.resolution !== textResolution) text.resolution = textResolution;
     }
     this.layoutDungeonCaption(layout.scale);
+    for (const label of this.dungeonPerspectiveLabels) label.style.fontSize = Math.min(22, Math.max(9, 11 / layout.scale));
     if ((this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || reservedTableauVisible) && this.scaleSensitiveTexts.length > 0) {
       if (this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) {
         this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
@@ -5809,327 +5910,330 @@ export class GameRenderer {
       this.host.dataset.dungeonTrapKind = hazardBeat.kind;
       this.host.dataset.dungeonTrapResult = state.scene.consequence;
     }
-    for (const cell of discoveredCells) {
-      const x = offsetX + cell.x * cellSize;
-      const y = offsetY + cell.y * cellSize;
-      this.worldLayer.addChild(
-        rect(x + 1, y + 1, cellSize - 2, cellSize - 2, visited.has(cell.id) ? 0x37444a : 0x202a31),
-      );
-    }
+    const perspectiveShown = this.drawOptionalDungeonPerspective(state);
+    if (!perspectiveShown) {
+      for (const cell of discoveredCells) {
+        const x = offsetX + cell.x * cellSize;
+        const y = offsetY + cell.y * cellSize;
+        this.worldLayer.addChild(
+          rect(x + 1, y + 1, cellSize - 2, cellSize - 2, visited.has(cell.id) ? 0x37444a : 0x202a31),
+        );
+      }
 
-    const routeCells = (search === null ? wayfinding.routeCellIds : []).flatMap((cellId) => {
-      const cell = cellsById.get(cellId);
-      return cell === undefined ? [] : [{ x: offsetX + (cell.x + 0.5) * cellSize, y: offsetY + (cell.y + 0.5) * cellSize }];
-    });
-    if (routeCells.length > 1) {
-      const routeLine = new Graphics();
-      const first = routeCells[0];
-      if (first !== undefined) routeLine.moveTo(first.x, first.y);
-      for (const point of routeCells.slice(1)) routeLine.lineTo(point.x, point.y);
-      const routeColor = wayfinding.mode === "return-to-gate" ? 0xf0b84b : 0x78b7a4;
-      routeLine.stroke({ color: routeColor, width: Math.max(0.9, cellSize * 0.1), alpha: hazardBeat === undefined ? 0.74 : 0.22 });
-      this.worldLayer.addChild(routeLine);
-      const beacons = new Graphics();
-      for (let index = 0; index < routeCells.length - 1; index += 1) {
-        const from = routeCells[index];
-        const to = routeCells[index + 1];
-        if (from === undefined || to === undefined) continue;
-        for (const ratio of [0.28, 0.52, 0.76]) {
-          beacons.circle(from.x + (to.x - from.x) * ratio, from.y + (to.y - from.y) * ratio, Math.max(0.65, cellSize * 0.055));
+      const routeCells = (search === null ? wayfinding.routeCellIds : []).flatMap((cellId) => {
+        const cell = cellsById.get(cellId);
+        return cell === undefined ? [] : [{ x: offsetX + (cell.x + 0.5) * cellSize, y: offsetY + (cell.y + 0.5) * cellSize }];
+      });
+      if (routeCells.length > 1) {
+        const routeLine = new Graphics();
+        const first = routeCells[0];
+        if (first !== undefined) routeLine.moveTo(first.x, first.y);
+        for (const point of routeCells.slice(1)) routeLine.lineTo(point.x, point.y);
+        const routeColor = wayfinding.mode === "return-to-gate" ? 0xf0b84b : 0x78b7a4;
+        routeLine.stroke({ color: routeColor, width: Math.max(0.9, cellSize * 0.1), alpha: hazardBeat === undefined ? 0.74 : 0.22 });
+        this.worldLayer.addChild(routeLine);
+        const beacons = new Graphics();
+        for (let index = 0; index < routeCells.length - 1; index += 1) {
+          const from = routeCells[index];
+          const to = routeCells[index + 1];
+          if (from === undefined || to === undefined) continue;
+          for (const ratio of [0.28, 0.52, 0.76]) {
+            beacons.circle(from.x + (to.x - from.x) * ratio, from.y + (to.y - from.y) * ratio, Math.max(0.65, cellSize * 0.055));
+          }
+        }
+        beacons.fill({ color: wayfinding.mode === "return-to-gate" ? 0xffd166 : 0xd8e2b7, alpha: hazardBeat === undefined ? 0.88 : 0.3 });
+        this.worldLayer.addChild(beacons);
+      }
+
+      if (sightedKeyMove !== undefined) {
+        const currentCell = cellsById.get(dungeon.currentCellId);
+        const keyCell = cellsById.get(sightedKeyMove.destinationCellId);
+        if (currentCell !== undefined && keyCell !== undefined) {
+          const fromX = offsetX + (currentCell.x + 0.5) * cellSize;
+          const fromY = offsetY + (currentCell.y + 0.5) * cellSize;
+          const toX = offsetX + (keyCell.x + 0.5) * cellSize;
+          const toY = offsetY + (keyCell.y + 0.5) * cellSize;
+          const vectorX = toX - fromX;
+          const vectorY = toY - fromY;
+          const startX = fromX + vectorX * 0.22;
+          const startY = fromY + vectorY * 0.22;
+          const endX = fromX + vectorX * 0.76;
+          const endY = fromY + vectorY * 0.76;
+          const length = Math.max(1, Math.hypot(vectorX, vectorY));
+          const unitX = vectorX / length;
+          const unitY = vectorY / length;
+          const wing = Math.max(1.4, cellSize * 0.18);
+          const passageCue = new Graphics()
+            .moveTo(startX, startY)
+            .lineTo(endX, endY)
+            .moveTo(endX, endY)
+            .lineTo(endX - unitX * wing - unitY * wing * 0.62, endY - unitY * wing + unitX * wing * 0.62)
+            .moveTo(endX, endY)
+            .lineTo(endX - unitX * wing + unitY * wing * 0.62, endY - unitY * wing - unitX * wing * 0.62)
+            .stroke({ color: 0xffd166, width: Math.max(1.2, cellSize * 0.12), alpha: 0.98 });
+          this.lightLayer.addChild(circle(endX, endY, Math.max(2.2, cellSize * 0.24), 0xf0b84b, 0.16));
+          this.worldLayer.addChild(passageCue);
         }
       }
-      beacons.fill({ color: wayfinding.mode === "return-to-gate" ? 0xffd166 : 0xd8e2b7, alpha: hazardBeat === undefined ? 0.88 : 0.3 });
-      this.worldLayer.addChild(beacons);
-    }
 
-    if (sightedKeyMove !== undefined) {
-      const currentCell = cellsById.get(dungeon.currentCellId);
-      const keyCell = cellsById.get(sightedKeyMove.destinationCellId);
-      if (currentCell !== undefined && keyCell !== undefined) {
-        const fromX = offsetX + (currentCell.x + 0.5) * cellSize;
-        const fromY = offsetY + (currentCell.y + 0.5) * cellSize;
-        const toX = offsetX + (keyCell.x + 0.5) * cellSize;
-        const toY = offsetY + (keyCell.y + 0.5) * cellSize;
-        const vectorX = toX - fromX;
-        const vectorY = toY - fromY;
-        const startX = fromX + vectorX * 0.22;
-        const startY = fromY + vectorY * 0.22;
-        const endX = fromX + vectorX * 0.76;
-        const endY = fromY + vectorY * 0.76;
-        const length = Math.max(1, Math.hypot(vectorX, vectorY));
-        const unitX = vectorX / length;
-        const unitY = vectorY / length;
-        const wing = Math.max(1.4, cellSize * 0.18);
-        const passageCue = new Graphics()
-          .moveTo(startX, startY)
-          .lineTo(endX, endY)
-          .moveTo(endX, endY)
-          .lineTo(endX - unitX * wing - unitY * wing * 0.62, endY - unitY * wing + unitX * wing * 0.62)
-          .moveTo(endX, endY)
-          .lineTo(endX - unitX * wing + unitY * wing * 0.62, endY - unitY * wing - unitX * wing * 0.62)
-          .stroke({ color: 0xffd166, width: Math.max(1.2, cellSize * 0.12), alpha: 0.98 });
-        this.lightLayer.addChild(circle(endX, endY, Math.max(2.2, cellSize * 0.24), 0xf0b84b, 0.16));
-        this.worldLayer.addChild(passageCue);
+      if (discovered.has(dungeon.exitCellId)) {
+        const exit = cellsById.get(dungeon.exitCellId);
+        if (exit !== undefined) {
+          const x = offsetX + (exit.x + 0.24) * cellSize;
+          const y = offsetY + (exit.y + 0.24) * cellSize;
+          const size = cellSize * 0.52;
+          const stair = new Graphics().rect(x, y, size, size).stroke({
+            color: 0x8fc9e6,
+            width: Math.max(1, cellSize * 0.09),
+            alpha: 0.96,
+          });
+          stair.rect(x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64).stroke({
+            color: 0x426d84,
+            width: Math.max(0.7, cellSize * 0.055),
+            alpha: 0.9,
+          });
+          this.worldLayer.addChild(stair);
+        }
       }
-    }
 
-    if (discovered.has(dungeon.exitCellId)) {
-      const exit = cellsById.get(dungeon.exitCellId);
-      if (exit !== undefined) {
-        const x = offsetX + (exit.x + 0.24) * cellSize;
-        const y = offsetY + (exit.y + 0.24) * cellSize;
-        const size = cellSize * 0.52;
-        const stair = new Graphics().rect(x, y, size, size).stroke({
-          color: 0x8fc9e6,
-          width: Math.max(1, cellSize * 0.09),
-          alpha: 0.96,
-        });
-        stair.rect(x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64).stroke({
-          color: 0x426d84,
-          width: Math.max(0.7, cellSize * 0.055),
-          alpha: 0.9,
-        });
-        this.worldLayer.addChild(stair);
-      }
-    }
-
-    const maze = new Graphics();
-    for (const cell of discoveredCells) {
-      const x = offsetX + cell.x * cellSize;
-      const y = offsetY + cell.y * cellSize;
-      const trap = trapsByCell.get(cell.id);
-      if (trap !== undefined) {
-        const centerX = x + cellSize / 2;
-        const centerY = y + cellSize / 2;
-        const radius = Math.max(1.5, cellSize * 0.17);
-        if (triggeredTrap?.cellId === cell.id && trap.kind === "mana-siphon") {
-          this.worldLayer.addChild(new Graphics()
-            .circle(centerX, centerY, radius * 1.5).stroke({ color: 0x6092b7, width: Math.max(1, cellSize * 0.08) })
-            .moveTo(centerX, centerY - radius).lineTo(centerX, centerY + radius)
-            .moveTo(centerX - radius * 0.6, centerY + radius * 0.3).lineTo(centerX, centerY + radius)
-            .lineTo(centerX + radius * 0.6, centerY + radius * 0.3)
-            .stroke({ color: 0xb9e0f7, width: Math.max(1, cellSize * 0.08) }));
-        } else if (triggeredTrap?.cellId === cell.id) {
-          const burst = new Graphics();
-          for (let ray = 0; ray < 8; ray += 1) {
-            const angle = ray * Math.PI / 4;
-            burst.moveTo(centerX + Math.cos(angle) * radius * 0.7, centerY + Math.sin(angle) * radius * 0.7);
-            burst.lineTo(centerX + Math.cos(angle) * radius * 2.3, centerY + Math.sin(angle) * radius * 2.3);
-          }
-          burst.stroke({ color: 0xffc857, width: Math.max(1, cellSize * 0.11), alpha: 0.96 });
-          this.worldLayer.addChild(burst);
-          this.worldLayer.addChild(circle(centerX, centerY, radius * 1.2, 0xb93f46, 0.95));
-          this.worldLayer.addChild(new Graphics().poly([
-            centerX, centerY - radius,
-            centerX + radius, centerY,
-            centerX, centerY + radius,
-            centerX - radius, centerY,
-          ]).stroke({ color: 0xffe19a, width: Math.max(1, cellSize * 0.08) }));
-        } else if (trap.status === "armed") {
-          const glyph = new Graphics();
-          if (trap.kind === "tripwire") {
-            glyph.poly([
+      const maze = new Graphics();
+      for (const cell of discoveredCells) {
+        const x = offsetX + cell.x * cellSize;
+        const y = offsetY + cell.y * cellSize;
+        const trap = trapsByCell.get(cell.id);
+        if (trap !== undefined) {
+          const centerX = x + cellSize / 2;
+          const centerY = y + cellSize / 2;
+          const radius = Math.max(1.5, cellSize * 0.17);
+          if (triggeredTrap?.cellId === cell.id && trap.kind === "mana-siphon") {
+            this.worldLayer.addChild(new Graphics()
+              .circle(centerX, centerY, radius * 1.5).stroke({ color: 0x6092b7, width: Math.max(1, cellSize * 0.08) })
+              .moveTo(centerX, centerY - radius).lineTo(centerX, centerY + radius)
+              .moveTo(centerX - radius * 0.6, centerY + radius * 0.3).lineTo(centerX, centerY + radius)
+              .lineTo(centerX + radius * 0.6, centerY + radius * 0.3)
+              .stroke({ color: 0xb9e0f7, width: Math.max(1, cellSize * 0.08) }));
+          } else if (triggeredTrap?.cellId === cell.id) {
+            const burst = new Graphics();
+            for (let ray = 0; ray < 8; ray += 1) {
+              const angle = ray * Math.PI / 4;
+              burst.moveTo(centerX + Math.cos(angle) * radius * 0.7, centerY + Math.sin(angle) * radius * 0.7);
+              burst.lineTo(centerX + Math.cos(angle) * radius * 2.3, centerY + Math.sin(angle) * radius * 2.3);
+            }
+            burst.stroke({ color: 0xffc857, width: Math.max(1, cellSize * 0.11), alpha: 0.96 });
+            this.worldLayer.addChild(burst);
+            this.worldLayer.addChild(circle(centerX, centerY, radius * 1.2, 0xb93f46, 0.95));
+            this.worldLayer.addChild(new Graphics().poly([
               centerX, centerY - radius,
               centerX + radius, centerY,
               centerX, centerY + radius,
               centerX - radius, centerY,
-            ]).fill({ color: 0xa64b4b, alpha: 0.96 });
-            glyph.moveTo(centerX - radius * 0.75, centerY - radius * 0.35).lineTo(centerX + radius * 0.75, centerY + radius * 0.35);
-            glyph.moveTo(centerX - radius * 0.75, centerY + radius * 0.35).lineTo(centerX + radius * 0.75, centerY - radius * 0.35);
-          } else if (trap.kind === "mana-siphon") {
-            glyph.circle(centerX, centerY, radius).fill({ color: 0x315e83, alpha: 0.96 });
-            glyph.moveTo(centerX - radius * 0.7, centerY - radius * 0.55)
-              .lineTo(centerX + radius * 0.7, centerY - radius * 0.55)
-              .lineTo(centerX, centerY + radius * 0.25).lineTo(centerX, centerY + radius * 0.75);
+            ]).stroke({ color: 0xffe19a, width: Math.max(1, cellSize * 0.08) }));
+          } else if (trap.status === "armed") {
+            const glyph = new Graphics();
+            if (trap.kind === "tripwire") {
+              glyph.poly([
+                centerX, centerY - radius,
+                centerX + radius, centerY,
+                centerX, centerY + radius,
+                centerX - radius, centerY,
+              ]).fill({ color: 0xa64b4b, alpha: 0.96 });
+              glyph.moveTo(centerX - radius * 0.75, centerY - radius * 0.35).lineTo(centerX + radius * 0.75, centerY + radius * 0.35);
+              glyph.moveTo(centerX - radius * 0.75, centerY + radius * 0.35).lineTo(centerX + radius * 0.75, centerY - radius * 0.35);
+            } else if (trap.kind === "mana-siphon") {
+              glyph.circle(centerX, centerY, radius).fill({ color: 0x315e83, alpha: 0.96 });
+              glyph.moveTo(centerX - radius * 0.7, centerY - radius * 0.55)
+                .lineTo(centerX + radius * 0.7, centerY - radius * 0.55)
+                .lineTo(centerX, centerY + radius * 0.25).lineTo(centerX, centerY + radius * 0.75);
+            } else {
+              glyph.circle(centerX, centerY, radius).fill({ color: 0x714c82, alpha: 0.96 });
+              glyph.poly([
+                centerX, centerY - radius * 0.72,
+                centerX + radius * 0.62, centerY + radius * 0.36,
+                centerX - radius * 0.62, centerY + radius * 0.36,
+              ]);
+              glyph.moveTo(centerX, centerY - radius * 0.72).lineTo(centerX, centerY + radius * 0.65);
+            }
+            glyph.stroke({ color: trap.kind === "mana-siphon" ? 0xb9e0f7 : 0xffd39a, width: Math.max(0.8, cellSize * 0.07) });
+            this.worldLayer.addChild(glyph);
+          } else if (trap.status === "disarmed") {
+            const safe = new Graphics().rect(centerX - radius, centerY - radius, radius * 2, radius * 2).stroke({ color: 0x83b99a, width: Math.max(0.8, cellSize * 0.075), alpha: 0.86 });
+            safe.moveTo(centerX - radius * 0.7, centerY).lineTo(centerX - radius * 0.18, centerY + radius * 0.52).lineTo(centerX + radius * 0.78, centerY - radius * 0.58);
+            safe.stroke({ color: 0xcce8c9, width: Math.max(0.9, cellSize * 0.08), alpha: 0.9 });
+            this.worldLayer.addChild(safe);
           } else {
-            glyph.circle(centerX, centerY, radius).fill({ color: 0x714c82, alpha: 0.96 });
-            glyph.poly([
-              centerX, centerY - radius * 0.72,
-              centerX + radius * 0.62, centerY + radius * 0.36,
-              centerX - radius * 0.62, centerY + radius * 0.36,
-            ]);
-            glyph.moveTo(centerX, centerY - radius * 0.72).lineTo(centerX, centerY + radius * 0.65);
+            const sprung = new Graphics().circle(centerX, centerY, radius).stroke({ color: trap.kind === "mana-siphon" ? 0x476d8b : 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
+            sprung.moveTo(centerX - radius, centerY + radius * 0.65).lineTo(centerX - radius * 0.1, centerY - radius * 0.08);
+            sprung.moveTo(centerX + radius * 0.15, centerY + radius * 0.12).lineTo(centerX + radius, centerY - radius * 0.65);
+            sprung.stroke({ color: trap.kind === "mana-siphon" ? 0x88aeca : 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
+            this.worldLayer.addChild(sprung);
           }
-          glyph.stroke({ color: trap.kind === "mana-siphon" ? 0xb9e0f7 : 0xffd39a, width: Math.max(0.8, cellSize * 0.07) });
-          this.worldLayer.addChild(glyph);
-        } else if (trap.status === "disarmed") {
-          const safe = new Graphics().rect(centerX - radius, centerY - radius, radius * 2, radius * 2).stroke({ color: 0x83b99a, width: Math.max(0.8, cellSize * 0.075), alpha: 0.86 });
-          safe.moveTo(centerX - radius * 0.7, centerY).lineTo(centerX - radius * 0.18, centerY + radius * 0.52).lineTo(centerX + radius * 0.78, centerY - radius * 0.58);
-          safe.stroke({ color: 0xcce8c9, width: Math.max(0.9, cellSize * 0.08), alpha: 0.9 });
-          this.worldLayer.addChild(safe);
-        } else {
-          const sprung = new Graphics().circle(centerX, centerY, radius).stroke({ color: trap.kind === "mana-siphon" ? 0x476d8b : 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
-          sprung.moveTo(centerX - radius, centerY + radius * 0.65).lineTo(centerX - radius * 0.1, centerY - radius * 0.08);
-          sprung.moveTo(centerX + radius * 0.15, centerY + radius * 0.12).lineTo(centerX + radius, centerY - radius * 0.65);
-          sprung.stroke({ color: trap.kind === "mana-siphon" ? 0x88aeca : 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
-          this.worldLayer.addChild(sprung);
+        } else if (cell.feature === "shrine") {
+          const centerX = x + cellSize / 2;
+          const centerY = y + cellSize / 2;
+          const radius = Math.max(1.5, cellSize * 0.16);
+          const spent = visited.has(cell.id);
+          const rune = new Graphics().poly([
+            centerX, centerY - radius,
+            centerX + radius, centerY,
+            centerX, centerY + radius,
+            centerX - radius, centerY,
+          ]);
+          if (spent) rune.stroke({ color: 0x6ba3b8, width: Math.max(0.8, cellSize * 0.07), alpha: 0.76 });
+          else rune.fill({ color: 0x6ba3b8, alpha: 0.96 }).stroke({ color: 0xbcebf0, width: Math.max(0.7, cellSize * 0.055) });
+          rune.circle(centerX, centerY, Math.max(0.7, radius * 0.28)).fill({ color: spent ? 0x243039 : 0xd7fbf7, alpha: 0.95 });
+          this.worldLayer.addChild(rune);
+        } else if (cell.feature !== "empty" && cell.feature !== "trap") {
+          const featureColor =
+            cell.feature === "treasure"
+              ? 0xd7b35c
+              : 0x765083;
+          this.worldLayer.addChild(circle(x + cellSize / 2, y + cellSize / 2, Math.max(1.2, cellSize * 0.12), featureColor));
         }
-      } else if (cell.feature === "shrine") {
-        const centerX = x + cellSize / 2;
-        const centerY = y + cellSize / 2;
-        const radius = Math.max(1.5, cellSize * 0.16);
-        const spent = visited.has(cell.id);
-        const rune = new Graphics().poly([
-          centerX, centerY - radius,
-          centerX + radius, centerY,
-          centerX, centerY + radius,
-          centerX - radius, centerY,
-        ]);
-        if (spent) rune.stroke({ color: 0x6ba3b8, width: Math.max(0.8, cellSize * 0.07), alpha: 0.76 });
-        else rune.fill({ color: 0x6ba3b8, alpha: 0.96 }).stroke({ color: 0xbcebf0, width: Math.max(0.7, cellSize * 0.055) });
-        rune.circle(centerX, centerY, Math.max(0.7, radius * 0.28)).fill({ color: spent ? 0x243039 : 0xd7fbf7, alpha: 0.95 });
-        this.worldLayer.addChild(rune);
-      } else if (cell.feature !== "empty" && cell.feature !== "trap") {
-        const featureColor =
-          cell.feature === "treasure"
-            ? 0xd7b35c
-            : 0x765083;
-        this.worldLayer.addChild(circle(x + cellSize / 2, y + cellSize / 2, Math.max(1.2, cellSize * 0.12), featureColor));
+        if (!cell.exits.includes("north")) maze.moveTo(x, y).lineTo(x + cellSize, y);
+        if (!cell.exits.includes("west")) maze.moveTo(x, y).lineTo(x, y + cellSize);
+        if (!cell.exits.includes("east")) maze.moveTo(x + cellSize, y).lineTo(x + cellSize, y + cellSize);
+        if (!cell.exits.includes("south")) maze.moveTo(x, y + cellSize).lineTo(x + cellSize, y + cellSize);
       }
-      if (!cell.exits.includes("north")) maze.moveTo(x, y).lineTo(x + cellSize, y);
-      if (!cell.exits.includes("west")) maze.moveTo(x, y).lineTo(x, y + cellSize);
-      if (!cell.exits.includes("east")) maze.moveTo(x + cellSize, y).lineTo(x + cellSize, y + cellSize);
-      if (!cell.exits.includes("south")) maze.moveTo(x, y + cellSize).lineTo(x + cellSize, y + cellSize);
-    }
-    maze.stroke({ color: palette[1], width: Math.max(1, cellSize * 0.12) });
-    this.worldLayer.addChild(maze);
+      maze.stroke({ color: palette[1], width: Math.max(1, cellSize * 0.12) });
+      this.worldLayer.addChild(maze);
 
-    if (keyGate?.key !== null && keyGate?.key !== undefined) {
-      const keyCell = cellsById.get(keyGate.key.cellId);
-      if (keyCell !== undefined && keyGate.key.status === "sighted") {
-        const centerX = offsetX + (keyCell.x + 0.5) * cellSize;
-        const centerY = offsetY + (keyCell.y + 0.5) * cellSize;
-        const radius = Math.max(1.3, cellSize * 0.12);
-        const key = new Graphics().circle(centerX - radius * 0.65, centerY, radius).stroke({ color: 0xffd166, width: Math.max(0.9, cellSize * 0.08) });
-        key.moveTo(centerX + radius * 0.3, centerY).lineTo(centerX + radius * 2.3, centerY);
-        key.lineTo(centerX + radius * 2.3, centerY + radius * 0.8);
-        key.moveTo(centerX + radius * 1.45, centerY).lineTo(centerX + radius * 1.45, centerY + radius * 0.65);
-        key.stroke({ color: 0xffd166, width: Math.max(0.9, cellSize * 0.08) });
-        this.worldLayer.addChild(circle(centerX, centerY, radius * 2.7, 0xf0b84b, 0.12));
-        this.worldLayer.addChild(key);
-      }
-    }
-
-    if (keyGate?.gate !== null && keyGate?.gate !== undefined) {
-      const gateCell = cellsById.get(keyGate.gate.unlockCellId);
-      if (gateCell !== undefined) {
-        const vector = mazeDirectionVector[keyGate.gate.direction];
-        const perpendicularX = -vector[1];
-        const perpendicularY = vector[0];
-        const centerX = offsetX + (gateCell.x + 0.5) * cellSize + vector[0] * cellSize * 0.5;
-        const centerY = offsetY + (gateCell.y + 0.5) * cellSize + vector[1] * cellSize * 0.5;
-        const half = cellSize * 0.39;
-        const gate = new Graphics();
-        if (keyGate.gate.status === "locked") {
-          gate.moveTo(centerX - perpendicularX * half, centerY - perpendicularY * half)
-            .lineTo(centerX + perpendicularX * half, centerY + perpendicularY * half);
-          for (const offset of [-0.22, 0, 0.22]) {
-            const barX = centerX + perpendicularX * cellSize * offset;
-            const barY = centerY + perpendicularY * cellSize * offset;
-            gate.moveTo(barX - vector[0] * cellSize * 0.17, barY - vector[1] * cellSize * 0.17)
-              .lineTo(barX + vector[0] * cellSize * 0.17, barY + vector[1] * cellSize * 0.17);
-          }
-          gate.stroke({ color: 0xd39b48, width: Math.max(1.1, cellSize * 0.11), alpha: 0.98 });
-        } else {
-          for (const side of [-1, 1]) {
-            const outerX = centerX + perpendicularX * half * side;
-            const outerY = centerY + perpendicularY * half * side;
-            const innerX = centerX + perpendicularX * half * 0.52 * side;
-            const innerY = centerY + perpendicularY * half * 0.52 * side;
-            gate.moveTo(outerX, outerY).lineTo(innerX, innerY);
-          }
-          gate.stroke({ color: 0x8fd1aa, width: Math.max(1, cellSize * 0.09), alpha: 0.92 });
-          this.lightLayer.addChild(circle(centerX, centerY, Math.max(2.4, cellSize * 0.28), 0x8fd1aa, 0.14));
-        }
-        this.worldLayer.addChild(gate);
-      }
-    }
-
-    if (search === null && wayfinding.frontierCellId !== null) {
-      const frontier = cellsById.get(wayfinding.frontierCellId);
-      if (frontier !== undefined) {
-        const x = offsetX + frontier.x * cellSize;
-        const y = offsetY + frontier.y * cellSize;
-        const inset = Math.max(1.6, cellSize * 0.12);
-        const corner = Math.max(2, Math.min(6, cellSize * 0.26));
-        const brackets = new Graphics();
-        brackets.moveTo(x + inset, y + inset + corner).lineTo(x + inset, y + inset).lineTo(x + inset + corner, y + inset);
-        brackets.moveTo(x + cellSize - inset - corner, y + inset).lineTo(x + cellSize - inset, y + inset).lineTo(x + cellSize - inset, y + inset + corner);
-        brackets.moveTo(x + inset, y + cellSize - inset - corner).lineTo(x + inset, y + cellSize - inset).lineTo(x + inset + corner, y + cellSize - inset);
-        brackets.moveTo(x + cellSize - inset - corner, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset - corner);
-        brackets.stroke({ color: 0x9fd5bd, width: Math.max(0.9, cellSize * 0.075), alpha: hazardBeat === undefined ? 0.9 : 0.34 });
-        this.worldLayer.addChild(brackets);
-      }
-    }
-
-    const passageAnchorId = wayfinding.mode === "explore" ? wayfinding.frontierCellId : dungeon.currentCellId;
-    const passageAnchor = passageAnchorId === null ? undefined : cellsById.get(passageAnchorId);
-    const passageDirections = search === null ? wayfinding.nextPassageDirections : [];
-    if (passageAnchor !== undefined && passageDirections.length > 0) {
-      const arrows = new Graphics();
-      const centerX = offsetX + (passageAnchor.x + 0.5) * cellSize;
-      const centerY = offsetY + (passageAnchor.y + 0.5) * cellSize;
-      for (const direction of passageDirections) {
-        const vector = mazeDirectionVector[direction];
-        const perpendicularX = -vector[1];
-        const perpendicularY = vector[0];
-        const tipX = centerX + vector[0] * cellSize * 0.43;
-        const tipY = centerY + vector[1] * cellSize * 0.43;
-        const tailX = centerX + vector[0] * cellSize * 0.24;
-        const tailY = centerY + vector[1] * cellSize * 0.24;
-        arrows.moveTo(tailX + perpendicularX * cellSize * 0.1, tailY + perpendicularY * cellSize * 0.1)
-          .lineTo(tipX, tipY)
-          .lineTo(tailX - perpendicularX * cellSize * 0.1, tailY - perpendicularY * cellSize * 0.1);
-      }
-      arrows.stroke({ color: wayfinding.mode === "explore" ? 0xffd166 : 0xa8dbc7, width: Math.max(1, cellSize * 0.09), alpha: hazardBeat === undefined ? 0.96 : 0.38 });
-      this.worldLayer.addChild(arrows);
-    }
-
-    const current = cellsById.get(dungeon.currentCellId);
-    if (current !== undefined) {
-      const x = offsetX + (current.x + 0.5) * cellSize;
-      const y = offsetY + (current.y + 0.5) * cellSize;
-      this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
-      this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
-      const heroScale = Math.max(0.08, Math.min(0.8, cellSize / 48));
-      this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale);
-      this.host.dataset.dungeonHeroCell = current.id;
-      this.host.dataset.dungeonHeroScale = String(heroScale);
-      if (search !== null) {
-        // These marks inspect already-public exits, never an unrevealed hazard.
-        // They remain complete and stationary under reduced motion.
-        const inspection = new Graphics();
-        for (const exit of search.exits) {
-          const vector = mazeDirectionVector[exit.direction];
-          const centerX = x + vector[0] * cellSize * 0.43;
-          const centerY = y + vector[1] * cellSize * 0.43;
+      if (keyGate?.key !== null && keyGate?.key !== undefined) {
+        const keyCell = cellsById.get(keyGate.key.cellId);
+        if (keyCell !== undefined && keyGate.key.status === "sighted") {
+          const centerX = offsetX + (keyCell.x + 0.5) * cellSize;
+          const centerY = offsetY + (keyCell.y + 0.5) * cellSize;
           const radius = Math.max(1.3, cellSize * 0.12);
-          inspection.circle(centerX, centerY, radius);
-          inspection.moveTo(centerX - vector[1] * radius * 1.55, centerY + vector[0] * radius * 1.55)
-            .lineTo(centerX - vector[1] * radius * 2.3, centerY + vector[0] * radius * 2.3);
+          const key = new Graphics().circle(centerX - radius * 0.65, centerY, radius).stroke({ color: 0xffd166, width: Math.max(0.9, cellSize * 0.08) });
+          key.moveTo(centerX + radius * 0.3, centerY).lineTo(centerX + radius * 2.3, centerY);
+          key.lineTo(centerX + radius * 2.3, centerY + radius * 0.8);
+          key.moveTo(centerX + radius * 1.45, centerY).lineTo(centerX + radius * 1.45, centerY + radius * 0.65);
+          key.stroke({ color: 0xffd166, width: Math.max(0.9, cellSize * 0.08) });
+          this.worldLayer.addChild(circle(centerX, centerY, radius * 2.7, 0xf0b84b, 0.12));
+          this.worldLayer.addChild(key);
         }
-        inspection.stroke({ color: 0xffd166, width: Math.max(0.8, cellSize * 0.07), alpha: 0.88 });
-        this.worldLayer.addChild(inspection);
       }
-      if (keyGate?.key?.status === "carried") {
-        const carriedX = x + Math.max(2.2, cellSize * 0.28);
-        const carriedY = y - Math.max(2.2, cellSize * 0.28);
-        this.lightLayer.addChild(circle(carriedX, carriedY, Math.max(1.2, cellSize * 0.1), 0xffd166));
-        this.lightLayer.addChild(new Graphics().moveTo(carriedX + cellSize * 0.08, carriedY).lineTo(carriedX + cellSize * 0.22, carriedY).stroke({ color: 0xffd166, width: Math.max(0.8, cellSize * 0.06) }));
+
+      if (keyGate?.gate !== null && keyGate?.gate !== undefined) {
+        const gateCell = cellsById.get(keyGate.gate.unlockCellId);
+        if (gateCell !== undefined) {
+          const vector = mazeDirectionVector[keyGate.gate.direction];
+          const perpendicularX = -vector[1];
+          const perpendicularY = vector[0];
+          const centerX = offsetX + (gateCell.x + 0.5) * cellSize + vector[0] * cellSize * 0.5;
+          const centerY = offsetY + (gateCell.y + 0.5) * cellSize + vector[1] * cellSize * 0.5;
+          const half = cellSize * 0.39;
+          const gate = new Graphics();
+          if (keyGate.gate.status === "locked") {
+            gate.moveTo(centerX - perpendicularX * half, centerY - perpendicularY * half)
+              .lineTo(centerX + perpendicularX * half, centerY + perpendicularY * half);
+            for (const offset of [-0.22, 0, 0.22]) {
+              const barX = centerX + perpendicularX * cellSize * offset;
+              const barY = centerY + perpendicularY * cellSize * offset;
+              gate.moveTo(barX - vector[0] * cellSize * 0.17, barY - vector[1] * cellSize * 0.17)
+                .lineTo(barX + vector[0] * cellSize * 0.17, barY + vector[1] * cellSize * 0.17);
+            }
+            gate.stroke({ color: 0xd39b48, width: Math.max(1.1, cellSize * 0.11), alpha: 0.98 });
+          } else {
+            for (const side of [-1, 1]) {
+              const outerX = centerX + perpendicularX * half * side;
+              const outerY = centerY + perpendicularY * half * side;
+              const innerX = centerX + perpendicularX * half * 0.52 * side;
+              const innerY = centerY + perpendicularY * half * 0.52 * side;
+              gate.moveTo(outerX, outerY).lineTo(innerX, innerY);
+            }
+            gate.stroke({ color: 0x8fd1aa, width: Math.max(1, cellSize * 0.09), alpha: 0.92 });
+            this.lightLayer.addChild(circle(centerX, centerY, Math.max(2.4, cellSize * 0.28), 0x8fd1aa, 0.14));
+          }
+          this.worldLayer.addChild(gate);
+        }
       }
-    }
-    if (shrineUse !== null) {
-      const shrineCell = cellsById.get(shrineUse.cellId);
-      if (shrineCell !== undefined) {
-        const shrineX = offsetX + (shrineCell.x + 0.5) * cellSize;
-        const shrineY = offsetY + (shrineCell.y + 0.5) * cellSize;
-        const radiance = new Graphics()
-          .circle(shrineX, shrineY, Math.max(3, cellSize * 0.3))
-          .circle(shrineX, shrineY, Math.max(5, cellSize * 0.52))
-          .circle(shrineX, shrineY, Math.max(7, cellSize * 0.74))
-          .stroke({ color: 0x9ce2df, width: Math.max(0.8, cellSize * 0.06), alpha: 0.52 });
-        this.lightLayer.addChild(circle(shrineX, shrineY, Math.max(7, cellSize * 0.72), 0x72d3c9, 0.16));
-        this.worldLayer.addChild(radiance);
+
+      if (search === null && wayfinding.frontierCellId !== null) {
+        const frontier = cellsById.get(wayfinding.frontierCellId);
+        if (frontier !== undefined) {
+          const x = offsetX + frontier.x * cellSize;
+          const y = offsetY + frontier.y * cellSize;
+          const inset = Math.max(1.6, cellSize * 0.12);
+          const corner = Math.max(2, Math.min(6, cellSize * 0.26));
+          const brackets = new Graphics();
+          brackets.moveTo(x + inset, y + inset + corner).lineTo(x + inset, y + inset).lineTo(x + inset + corner, y + inset);
+          brackets.moveTo(x + cellSize - inset - corner, y + inset).lineTo(x + cellSize - inset, y + inset).lineTo(x + cellSize - inset, y + inset + corner);
+          brackets.moveTo(x + inset, y + cellSize - inset - corner).lineTo(x + inset, y + cellSize - inset).lineTo(x + inset + corner, y + cellSize - inset);
+          brackets.moveTo(x + cellSize - inset - corner, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset - corner);
+          brackets.stroke({ color: 0x9fd5bd, width: Math.max(0.9, cellSize * 0.075), alpha: hazardBeat === undefined ? 0.9 : 0.34 });
+          this.worldLayer.addChild(brackets);
+        }
+      }
+
+      const passageAnchorId = wayfinding.mode === "explore" ? wayfinding.frontierCellId : dungeon.currentCellId;
+      const passageAnchor = passageAnchorId === null ? undefined : cellsById.get(passageAnchorId);
+      const passageDirections = search === null ? wayfinding.nextPassageDirections : [];
+      if (passageAnchor !== undefined && passageDirections.length > 0) {
+        const arrows = new Graphics();
+        const centerX = offsetX + (passageAnchor.x + 0.5) * cellSize;
+        const centerY = offsetY + (passageAnchor.y + 0.5) * cellSize;
+        for (const direction of passageDirections) {
+          const vector = mazeDirectionVector[direction];
+          const perpendicularX = -vector[1];
+          const perpendicularY = vector[0];
+          const tipX = centerX + vector[0] * cellSize * 0.43;
+          const tipY = centerY + vector[1] * cellSize * 0.43;
+          const tailX = centerX + vector[0] * cellSize * 0.24;
+          const tailY = centerY + vector[1] * cellSize * 0.24;
+          arrows.moveTo(tailX + perpendicularX * cellSize * 0.1, tailY + perpendicularY * cellSize * 0.1)
+            .lineTo(tipX, tipY)
+            .lineTo(tailX - perpendicularX * cellSize * 0.1, tailY - perpendicularY * cellSize * 0.1);
+        }
+        arrows.stroke({ color: wayfinding.mode === "explore" ? 0xffd166 : 0xa8dbc7, width: Math.max(1, cellSize * 0.09), alpha: hazardBeat === undefined ? 0.96 : 0.38 });
+        this.worldLayer.addChild(arrows);
+      }
+
+      const current = cellsById.get(dungeon.currentCellId);
+      if (current !== undefined) {
+        const x = offsetX + (current.x + 0.5) * cellSize;
+        const y = offsetY + (current.y + 0.5) * cellSize;
+        this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
+        this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
+        const heroScale = Math.max(0.08, Math.min(0.8, cellSize / 48));
+        this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale);
+        this.host.dataset.dungeonHeroCell = current.id;
+        this.host.dataset.dungeonHeroScale = String(heroScale);
+        if (search !== null) {
+          // These marks inspect already-public exits, never an unrevealed hazard.
+          // They remain complete and stationary under reduced motion.
+          const inspection = new Graphics();
+          for (const exit of search.exits) {
+            const vector = mazeDirectionVector[exit.direction];
+            const centerX = x + vector[0] * cellSize * 0.43;
+            const centerY = y + vector[1] * cellSize * 0.43;
+            const radius = Math.max(1.3, cellSize * 0.12);
+            inspection.circle(centerX, centerY, radius);
+            inspection.moveTo(centerX - vector[1] * radius * 1.55, centerY + vector[0] * radius * 1.55)
+              .lineTo(centerX - vector[1] * radius * 2.3, centerY + vector[0] * radius * 2.3);
+          }
+          inspection.stroke({ color: 0xffd166, width: Math.max(0.8, cellSize * 0.07), alpha: 0.88 });
+          this.worldLayer.addChild(inspection);
+        }
+        if (keyGate?.key?.status === "carried") {
+          const carriedX = x + Math.max(2.2, cellSize * 0.28);
+          const carriedY = y - Math.max(2.2, cellSize * 0.28);
+          this.lightLayer.addChild(circle(carriedX, carriedY, Math.max(1.2, cellSize * 0.1), 0xffd166));
+          this.lightLayer.addChild(new Graphics().moveTo(carriedX + cellSize * 0.08, carriedY).lineTo(carriedX + cellSize * 0.22, carriedY).stroke({ color: 0xffd166, width: Math.max(0.8, cellSize * 0.06) }));
+        }
+      }
+      if (shrineUse !== null) {
+        const shrineCell = cellsById.get(shrineUse.cellId);
+        if (shrineCell !== undefined) {
+          const shrineX = offsetX + (shrineCell.x + 0.5) * cellSize;
+          const shrineY = offsetY + (shrineCell.y + 0.5) * cellSize;
+          const radiance = new Graphics()
+            .circle(shrineX, shrineY, Math.max(3, cellSize * 0.3))
+            .circle(shrineX, shrineY, Math.max(5, cellSize * 0.52))
+            .circle(shrineX, shrineY, Math.max(7, cellSize * 0.74))
+            .stroke({ color: 0x9ce2df, width: Math.max(0.8, cellSize * 0.06), alpha: 0.52 });
+          this.lightLayer.addChild(circle(shrineX, shrineY, Math.max(7, cellSize * 0.72), 0x72d3c9, 0.16));
+          this.worldLayer.addChild(radiance);
+        }
       }
     }
     if (mechanismBeat !== null && hazardBeat === undefined) {
@@ -6137,7 +6241,7 @@ export class GameRenderer {
     }
     if (hazardBeat !== undefined) {
       const hazardCell = cellsById.get(hazardBeat.cellId);
-      if (hazardCell !== undefined) {
+      if (!perspectiveShown && hazardCell !== undefined) {
         const focusX = offsetX + (hazardCell.x + 0.5) * cellSize;
         const focusY = offsetY + (hazardCell.y + 0.5) * cellSize;
         const focusRadius = Math.max(3.2, cellSize * 0.34);

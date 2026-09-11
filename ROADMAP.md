@@ -5,7 +5,7 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: D2 — Through their eyes.** An optional first-person preview of the same known dungeon and committed actions. Start with one room and visible doorways in the existing renderer, a saved menu preference and 2D fallback. No new dungeon rules, hidden-room disclosure or camera-driven turns. The bounded first-slice design is in [Adventure forms](docs/design/ADVENTURE_FORMS.md#d2-first-playable-boundary--read-only-council-follow-up-2026-09-10).
+1. **In implementation: D2 — Through their eyes (v0.5.164).** An optional first-person preview of the same known dungeon and committed actions. Start with one room and visible doorways in the existing renderer, a saved menu preference and 2D fallback. No new dungeon rules, hidden-room disclosure or camera-driven turns. The bounded first-slice design is in [Adventure forms](docs/design/ADVENTURE_FORMS.md#d2-first-playable-boundary--read-only-council-follow-up-2026-09-10).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -38,7 +38,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Next; bounded one-room preview, not new dungeon rules |
+| **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Implementing v0.5.164; bounded one-room preview, not new dungeon rules |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

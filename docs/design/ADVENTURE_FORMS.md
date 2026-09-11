@@ -382,6 +382,34 @@ not a requirement to build a general simulation test framework first.
 
 ## Optional first-person view: a separate later proof
 
+### D2 implementation — v0.5.164, public delivery pending
+
+Menu → Dungeon view selects `2D map` or `First-person preview`. The choice is
+stored separately from the campaign and narrator consent; malformed or
+unavailable storage defaults to the map. One lazy-loaded native drawing module
+shows the current room, public doorways, known gate/key/shrine cues, revealed
+traps, a compact compass/back-exit cue and the current hero's identity-colored
+hands. It receives an allowlisted packet, not raw dungeon or world state.
+
+Physical visible doorways are separate from the policy's available next moves:
+trap handling does not paint a back passage as a wall. No neighboring onward
+geometry, hidden trap, seed or undiscovered landmark location is passed through.
+Only a source-bound adjacent committed move changes facing; stationary actions
+retain it. With no prior presented step, including a fresh reload, the initial
+orientation is north. The preference persists; camera history is not a new save
+field. There is no free camera, extra turn, head-bob or new graphics engine.
+
+The existing caption and portrait/resource card remain shared. Failed optional
+loading/drawing keeps 2D available and is not retried every frame. Two same-build
+browser scenarios prove the exact save/choice invariants, real search/movement,
+preference reload, one failed-load fallback and desktop/mobile/Focus layouts.
+The main journey passed in 53.6 seconds; failed-load continuation in 25.4 seconds.
+Three final captures were directly inspected. CI/public delivery is still pending.
+Wider 3D asset, animation and named-device performance proposals below are not
+claimed implemented by this small 2.5D preview.
+
+### Original wider visual proposal
+
 For the independently reviewable D2 prototype, start with one existing dungeon
 snapshot and original code-generated walls, floors, doors, and simple landmark
 shapes. Use a small grid-perspective or raycast prototype to test readability and motion. If it is

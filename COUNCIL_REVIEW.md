@@ -2,6 +2,76 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Through their eyes — v0.5.164 implementation checkpoint
+
+D2 implements an optional one-room 2.5D dungeon preview in the existing Pixi
+renderer. It is not yet publicly delivered. `deja "D2 first-person dungeon view"`
+recovered Codex session 10's 2026-09-10 22:59:58 PDT council review; reused its
+public-facts adapter, separate saved preference, discrete committed-step facing
+and 2D fallback, confirmed against the current dungeon projections and
+[adventure-form design](docs/design/ADVENTURE_FORMS.md).
+
+Three reviewers own the public packet/rules checks, optional native renderer
+and browser acceptance. Root owns the menu/preference integration and release.
+The selector defaults to the existing map and persists independently of saves
+and narrator consent. Four focused preference tests pass, covering exact
+records, invalid/future data and unavailable storage. No campaign schema,
+canonical hash, dungeon rule, reward, model or art download is changed.
+
+Acceptance reuses the existing generated dungeon search fixture, explicitly
+retaining its staged location/health handoff. It is not labelled uninterrupted
+natural travel. Prove unchanged campaign bytes across view switches, real
+stationary search and subsequent movement, revealed-only hazards, persisted
+preference, lazy-load failure fallback and readable desktop/mobile/Focus views.
+No seed sweep, long-duration matrix or new graphics engine is a release gate.
+Adapter/render/browser checks, final build, CI and public verification remain pending.
+
+The public adapter passed eight focused tests, preference storage passed four,
+and the native drawing plus existing caption/framing regressions passed fifteen.
+Review separated physical visible doorways from the policy's next available
+actions: a back passage must not become a false wall during trap handling.
+Current-room/discovered-neighbor geometry establishes the doorway; an explicit
+availability field remains separate. Hidden onward exits/features stay masked.
+An initial TypeScript error exposed an optional legacy command ID; the packet
+now normalizes it to null, with a focused assertion and no game-state change.
+The final TypeScript check, production build, version and boundary checks pass.
+The optional drawing chunk is 4.25 kB minified (1.89 kB gzip); shared existing
+drawing helpers also occupy a separate chunk, so this is not a claim about the
+whole application's size or a device-performance measurement. Simulation and
+both narrator worker identities remain unchanged. Browser/CI/public evidence
+remains pending; no canonical anchors or time limits were changed.
+
+The first browser attempt proved default-map laziness and unchanged saved/choice
+hashes across paused switches, then failed a stale fixed `rune-ward` assertion:
+the current generated trap is a `mana-siphon`. A bounded two-command source
+probe confirmed the actual hidden→detected doorway→current-room sequence and
+unchanged health/quest facts. Only the test's trap-kind expectation was updated
+to read the actual receipt; game rules were not changed. The independent
+failed-module scenario passed in 25.4 seconds: exactly one aborted request,
+no unhandled page error, intact 2D rendering and the same real next search turn.
+That same-build result is retained while only the corrected main journey is
+rerun under its original 120-second limit. The initial screenshot and failure
+report remain separate. Recall found the prior D2 review, not an independent
+current-positive fixture; the source probe supplies the current evidence.
+
+The corrected main browser journey passed in 53.6 seconds (1.1-minute runner),
+under the unchanged 120-second cap. It proves actual stationary search without
+turning, southward committed movement with the current armed trap, saved
+preference/exact reload and unchanged campaign/selected-command hashes across
+switches. All three final same-build 1280/320/Focus captures were directly
+inspected: clear room geometry, marked-only trap glyphs, readable mechanism
+caption and the existing portrait/resource card. The earlier 25.4-second
+failed-load fallback pass uses this same production build. Final integration
+council review found no release blocker. No further runtime edits followed.
+
+The read-only audit also identified the same old assumption in
+`tests/dungeon-search.spec.ts`: v0.5.158 deliberately made this generated v2
+fixture a mana siphon, but its old browser assertions still name ECHO RUNE and
+four HP damage. This pre-existing test is not claimed passed here. Queue a
+bounded receipt refresh/rerun, preserving its search bonus, separate
+entry/disarm, exact save and readability checks; do not alter current trap rules
+or rerun a broad matrix. Release CI and public source verification remain pending.
+
 ## Remember the delivery — v0.5.163 final delivery
 
 **Live and publicly source-verified 2026-09-10 at 23:10:08 PDT.** Feature

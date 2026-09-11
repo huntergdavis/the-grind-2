@@ -7,7 +7,8 @@ active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
 encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
 delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
-shipped in v0.5.163. D2's optional first-person dungeon view is next, followed
+shipped in v0.5.163. D2's optional first-person dungeon view is in implementation
+for v0.5.164, followed
 by further playable features one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
