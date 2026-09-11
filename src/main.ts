@@ -29,6 +29,7 @@ import { createChroniclePlateView } from "./ui/chronicle-plate-view";
 import { projectDungeonSearchView } from "./ui/dungeon-search-view";
 import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-view";
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
+import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -4472,6 +4473,7 @@ function present(): void {
   const dungeonSearch = projectDungeonSearchView(state);
   const dungeonMedicine = projectDungeonFieldMedicineScene(state);
   const dungeonPassage = projectDungeonSecretPassageScene(state);
+  const pennywiseGate = projectPennywiseGateScene(state);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -4781,7 +4783,14 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (dungeonMedicine !== null) {
+  if (pennywiseGate !== null) {
+    elements.traversalDirective.textContent = `${pennywiseGate.headline} · ${pennywiseGate.detail}`;
+    elements.traversalDirective.title = `${pennywiseGate.fromName} → ${pennywiseGate.toName}. Gold ${pennywiseGate.goldBefore}→${pennywiseGate.goldAfter}; route ${pennywiseGate.distanceBefore}→${pennywiseGate.distanceAfter} miles. ${state.scene.consequence}`;
+    elements.traversalDirective.dataset.reason = `pennywise-gate-${pennywiseGate.phase}`;
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = "";
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (dungeonMedicine !== null) {
     elements.traversalDirective.textContent = `${dungeonMedicine.headline} · ${dungeonMedicine.detail}`;
     elements.traversalDirective.title = state.scene.consequence;
     elements.traversalDirective.dataset.reason = "dungeon-field-medicine";

@@ -53,6 +53,7 @@ const sourcePaths = Object.freeze([
   "src/depth/companion-reunion.ts",
   "src/depth/companion.ts",
   "src/depth/dungeon-field-medicine.ts",
+  "src/depth/pennywise-gate.ts",
   "src/depth/repartee-campaign.ts",
   "src/depth/repartee-memory.ts",
   "src/depth/repartee-witness.ts",

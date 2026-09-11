@@ -20,6 +20,7 @@ import { isValidCampaignRepartee } from "../depth/repartee-campaign";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCommandId, usefulReplyResponses } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeCommandId, roomChallengeResponses } from "../depth/room-challenge";
 import { companionCreditChoices, companionCreditCommandId, selectCompanionCredit } from "../depth/companion-credit";
+import { pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate } from "../depth/pennywise-gate";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -388,6 +389,21 @@ function scoreCandidate(
     const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === command.residentId);
     score = 100;
     reason = `${companion?.destination.name ?? "the promised town"} has been reached and the oath deserves its farewell`;
+  } else if (command.type === "choose-pennywise-gate" || command.type === "pass-pennywise-gate") {
+    const gate = selectPennywiseGate(state.depth);
+    if (gate === null || gate.gateId !== command.gateId || candidate.deciderId !== state.hero.id
+      || candidate.id !== pennywiseGateCommandId(state.tick + 1, command)) throw new Error("Actor Policy cannot invent a Pennywise Gate");
+    if (command.type === "pass-pennywise-gate") {
+      if (gate.choice?.kind !== "lift") throw new Error("The gate has not been lifted");
+      score = 80; reason = "the barrier was lifted on the previous turn; walk the actual remaining road distance without paying a toll";
+    } else {
+      if (!pennywiseGateChoices(state.depth).some(option => option.choice === command.choice)) throw new Error("The gate choice is unavailable");
+      const curious = state.hero.values.includes("curiosity");
+      score = command.choice === "pay" ? 40 : curious ? 50 : 20;
+      reason = command.choice === "pay" ? "spend two owned gold on the counterweight and pass in one action"
+        : curious ? "curiosity tries the hand-lifted mechanism: keep the gold, spend one extra action, and gain no extra reward"
+          : "lift the barrier by hand to keep the gold; crossing takes a separate action";
+    }
   } else if (command.type === "travel") {
     const wounded = state.depth.hero.resources.health * 2 < state.depth.hero.resources.maxHealth;
     score = wounded ? 30 - command.distance : 10 + command.distance;
@@ -654,6 +670,8 @@ function presentationLabels(
     };
     case "plan-route": return { actionLabel: "plots a route", targetLabel: state.depth.atlas.locations.find((entry) => entry.id === command.destinationId)?.name ?? command.destinationId };
     case "travel": return { actionLabel: `advances ${command.distance} ${command.distance === 1 ? "mile" : "miles"}`, targetLabel: state.scene.location };
+    case "choose-pennywise-gate": return { actionLabel: command.choice === "pay" ? "pays two gold and passes" : "lifts the barrier by hand", targetLabel: "the Pennywise Gate" };
+    case "pass-pennywise-gate": return { actionLabel: "walks through the lifted barrier", targetLabel: "the Pennywise Gate" };
     case "visit-town": return { actionLabel: "enters town", targetLabel: state.scene.location };
     case "restock-tonic": {
       const restock = selectTonicRestock(state.depth);

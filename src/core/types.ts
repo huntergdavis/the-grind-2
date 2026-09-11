@@ -434,6 +434,8 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "move-dungeon",
   "search-dungeon",
   "open-dungeon-passage",
+  "choose-pennywise-gate",
+  "pass-pennywise-gate",
   "disarm-dungeon-trap",
   "unlock-dungeon-gate",
   "start-combat",

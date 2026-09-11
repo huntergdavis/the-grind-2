@@ -561,6 +561,12 @@ natural reachability or browser acceptance are claimed. This narrows the
 roadmap's canonical ferries and location-specific road events into one small
 original situation, using the existing travel view rather than another engine.
 
+Deferred after the bounded 2026-09-11 check: the unchanged known journey has no
+eligible approach through T320, and all 14 edges on that one map have zero
+recorded river crossings. No seed search or fabricated geography follows.
+T2 adapts the tradeoff to a different original road situation below; it is not
+evidence that a ferry shipped.
+
 An unattended rope ferry offers two prices: two gold, or personally hauling
 the rope. A living solo hero approaching an actual river crossing, after the
 road encounter and higher-priority recovery/story obligations, reaches a real
@@ -591,6 +597,35 @@ claim reachability. Stop and rescope if that source boundary is unavailable.
 Exclude companion participation, NPC schedules, weather, swimming, injury,
 randomized loss, repeat tolls, a general travel-event framework and later
 callbacks. Those are separate possible slices, not gates for this proposal.
+
+## T2 current slice — The Pennywise Gate
+
+In progress for v0.5.171. A self-service wooden road barrier offers an honest
+choice: put two owned gold into its counterweight and pass in one action, or
+lift it by hand, remain in place, and walk through on the next action. No
+spectator button, invented gatekeeper, injury, HP/MP/XP reward or bond change.
+“Free passage. Some lifting required.” Ordinary travel to the gate keeps its
+existing travel XP; the gate actions add none. Curiosity can favor trying the
+manual mechanism; the default preference buys the shorter interaction if
+affordable. The free option remains available with no gold.
+
+One new canonical gate is established per campaign only by a real approach
+on an existing oriented road. Near and far points are consecutive, strictly
+interior terrain samples. Travel stops at the near point; paid/free passage
+advances the exact same remaining route distance without crossing a settlement
+boundary. An optional versioned record retains site, approach, choice, gold
+and completion sources. It is absent until earned, survives later road reuse,
+and cannot reopen, charge twice or acquire unexplained intervening actions.
+
+The pinned unchanged first-road proof succeeds at T7: actual settled duel,
+living solo hero, real forest road 0→8, near point313 at mile8 and far point312
+at mile15 of70. Its next ordinary12-mile travel is clipped to8, admitting the
+gate at T8. The map, supplies, road encounter and outcome were not staged.
+Native wood, honor box and the actual hero use a readable road close-up, the
+existing caption, route progress and Status. Lifting stays stationary; paid
+and free crossing show the far side. No new Watch panel, CSS drawer, LLM or
+adventure engine. Verify one short desktop/mobile/Focus journey and both legal
+choices, with exact reloads and ordinary onward travel; keep existing CI limits.
 
 ## Make the adventures accumulate into a life
 

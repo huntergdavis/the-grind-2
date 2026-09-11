@@ -109,6 +109,8 @@ import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "../ui/dungeon-perspective-view";
 import { projectDungeonFieldMedicineScene } from "../ui/dungeon-field-medicine-view";
 import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } from "../ui/dungeon-secret-passage-view";
+import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennywise-gate-view";
+import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
@@ -1274,6 +1276,8 @@ export class GameRenderer {
     for (const key of ["dungeonPassagePhase", "dungeonPassageCommand", "dungeonPassageDirection", "dungeonPassageCell",
       "dungeonPassageFrom", "dungeonPassageTo", "dungeonPassageOpeningSource", "dungeonPassageCuePosition",
       "dungeonPassageVisual", "dungeonPerspectivePassage"]) delete this.host.dataset[key];
+    for (const key of ["gatePhase", "gateCommand", "gateId", "gateHero", "gateEdge", "gateGold", "gateDistance",
+      "gateNearPoint", "gateFarPoint", "gateHeroPosition", "gateBarrierPosition", "gateVisual"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonFraming;
     delete this.host.dataset.dungeonFrameCellSize;
     delete this.host.dataset.dungeonFrameOffset;
@@ -5701,6 +5705,12 @@ export class GameRenderer {
     this.worldLayer.addChild(rect(0, 121, designWidth, 59, visual.ground));
     this.drawTravelSilhouette(corridor, visual);
 
+    const gate = projectPennywiseGateScene(state);
+    if (gate !== null) {
+      this.drawPennywiseGateScene(state, gate, corridor, palette);
+      return;
+    }
+
     const roadColor = { road: 0x9c7a55, trail: 0x756049, pass: 0x6c6961, river: 0x735f4e }[corridor.edgeTerrain];
     const roadDark = { road: 0x6d533d, trail: 0x514336, pass: 0x4c4c49, river: 0x4d443c }[corridor.edgeTerrain];
     const road = projectTravelRoadGeometry(corridor.edgeTerrain, corridor.signedSlope, corridor.curve);
@@ -5806,6 +5816,46 @@ export class GameRenderer {
     sceneLabel.position.set(9, 9);
     this.worldLayer.addChild(rect(6, 6, sceneLabel.width + 8, 12, 0x17212e, 0.68));
     this.worldLayer.addChild(sceneLabel);
+  }
+
+  private drawPennywiseGateScene(state: WorldState, scene: PennywiseGateScene, corridor: TravelCorridor,
+    palette: readonly [number, number, number]): void {
+    const pose = projectPennywiseGateTableau(scene.phase);
+    this.host.dataset.gatePhase = scene.phase;
+    this.host.dataset.gateCommand = scene.commandId;
+    this.host.dataset.gateId = scene.gateId;
+    this.host.dataset.gateHero = scene.heroId;
+    this.host.dataset.gateEdge = scene.edgeId;
+    this.host.dataset.gateGold = `${scene.goldBefore}/${scene.goldSpent}/${scene.goldAfter}`;
+    this.host.dataset.gateDistance = `${scene.distanceBefore}/${scene.distanceAfter}`;
+    this.host.dataset.gateNearPoint = String(scene.nearPointIndex);
+    this.host.dataset.gateFarPoint = String(scene.farPointIndex);
+    this.host.dataset.gateHeroPosition = `${pose.heroX},${pose.heroY}`;
+    this.host.dataset.gateBarrierPosition = `${pose.pivotX},${pose.pivotY}`;
+    this.host.dataset.gateVisual = `road-close-up|honor-box|${pose.raised ? "raised-bar" : "closed-bar"}|${pose.lifting ? "stationary-lift" : scene.phase === "approach" ? "near-side" : "actual-far-side"}`;
+    this.host.dataset.travelRoadFlow = "static";
+    this.host.dataset.travelRoadTopology = "gate-close-up";
+    // This is a close-up of the admitted road fixture, not a fixed screen-to-atlas map.
+    // The real biome remains behind it; no water, ferryman or second traveler is invented.
+    this.worldLayer.addChild(new Graphics().poly([0, 146, 95, 131, 320, 131, 320, 164, 85, 156, 0, 164]).fill(0x9c7a55)
+      .moveTo(0, 146).lineTo(95, 131).lineTo(320, 131).stroke({ color: 0x6d533d, width: 1.3 })
+      .moveTo(0, 164).lineTo(85, 156).lineTo(320, 164).stroke({ color: 0x6d533d, width: 1.3 }));
+    this.worldLayer.addChild(drawPennywiseGate(scene.phase));
+    this.drawHero(state, pose.heroX, pose.heroY, palette, 1, scene.heroId, false);
+    // Keep the real actor's hands on the bar, not the travel walking cycle.
+    // The static pose is also the complete reduced-motion and paused presentation.
+    const rig = this.heroRigs.pop();
+    if (rig !== undefined) {
+      rig.puppet.y = 0; rig.puppet.rotation = 0;
+      rig.frontArm.rotation = pose.lifting ? -1.05 : -0.08;
+      rig.rearArm.rotation = pose.lifting ? -0.75 : 0.08;
+      rig.frontLeg.rotation = pose.lifting ? -0.12 : 0;
+      rig.rearLeg.rotation = pose.lifting ? 0.15 : 0;
+    }
+    const ground = travelBiomeVisuals[corridor.biome].groundDark;
+    this.worldLayer.addChild(rect(56, 169, 208, 3, ground, 0.78));
+    this.worldLayer.addChild(rect(56, 169, 208 * corridor.projection.routeRatio, 3, palette[2], 0.9));
+    this.drawDungeonCaption(scene.headline, scene.detail, scene.compactDetail, 0x765739);
   }
 
   /** One existing receipt rail, with short public copy when the viewport is narrow. */

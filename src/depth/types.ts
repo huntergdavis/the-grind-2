@@ -1228,6 +1228,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** Absent until an actual road approach establishes this campaign's one gate. */
+  pennywiseGate?: import("./pennywise-gate").PennywiseGate | null;
   /** One earned conduct exchange; absent older saves contain no retrospective credit. */
   companionCredit?: import("./companion-credit").CompanionCredit | null;
   schemaVersion: 35;
@@ -1265,6 +1267,8 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "choose-pennywise-gate"; gateId: string; choice: "pay" | "lift" }
+  | { type: "pass-pennywise-gate"; gateId: string }
   | { type: "share-companion-credit"; residentId: string; joinedTick: number; combatId: string; choice: import("./companion-credit").CompanionCreditChoice }
   | { type: "open-dungeon-passage"; dungeonId: string; fromCellId: string; toCellId: string }
   | { type: "use-dungeon-tonic"; dungeonId: string; cellId: string; itemId: string }

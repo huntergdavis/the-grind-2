@@ -17,8 +17,10 @@ field medicine is live in v0.5.168 with natural-use, browser, CI and public-sour
 verification passed. R2 — Share the credit is live in v0.5.169 with browser,
 CI and public-source verification passed. D4 — A draught in the wall is live in
 v0.5.170 with actual clue/open/traverse, exact reload, browser, CI and public-source
-verification passed. T1 — The Pennywise Ferry is the next scoped proposal,
-not implemented or reachability-proven. Further playable features follow
+verification passed. T2 — The Pennywise Gate is in progress for v0.5.171,
+using actual road progress and a two-gold versus two-action choice. T1's ferry
+is deferred: the bounded known journey and its map have no road-river crossing.
+That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.

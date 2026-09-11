@@ -140,6 +140,7 @@ import { isValidCampaignRoomChallenge, roomChallengeCommandCandidates, stepCampa
 import { captureCompanionReunionArrival, isValidCampaignCompanionReunion, selectCompanionReturn, selectCompanionReunion, stepCampaignCompanionReunion } from "./companion-reunion";
 import { isValidCampaignDungeonFieldMedicine, selectDungeonFieldMedicine, stepDungeonFieldMedicine } from "./dungeon-field-medicine";
 import { captureCompanionCredit, captureCompanionCreditFarewell, companionCreditChoices, companionCreditCommandId, isValidCampaignCompanionCredit, selectCompanionCredit, stepCompanionCredit } from "./companion-credit";
+import { capturePennywiseGateArrival, isValidCampaignPennywiseGate, pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate, selectPennywiseGateApproach, stepPennywiseGate } from "./pennywise-gate";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -956,7 +957,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -1525,6 +1526,8 @@ export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
 }
 
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (input.pennywiseGate?.completion === null && command.type !== "choose-pennywise-gate"
+    && command.type !== "pass-pennywise-gate") throw new Error("Finish the active Pennywise Gate before another command");
   if (input.roomChallenge !== null && input.roomChallenge.result === null && command.type !== "answer-room-challenge") throw new Error("Answer the active room challenge before another command");
   if (input.usefulReply !== null && input.usefulReply.reply === null && command.type !== "practice-useful-reply") throw new Error("Finish the pending practice reply before another command");
   if (input.bellExpedition !== null && input.bellExpedition.completion === null
@@ -1548,6 +1551,14 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "choose-pennywise-gate":
+    case "pass-pennywise-gate": {
+      const next = stepPennywiseGate(input, command), completion = next.pennywiseGate.completion;
+      return appendLog({ ...state, pennywiseGate: next.pennywiseGate, atlas: next.atlas,
+        hero: { ...state.hero, gold: next.gold } }, "world", completion === null
+        ? `${state.hero.name} lifts the Pennywise Gate by hand. One turn at the same road point; no gold or resources spent. The way is held open.`
+        : `${state.hero.name} passes the Pennywise Gate: ${completion.line} Gold ${completion.goldBefore}→${completion.goldAfter}; ${completion.distance} actual miles onward. No HP, MP or XP change.`);
+    }
     case "open-dungeon-passage": {
       const clue = selectAvailableDungeonSecretPassage(input);
       if (clue === null || command.dungeonId !== clue.dungeonId || command.fromCellId !== clue.fromCellId
@@ -1669,6 +1680,10 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       return appendLog(state, "world", `A route is plotted to ${destination?.name ?? command.destinationId}.`);
     }
     case "travel": {
+      const approach = selectPennywiseGateApproach(input);
+      if (approach !== null && command.distance > approach.approachDistance) {
+        throw new Error("Ordinary travel must stop at the disclosed Pennywise Gate");
+      }
       const before = state.atlas.currentLocationId;
       const routeBefore = state.atlas.route;
       const travelled = routeBefore === null
@@ -1689,6 +1704,8 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
             }],
           };
       state = { ...state, atlas, companions };
+      const gate = capturePennywiseGateArrival(input, state, command);
+      if (gate !== null) state = { ...state, pennywiseGate: gate };
       state = { ...state, companionReunion: captureCompanionReunionArrival(input, state, command) };
       const arrived = before !== state.atlas.currentLocationId;
       const lead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
@@ -1700,7 +1717,9 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       return appendLog(
         state,
         "world",
-        arrived
+        gate !== null && gate.arrival.tick === state.tick
+          ? `${state.hero.name} reaches the Pennywise Gate. Two gold for the counterweight, or lift the barrier by hand; the far side is still ahead.`
+        : arrived
           ? reachedLead && lead !== null
             ? `The party reaches ${lead.locationName}, the marked lead for ${state.quest.title}.`
             : `The party reaches ${state.atlas.currentLocationId}.`
@@ -2539,6 +2558,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (!isValidCampaignPennywiseGate(input)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
   if (
     !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) || !isValidCampaignDungeonFieldMedicine(input) || !isValidCampaignCompanionCredit(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
@@ -2552,6 +2572,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     throw new TypeError("Campaign state violates schema invariants");
   }
   let output = reduceDepth(input, command);
+  if (!isValidCampaignPennywiseGate(output)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
   // A clue belongs to an actual completed dungeon action, not a renderer query
   // or save migration. Old expeditions without the opt-in remain untouched.
   const dungeon = output.dungeon;
@@ -2770,6 +2791,19 @@ function selectedEmergencyRestorative(state: DepthState) {
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  const gate = selectPennywiseGate(state);
+  if (gate !== null) {
+    if (gate.choice !== null) {
+      const command = { type: "pass-pennywise-gate", gateId: gate.gateId } as const;
+      return [{ id: pennywiseGateCommandId(state.tick + 1, command), deciderId: state.hero.id,
+        label: "walk through the hand-lifted Pennywise Gate", command }];
+    }
+    return pennywiseGateChoices(state).map(option => {
+      const command = { type: "choose-pennywise-gate", gateId: gate.gateId, choice: option.choice } as const;
+      return { id: pennywiseGateCommandId(state.tick + 1, command), deciderId: state.hero.id,
+        label: option.label, command };
+    });
+  }
   if (state.roomChallenge !== null && state.roomChallenge.result === null) {
     const candidates = roomChallengeCommandCandidates(state);
     if (candidates === null || candidates.length === 0) throw new Error("The active room challenge has no legal answer");
@@ -3000,7 +3034,9 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       )];
     }
     const remaining = Math.max(1, state.atlas.route.totalDistance - state.atlas.route.distanceTravelled);
-    const distance = Math.min(remaining, 6 + randomInt(8, state.seed, "depth-director", state.hero.id, state.tick, "travel-distance"));
+    const approach = selectPennywiseGateApproach(state);
+    const distance = Math.min(remaining, 6 + randomInt(8, state.seed, "depth-director", state.hero.id, state.tick, "travel-distance"),
+      approach?.approachDistance ?? Number.MAX_SAFE_INTEGER);
     return [commandCandidate(
       state,
       `travel:${distance}`,

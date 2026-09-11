@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v170 keeps Depth 35 and adds earned secret passages to newly entered dungeons.
+      // v171 keeps Depth 35 and adds the earned Pennywise Gate road interruption.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "34646fbfc3260502",
-      "d8ac8f11c19d4676",
-      "431a0f4265bb67a8",
-      "255537f681f95b2b",
-      "d9ea711bf79b5a1d",
-      "918282eaf0d6a5a3",
-      "96c785f4f73b6796",
-      "13491a1675e9cf6d",
-      "0234e72f2d597391",
-      "1bf40851f55c0193",
+      "6186817d6dce3046",
+      "9e560c9f8bcf8506",
+      "35ef2ac487a0236b",
+      "8afdd9e1cd22adef",
+      "abcbe07c976afd24",
+      "1c65777c0b6f1088",
+      "5908c8bc93ed80ec",
+      "abaf08dca4b74947",
+      "d1ac3252ccf4f1b2",
+      "0b779b3bc8488499",
     ]);
   }, 80_000);
 });

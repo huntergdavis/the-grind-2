@@ -3,6 +3,7 @@ import { isValidCampaignRoomChallenge } from "../depth/room-challenge";
 import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
 import { isValidCampaignDungeonFieldMedicine } from "../depth/dungeon-field-medicine";
 import { isValidDungeonSecretPassage } from "../depth/dungeon";
+import { isValidCampaignPennywiseGate } from "../depth/pennywise-gate";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -373,6 +374,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "plan-route":
       return "atlas";
     case "travel":
+    case "choose-pennywise-gate":
+    case "pass-pennywise-gate":
       return "travel";
     case "restock-tonic":
     case "buy-disarming-kit":
@@ -409,6 +412,9 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "choose-pennywise-gate":
+    case "pass-pennywise-gate":
+      return 0;
     case "share-companion-credit":
     case "use-dungeon-tonic":
     case "open-dungeon-passage":
@@ -470,6 +476,18 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  const gate = depth.pennywiseGate;
+  if (gate != null && (gate.arrival.tick === depth.tick || gate.choice?.tick === depth.tick || gate.completion?.tick === depth.tick)) {
+    const completion = gate.completion;
+    return { mode: "travel", location: "The Pennywise Gate", goal: "Continue the road beyond the self-service barrier",
+      headline: completion !== null ? "The price of passage" : gate.choice === null ? "The Pennywise Gate" : "Some lifting required",
+      action: completion !== null ? `${state.hero.name} ${gate.choice?.kind === "pay" ? "feeds two coins into the counterweight and passes" : "walks through the hand-lifted gate"}.`
+        : gate.choice === null ? `${state.hero.name} stops at a wooden barrier: two gold, or lift it yourself.`
+          : `${state.hero.name} raises the barrier by hand and remains at the same road point.`,
+      consequence: completion !== null ? `${completion.line} Gold ${completion.goldBefore}→${completion.goldAfter}; ${completion.distance} actual miles onward. No HP, MP or XP changed.`
+        : gate.choice === null ? "The counterweight saves a turn. The free way asks for a little work. Neither grants a reward."
+          : "Free passage. Some lifting required. The walk through comes next; no gold or resources spent.", sensoryIntensity: 0 };
+  }
   if (choice.command.type === "wait" && previousDepth.bellMemory === null && depth.bellMemory?.tick === depth.tick) {
     const memory = depth.bellMemory;
     const location = depth.atlas.locations.find((entry) => entry.id === memory.rest.locationId);
@@ -1579,6 +1597,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
+    !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||

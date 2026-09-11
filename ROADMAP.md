@@ -5,11 +5,13 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposed: T1 — The Pennywise Ferry.** At one actual river crossing,
-   pay two owned gold for a quick passage or haul the rope for free in two actions.
+1. **In progress: T2 — The Pennywise Gate (v0.5.171).** At one real interior road site,
+   pay two owned gold for quick passage or lift the barrier and pass in two actions.
    Use real route progress, a native travel scene and existing Status history.
-   Not implemented; one bounded natural approach still needs to be proved.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#t1-proposed-next-slice--the-pennywise-ferry).
+   The actual first solo road reaches the approach at T8; implementation is wired.
+   Final acceptance/release checks are underway. T1's ferry is deferred: the
+   known map has no road-river crossings. No geography was fabricated.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#t2-current-slice--the-pennywise-gate).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -47,7 +49,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **T1 — The Pennywise Ferry** | Trade two gold for speed or haul a rope ferry for free at a real river crossing | Proposed; source reachability and implementation pending |
+| **T2 — The Pennywise Gate** | Trade two gold for speed or lift a roadside barrier for free | In progress for v0.5.171; final verification pending |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

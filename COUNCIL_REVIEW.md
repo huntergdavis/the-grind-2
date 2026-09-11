@@ -2,6 +2,86 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## The Pennywise Gate — v0.5.171 implementation checkpoint
+
+Reuse: the council's 2026-09-11 05:51:05 PDT proposal recovered by
+`deja "Pennywise Ferry"` (Codex 2026-09-10T1), committed in
+[Adventure forms](docs/design/ADVENTURE_FORMS.md#t1-proposed-next-slice--the-pennywise-ferry).
+Rules/save contract, native presentation and bounded acceptance have separate
+owners; root integrates the command, scheduling and release. First establish
+one real river approach on the existing uninterrupted `shared-road-playful:7`
+journey, at most T320 and 20 seconds after imports. No staged water, health,
+route or outcome, no seed search. Implementation is held until that source
+boundary is demonstrated. One original solo encounter, real route progress,
+two-gold or two-action tradeoff, no extra Watch panel, model or test matrix.
+Protected ledger edits and untracked user work remain untouched.
+
+The ferry baseline is negative: the unchanged journey reaches T320 in 7.950
+seconds without an eligible approach. One subsequent static inspection of the
+same atlas (201 ms, one createWorld, zero advances) finds all 14 road edges have
+zero recorded river crossings. No further seed/journey search was performed.
+Root explicitly rescoped the time-versus-gold premise to T2's original
+self-service road gate; T1 remains deferred for actual crossing geography.
+
+The pinned first-road baseline succeeds at T7 in 532 ms. After an actual duel
+victory, a living solo Aster has HP42/42, MP24/24, gold12 and XP9. Edge 0→8 is
+a real forest road: near point313 at distance8, far point312 at distance15,
+both interior to its 70-mile leg. Clip the existing next travel12 to travel8,
+then admit the new gate. The ordinary approach retains its existing +1 XP;
+pay/lift/pass grant no XP. No water, road, location, resources or outcome is
+staged. The gate itself is explicitly new authored content, not an old landmark.
+
+The integrated source check passes in 713 ms: actual T7 → T8 approach,
+natural paid passage T9 (gold12→10, road8→15), then ordinary T10 travel.
+A separate explicitly authored legal lift command at that same earned gate
+keeps the whole hero and atlas stationary at T9; ordinary T10 passage advances
+seven real miles for zero gold. It uses an offered command through Actor Policy
+and the full Rules Engine, not altered personality, resources or geography.
+Exact reloads and prior story, quest, roster and combat records are unchanged.
+Six pure-rule, eight presentation and four core-flow checks pass. Existing
+field-medicine, room-challenge, D4 and reunion checks pass; two local hooks
+initially timed out under concurrent transforms and passed separately with
+their original limits. The existing ten 1,000-turn campaigns finish; their
+full-state fingerprints now include actual gate choices and consequences.
+Version, boundary, production build, final typecheck and emitted-source checks
+pass. No new long-run matrix or increased limit is introduced.
+
+### Preserve a real released companion-credit save
+
+The old R2 fresh fixture genuinely changes: the new gate's T80→T82 interruption
+leads to Eris at T91 instead of Dima at T87, and the hero's T95 Horizon Step
+wins before Eris deals damage. The unchanged 96-command check finishes in
+1.348 seconds with no credit. This is not relabeled as a positive journey and
+the rules correctly decline invented contribution. Recovery with
+`deja "companion credit fixture"` reuses the v169 actual Dima13-damage history;
+the exact released v170 source at `44236a9b874fcb6e920ee5cc9b31755046bfa05b`
+reproduces its original T93 pre-victory save in 1.162 seconds, using 47 source
+modules from that commit and no mixed current runtime. The original 96-command
+cap is honored. That 228,119-byte checkpoint is now an explicitly labeled
+released-save regression, with canonical hash `e80f3999c878f695` and provenance.
+Current code upgrades it unchanged, then performs the actual victory, credit
+exchange and later farewell. The continuation is bounded to four commands;
+the original staged-town helper remains untouched. All 18 existing credit
+rules/view checks and final typecheck pass. No fabricated damage, policy change,
+seed search, normalized history or expanded limit is used.
+
+Independent review finds no core route/resource/save/history blockers. It did
+catch redundant JSON-string comparisons in the gate view: legal reordered
+route keys could suppress the scene. Those comparisons are removed in favor
+of the existing structural campaign validator; a new regression covers all four
+reordered-key projections. All seven view tests pass (nine presentation tests
+including the two renderer checks). The first production-browser scenario
+passes in 2.2 minutes; its desktop approach and 320px lifting captures are clear.
+The final release build and source-closure check pass after the UI-only repair.
+The final production-browser scenario passes in 1.8 minutes with the original
+150-second scenario cap: natural approach/pay/ordinary travel, separate legal
+lift/pass/ordinary travel, exact reloads, Status sources and no repeated fee.
+No errors, external requests or model activity occur. All three final-build
+desktop/320px/Focus captures were inspected; the actor and barrier remain clear,
+the lift is stationary and the completed crossing actually changes road progress.
+The owned preview is closed. Deployment and public verification remain pending
+at this checkpoint.
+
 ## A draught in the wall — v0.5.170 final delivery
 
 **Live and publicly source-verified 2026-09-11 06:07:04 PDT.** Feature
