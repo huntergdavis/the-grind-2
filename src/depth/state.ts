@@ -134,6 +134,7 @@ import { isValidCampaignUsefulReply, stepCampaignUsefulReply, usefulReplyBook, u
 import { isValidCampaignRoomChallenge, roomChallengeCommandCandidates, stepCampaignRoomChallenge } from "./room-challenge";
 import { captureCompanionReunionArrival, isValidCampaignCompanionReunion, selectCompanionReturn, selectCompanionReunion, stepCampaignCompanionReunion } from "./companion-reunion";
 import { isValidCampaignDungeonFieldMedicine, selectDungeonFieldMedicine, stepDungeonFieldMedicine } from "./dungeon-field-medicine";
+import { captureCompanionCredit, captureCompanionCreditFarewell, companionCreditChoices, companionCreditCommandId, isValidCampaignCompanionCredit, selectCompanionCredit, stepCompanionCredit } from "./companion-credit";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -950,6 +951,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
+      !isValidCampaignCompanionCredit(state) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1436,6 +1438,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   return {
     schemaVersion: 35,
     companionReunion: null,
+    companionCredit: null,
     roomChallenge: null,
     usefulReply: null,
     bellExpedition: null,
@@ -1539,6 +1542,11 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "share-companion-credit": {
+      const companionCredit = stepCompanionCredit(input, command), exchange = companionCredit.exchange!;
+      return appendLog({ ...state, companionCredit }, "world",
+        `${input.hero.name}: “${exchange.heroLine}” ${companionCredit.companionName}: “${exchange.companionLine}” Fair credit: regard toward ${input.hero.name} ${exchange.regardDelta > 0 ? "+" : ""}${exchange.regardDelta}; bond and rewards unchanged.`);
+    }
     case "use-dungeon-tonic": {
       const next = stepDungeonFieldMedicine(input, command), use = next.dungeon.latestFieldMedicineUse!;
       return appendLog({ ...state, ...next }, "item",
@@ -1627,7 +1635,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         ? "the road was quiet"
         : `${departed.victories} shared ${departed.victories === 1 ? "victory" : "victories"}`;
       return appendLog(
-        { ...state, companions },
+        { ...state, companions, companionCredit: captureCompanionCreditFarewell(input, { ...state, companions }, departed) },
         "town",
         `${result}; ${road}, bond ${departed.bond}. The companions exchange farewells.`,
       );
@@ -2166,7 +2174,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       if (abilityMessages.length > 0) {
         next = appendLog(next, "ability", abilityMessages.join(" "));
       }
-      return next;
+      return { ...next, companionCredit: captureCompanionCredit(input, next, command) };
     }
     case "start-counter-duel": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
@@ -2506,7 +2514,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
-    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) || !isValidCampaignDungeonFieldMedicine(input) ||
+    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) || !isValidCampaignDungeonFieldMedicine(input) || !isValidCampaignCompanionCredit(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
@@ -2518,7 +2526,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
-    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) || !isValidCampaignCompanionReunion(output) || !isValidCampaignDungeonFieldMedicine(output) ||
+    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) || !isValidCampaignCompanionReunion(output) || !isValidCampaignDungeonFieldMedicine(output) || !isValidCampaignCompanionCredit(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
@@ -2827,6 +2835,13 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   if (activeCompanion !== undefined && state.dungeon !== null && !state.dungeon.completed) {
     throw new Error("A Shared Road Oath cannot detour into an active dungeon");
   }
+  const credit = selectCompanionCredit(state);
+  if (credit !== null) return companionCreditChoices(state).map((response) => {
+    const command = { type: "share-companion-credit", residentId: credit.residentId, joinedTick: credit.joinedTick,
+      combatId: credit.evidence.combat.id, choice: response.choice } as const;
+    return { id: companionCreditCommandId(state.tick + 1, command), deciderId: state.hero.id,
+      label: `${state.hero.name} tells ${credit.companionName}: “${response.heroLine}”`, command };
+  });
   if (activeCompanion?.phase === "arrived") {
     const callback = selectReparteeCallback(state);
     if (callback !== null) return [{

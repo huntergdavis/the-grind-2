@@ -1207,6 +1207,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** One earned conduct exchange; absent older saves contain no retrospective credit. */
+  companionCredit?: import("./companion-credit").CompanionCredit | null;
   schemaVersion: 35;
   companionReunion: import("./companion-reunion").CompanionReunion | null;
   roomChallenge: import("./room-challenge").RoomChallenge | null;
@@ -1242,6 +1244,7 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "share-companion-credit"; residentId: string; joinedTick: number; combatId: string; choice: import("./companion-credit").CompanionCreditChoice }
   | { type: "use-dungeon-tonic"; dungeonId: string; cellId: string; itemId: string }
   | { type: "reunite-companion"; residentId: string; joinedTick: number; arrivalTick: number }
   | { type: "start-room-challenge"; encounterId: string; locationId: string; buildingId: string; residentId: string }

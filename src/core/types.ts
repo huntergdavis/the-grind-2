@@ -421,6 +421,7 @@ export type RecordedDepthCommandType = DepthCommand["type"] | "progress-objectiv
 export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "use-dungeon-tonic",
   "reunite-companion",
+  "share-companion-credit",
   "recruit-companion",
   "farewell-companion",
   "restock-tonic",

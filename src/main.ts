@@ -188,6 +188,8 @@ import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
 import { createReparteeView, projectReparteeScene, type ReparteeSceneView } from "./ui/repartee-view";
 import { createCompanionReunionRecord } from "./ui/companion-reunion-view";
 import { selectCompanionReunion } from "./depth/companion-reunion";
+import { createCompanionCreditRecord } from "./ui/companion-credit-view";
+import { selectCompanionCredit } from "./depth/companion-credit";
 import { createBorrowedBellView, projectBorrowedBellScene, type BorrowedBellSceneView } from "./ui/borrowed-bell-view";
 import { createReparteeDwell, reparteeDwellPending, updateReparteeDwell } from "./ui/repartee-dwell";
 
@@ -1076,6 +1078,7 @@ function narrativePresentationAvailable(allowGameMenu = false): boolean {
     || state.depth.usefulReply !== null && state.depth.usefulReply.reply === null
     || state.depth.roomChallenge !== null && state.depth.roomChallenge.result === null
     || selectCompanionReunion(state.depth) !== null
+    || selectCompanionCredit(state.depth) !== null
     || state.depth.bellExpedition !== null && state.depth.bellExpedition.completion === null
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
     || document.querySelector(allowGameMenu ? "dialog[open]:not(#game-menu)" : "dialog[open]") !== null) return false;
@@ -3355,6 +3358,16 @@ function presentViewScreens(): void {
       : `${party.former.length} completed ${party.former.length === 1 ? "oath" : "oaths"} retained.`
     : `${activeCompanion.name} · ${activeCompanion.statusText}`;
   elements.journalCompanionActive.hidden = activeCompanion === null;
+  const previousCredit = elements.journalCompanionActive.querySelector<HTMLDetailsElement>("details[data-companion-credit]")
+    ?? elements.journalCompanionFormer.querySelector<HTMLDetailsElement>("details[data-companion-credit]");
+  const creditRecordFocused = previousCredit?.querySelector("summary") === document.activeElement;
+  const appendCreditRecord = (host: HTMLElement, residentId: string, joinedTick: number): void => {
+    const creditRecord = createCompanionCreditRecord(document, state, residentId, joinedTick);
+    if (creditRecord === null) return;
+    creditRecord.open = previousCredit?.dataset.campaign === state.campaignId
+      && previousCredit.dataset.companionCredit === creditRecord.dataset.companionCredit && previousCredit.open;
+    host.append(creditRecord);
+  };
   const previousCompanyRecord = elements.journalCompanionActive.firstElementChild as HTMLElement | null;
   const companyRecordOpen = previousCompanyRecord?.dataset.companionId === activeCompanion?.id
     && previousCompanyRecord?.querySelector("details")?.open === true;
@@ -3423,6 +3436,7 @@ function presentViewScreens(): void {
     bondNote.textContent = "Bond records shared travel and victories, not a private feeling.";
     details.append(summary, kit, facts, bondNote, ...(activeCompanion.roadcraftEffectiveness === null ? [] : [roadcraft]));
     record.append(identity, route, meters, victories, details);
+    appendCreditRecord(record, activeCompanion.id, activeCompanion.joinedTick);
     return record;
   })()]));
   if (companyRecordFocused) {
@@ -3448,6 +3462,7 @@ function presentViewScreens(): void {
       ? ""
       : describeRoadcraftEffectiveness(companion.roadcraftEffectiveness);
     item.append(name, route, facts, ...(companion.roadcraftEffectiveness === null ? [] : [roadcraft]));
+    appendCreditRecord(item, companion.id, companion.joinedTick);
     const reunionRecord = createCompanionReunionRecord(document, state, companion.id, companion.joinedTick);
     if (reunionRecord !== null) {
       reunionRecord.open = previousReunion?.dataset.campaign === state.campaignId
@@ -3457,8 +3472,28 @@ function presentViewScreens(): void {
     }
     return item;
   }));
+  const archivedCredit = state.depth.companionCredit;
+  if (archivedCredit?.exchange != null
+    && ![party.active, ...party.former].some((companion) => companion?.id === archivedCredit.residentId
+      && companion.joinedTick === archivedCredit.joinedTick)) {
+    const archived = document.createElement("li");
+    archived.className = "journal-companion-record";
+    archived.dataset.companionId = archivedCredit.residentId;
+    archived.dataset.archivedCredit = "true";
+    appendCreditRecord(archived, archivedCredit.residentId, archivedCredit.joinedTick);
+    if (archived.childElementCount > 0) {
+      const name = document.createElement("strong");
+      name.textContent = `${archivedCredit.companionName} · retained contribution · oath joined T${archivedCredit.joinedTick}`;
+      archived.prepend(name);
+      elements.journalCompanionFormer.append(archived);
+    }
+  }
   if (reunionRecordFocused) {
     elements.journalCompanionFormer.querySelector<HTMLElement>("details[data-companion-reunion] > summary")?.focus({ preventScroll: true });
+  }
+  if (creditRecordFocused) {
+    (elements.journalCompanionActive.querySelector<HTMLElement>("details[data-companion-credit] > summary")
+      ?? elements.journalCompanionFormer.querySelector<HTMLElement>("details[data-companion-credit] > summary"))?.focus({ preventScroll: true });
   }
   const mentorArc = state.legacyManifestations.mentorArc;
   const mentorLegend = mentorArc === null
@@ -4145,6 +4180,7 @@ async function catchUp(world: WorldState): Promise<WorldState> {
     || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.roomChallenge !== null && world.depth.roomChallenge.result === null
     || selectCompanionReunion(world.depth) !== null
+    || selectCompanionCredit(world.depth) !== null
     || world.depth.bellExpedition !== null && world.depth.bellExpedition.completion === null
     || projectBorrowedBellScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));

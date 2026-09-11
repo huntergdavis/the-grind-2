@@ -1242,6 +1242,8 @@ export class GameRenderer {
       "reparteeHeroPosition", "reparteeWitnessPosition", "reparteeResidentPosition", "reparteeLesson", "reparteeClassification",
       "reparteeChallenge", "reparteeScore", "reparteeResultMarks",
       "reunionId", "reunionCommand", "reunionCompanion", "reunionLocation", "reunionHeroPosition", "reunionCompanionPosition"]) delete this.host.dataset[key];
+    for (const key of ["creditPhase", "creditCommand", "creditCompanion", "creditLocation", "creditChoice", "creditRegard",
+      "creditEvidence", "creditHeroPosition", "creditCompanionPosition", "creditVisual"]) delete this.host.dataset[key];
     for (const key of ["bellPhase", "bellCommand", "bellInstance", "bellCell", "bellTurn", "bellRoll", "bellOutcome",
       "bellPath", "bellSafeRect", "bellVisual", "bellHeroPosition", "bellKnownEffects", "bellMemorySource",
       "bellMemoryLocation", "bellMemoryInn", "bellMemoryRestKind", "bellCarried"]) delete this.host.dataset[key];
@@ -4951,6 +4953,33 @@ export class GameRenderer {
     this.host.dataset.reparteeWitnessPose = scene.witness?.reaction?.pose ?? (scene.witness === null ? "none" : "watching");
     this.host.dataset.reparteeRegard = scene.witness?.reaction === null || scene.witness === null
       ? "unestablished" : String(scene.witness.reaction.regardAfter);
+    if ("creditId" in scene) {
+      for (const key of ["reparteeRound", "reparteeMomentum", "reparteeOutcome", "reparteeResident", "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
+      Object.assign(this.host.dataset, { creditPhase: scene.phase, creditCommand: scene.commandId,
+        creditCompanion: scene.companion.id, creditLocation: scene.locationId, creditChoice: scene.choice,
+        creditRegard: `${scene.regardDelta > 0 ? "+" : ""}${scene.regardDelta}`, creditEvidence: scene.evidenceId,
+        creditHeroPosition: "102,144", creditCompanionPosition: "222,144",
+        creditVisual: `actual-hero|actual-companion|${scene.venue}|${scene.phase === "credit-farewell" ? "remembered-credit-at-parting" : scene.choice === "acknowledge" ? "acknowledgement|warm-reply" : "boast|dry-reply"}|no-score|no-new-battle-reward` });
+      this.host.dataset.reparteeVisual = this.host.dataset.creditVisual!;
+      this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172b34), rect(0, 132, 320, 48, 0x384a40));
+      if (scene.venue === "threshold") {
+        this.worldLayer.addChild(rect(14, 42, 232, 90, 0x293944),
+          new Graphics().roundRect(246, 24, 52, 108, 20).fill(0x42515a)
+            .roundRect(254, 34, 36, 98, 16).fill(0x101b28));
+      } else {
+        // An open roadside aftermath: no invented inn, fresh opponent or new victory.
+        this.worldLayer.addChild(new Graphics().poly([0, 94, 55, 74, 110, 95, 182, 68, 244, 94, 320, 76, 320, 133, 0, 133]).fill(0x263f42));
+        this.worldLayer.addChild(new Graphics().moveTo(0, 164).bezierCurveTo(92, 137, 211, 162, 320, 145)
+          .stroke({ color: 0x8b8061, width: 13, alpha: 0.65 }));
+      }
+      const hero = this.drawHero(state, 102, 144, palette, 1.7, scene.heroId, false);
+      const companion = this.drawCompanion(state, scene.companion.id, scene.companion.role, 222, 144, palette, 1.7);
+      companion.scale.x = -1.7;
+      // Small whole-body speaking poses remain meaningful when motion is disabled.
+      hero.rotation = scene.phase === "credit-farewell" ? 0 : scene.choice === "acknowledge" ? 0.035 : -0.045;
+      companion.rotation = scene.choice === "acknowledge" ? 0.035 : -0.035;
+      return;
+    }
     if (scene.phase === "reunion") {
       for (const key of ["reparteeRound", "reparteeMomentum", "reparteeOutcome", "reparteeResident", "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
       this.host.dataset.reunionId = scene.reunionId;

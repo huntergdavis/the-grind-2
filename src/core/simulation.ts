@@ -2,6 +2,7 @@ import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCall } from "..
 import { isValidCampaignRoomChallenge } from "../depth/room-challenge";
 import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
 import { isValidCampaignDungeonFieldMedicine } from "../depth/dungeon-field-medicine";
+import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
@@ -349,6 +350,7 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "share-companion-credit":
     case "reunite-companion":
     case "start-room-challenge":
     case "answer-room-challenge":
@@ -405,6 +407,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "share-companion-credit":
     case "use-dungeon-tonic":
     case "reunite-companion":
     case "start-room-challenge":
@@ -498,6 +501,15 @@ function describeBeat(
       consequence: "The exchange is remembered, not rewarded again. Regard, bond and resources unchanged.",
       sensoryIntensity: 0,
     };
+  }
+  if (choice.command.type === "share-companion-credit" && depth.companionCredit?.exchange != null) {
+    const credit = depth.companionCredit, exchange = credit.exchange!;
+    const location = depth.atlas.locations.find((entry) => entry.id === credit.locationId);
+    return { mode: "chronicle", location: location?.name ?? opportunity.location,
+      goal: "Whose story is this victory?", headline: "Share the credit",
+      action: `${state.hero.name}: “${exchange.heroLine}” ${credit.companionName}: “${exchange.companionLine}”`,
+      consequence: `Authored preference: fair credit. ${credit.companionName} → ${state.hero.name}: regard ${exchange.regardDelta > 0 ? "+" : ""}${exchange.regardDelta}. Bond, battle rewards and resources unchanged.`,
+      sensoryIntensity: 0 };
   }
   if (choice.command.type === "use-dungeon-tonic" && depth.dungeon?.latestFieldMedicineUse?.tick === depth.tick) {
     const use = depth.dungeon.latestFieldMedicineUse;
@@ -1556,7 +1568,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

@@ -2,6 +2,93 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Share the credit — v0.5.169 implementation checkpoint
+
+Reuse: [R2's committed scope](docs/design/LIFETIME_STORIES.md#r2-proposed-next-slice--share-the-credit)
+and the council's 2026-09-11 03:48:45 recommendation recovered by
+`deja "Share the credit"` (Codex 2026-09-10T1). Rules, native presentation
+and bounded acceptance have separate owners; root handles integration/release.
+LLM behavior and protected ledger edits remain out of scope.
+
+The single unchanged-core fresh-start probe of `shared-road-playful:7` reached
+T160 in 3.841 seconds, below its 20-second source limit, with no eligible credit.
+Its only shared victory, T29, is Aster's opening attack: River Wyrmling HP14→0.
+Fara never dealt damage. That case must remain ineligible; roster membership is
+not help. No seed scan, staged victory or weakened contribution rule is justified.
+The next bounded check reuses the existing `shared-road-world-arc` test boundary:
+explicit generated second-town/visited-town start, then actual autonomous
+recruitment, travel and combat, at most 96 commands. It is not a fresh-start
+journey. That existing-boundary check succeeds in 1.031 seconds: Dima Vale joins
+at T87, deals 13 actual damage at T93 (River Wyrmling 2 HP14→1), and the hero
+finishes the shared victory at T94. Dima is healthy at HP24/24; hero HP31/42,
+MP23/26, XP107, gold12. The active route remains 8→0→9→11→7→5→4 toward Ambervale;
+ordinary travel is next. Only the initial second-town/visited-town state was
+staged; no health, roster, combat, enemy count, roll or outcome was changed.
+Implementation proceeds from that real damage source. The frozen-runtime source
+probe passes in 2.619 seconds: victory capture T94, acknowledgement T95 and an
+actual earned farewell T149. Exact reload retains the original damage and words;
+exchange does not alter rewards, resources, the oath or route. Normal next travel
+is distance 11 after the new story tick, not the old baseline's distance 7.
+Browser acceptance and public release verification remain pending.
+
+One optional credit record retains the contributing combat and original oath,
+one exchange and one actual farewell callback. Historical proof must survive
+bounded battle/former-roster pruning without matching future hero stats. Existing
+farewell prose/packet and narrator contracts stay unchanged; the separately
+committed callback uses the shared scene/clock and Company history. No new panel,
+general relationship framework or long-run test matrix.
+
+Local rules checks pass 18 tests across three files; presentation checks pass
+35 tests across four files. Both owners ran a final TypeScript check after their
+last test edits. The initial archive-pruning test removed unrelated histories;
+its corrected boundary evicts only the credited battle/companion and passes.
+No runtime change was required. Production version/boundary checks and exact
+working-source bundle verification pass. The browser replay source manifests
+now include the new module and its actual combat dependencies; the sorted-list
+repair follows the earlier pattern recovered with `deja "source manifests"`,
+without weakening the boundary checker.
+
+The existing ten 1,000-tick golden campaigns were recomputed, without new seeds
+or raised limits. They include ordinary fresh-start credit/farewell arcs for
+Eris Marsh (victory T670, boast T671, farewell T693), Joss Vale (T43/T44/T60)
+and Dima Fen (T215/T216/T232). These are separate from the explicitly staged
+second-town browser boundary. A victory-capture tick is not the earlier damage
+action's tick.
+
+The independent acceptance review found a concrete source discrepancy: changing
+an archived enemy name could produce invented acknowledgement while the actual
+retained battle was unchanged. The corrected validator compares full bounded
+combat content whenever that battle remains retained, independently of object
+key order, while still accepting legitimate history after eviction. Eight
+focused credit tests and final TypeScript checks pass after this fix, including
+renamed evidence/rewritten-dialogue rejection and reordered-key acceptance.
+
+The first browser run passed the exchange, Company record, reload, continuation
+and all three inspected desktop/mobile/Focus captures, then failed at the later
+farewell. It had paused the existing farewell cutaway and incorrectly expected
+the queued callback to appear while that presentation remained frozen. The test
+now uses the existing view-only “Show farewell” control, asserting the saved
+world remains identical, before checking the new callback. Reuse: pause freezes
+the exact cursor, recovered by `deja "farewell cutscene pause"` (Codex
+2026-08-30T1), and the existing `tests/site.spec.ts` farewell acceptance control.
+This does not bypass or alter runtime pacing. The corrected full browser run
+passes (1.6-minute runner): actual victory, credit, Company sources, exact
+reloads, normal travel, later fulfilled farewell/callback and continuation.
+All three corrected-build native captures were inspected; both actors stay
+clear and the dialogue fits below the stage at desktop and 320px, including
+Focus. No page/console errors, model activity or external requests occurred.
+Production build, final TypeScript, version/boundaries and exact local runtime
+source-map checks pass. Public deployment and clean CI remain pending.
+
+Local canonical checks passed the content assertions but timed out at 64.995
+seconds for save/replay and 129.076 seconds for ten campaigns (limits 20/80s).
+Forward-motion also timed out at 7.093 seconds for its existing reunion fixture
+and 52.180 seconds for its existing soak (limits 5/40s); eight of twelve tests
+passed overall. Earlier v0.5.166 local timing was already 41.403/127.750 seconds
+versus 18.464 seconds for all canonical tests in clean CI. These local failures
+are not relabeled passes or isolated evidence of a new runtime regression.
+No timeout, seed count or CI matrix is changed; clean CI supplies the verdict.
+
 ## Dungeon field medicine — v0.5.168 final delivery
 
 **Live and publicly source-verified 2026-09-11 04:03:48 PDT.** Feature

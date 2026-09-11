@@ -14,8 +14,9 @@ F3b's later scored public challenge shipped in v0.5.166, using the learned frame
 without forcing every character to choose the winning answer. R1, a genuine
 former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
 field medicine is live in v0.5.168 with natural-use, browser, CI and public-source
-verification passed. R2 — Share the credit is the next scoped proposal, not yet
-implemented. Further playable features follow one at a time.
+verification passed. R2 — Share the credit is implemented for v0.5.169;
+browser acceptance passed and live release verification is in progress. Further
+playable features follow one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

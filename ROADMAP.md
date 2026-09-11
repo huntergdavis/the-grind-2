@@ -5,7 +5,7 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposed: R2 — Share the credit.** After a real shared victory,
+1. **In progress: R2 — Share the credit (v0.5.169).** After a real shared victory,
    acknowledge a companion's actual contribution or take undue credit. Their
    warm or dry response leaves one directional regard record and can change
    their eventual farewell. No books, Bell, flyting or reunion prerequisites.
@@ -44,7 +44,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **R2 — Share the credit** | A companion reacts to acknowledgement or credit-grabbing after their actual contribution | Next scoped proposal; not implemented or journey-verified |
+| **R2 — Share the credit** | A companion reacts to acknowledgement or credit-grabbing after their actual contribution | In progress for v0.5.169; real contribution required, release pending |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

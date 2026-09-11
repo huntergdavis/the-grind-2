@@ -17,6 +17,7 @@ import { reparteeBook, reparteeResponses, type ReparteeResponse } from "../depth
 import { isValidCampaignRepartee } from "../depth/repartee-campaign";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCommandId, usefulReplyResponses } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeCommandId, roomChallengeResponses } from "../depth/room-challenge";
+import { companionCreditChoices, companionCreditCommandId, selectCompanionCredit } from "../depth/companion-credit";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -179,6 +180,14 @@ function knownRoomChallengeReply(state: WorldState, candidate: DepthCommandCandi
   return roomChallengeResponses(state.depth).find((response) => response.id === command.responseId);
 }
 
+function knownCompanionCreditReply(state: WorldState, candidate: DepthCommandCandidate) {
+  const command = candidate.command, credit = selectCompanionCredit(state.depth);
+  if (command.type !== "share-companion-credit" || credit === null || command.residentId !== credit.residentId
+    || command.joinedTick !== credit.joinedTick || command.combatId !== credit.evidence.combat.id
+    || candidate.deciderId !== state.hero.id || candidate.id !== companionCreditCommandId(state.tick + 1, command)) return undefined;
+  return companionCreditChoices(state.depth).find((response) => response.choice === command.choice);
+}
+
 function scoreCandidate(
   state: WorldState,
   candidate: DepthCommandCandidate,
@@ -248,6 +257,15 @@ function scoreCandidate(
     if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
     if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
     reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
+  } else if (command.type === "share-companion-credit") {
+    const response = knownCompanionCreditReply(state, candidate);
+    if (response === undefined) throw new Error("Actor Policy cannot invent a credit response or contributor");
+    const considerate = state.hero.values.includes("loyalty") || state.hero.values.includes("mercy");
+    const boastful = !considerate && state.hero.values.includes("courage");
+    score = response.choice === (boastful ? "claim-credit" : "acknowledge") ? 80 : 20;
+    reason = response.choice === "acknowledge"
+      ? "the companion actually landed a damaging hit; loyalty, mercy or honest curiosity makes room for that work in the story"
+      : "courage without a loyalty or mercy preference favors a boast; the hero knowingly risks the fair-credit companion's disapproval, without changing the battle reward";
   } else if (command.type === "use-dungeon-tonic") {
     score = 80;
     reason = "the living explorer is at half health or below; spending one owned Ember Tonic steadies them before another dungeon action, without moving or discovering anything";
@@ -554,6 +572,7 @@ function presentationLabels(
   switch (command.type) {
     case "use-dungeon-tonic": return { actionLabel: "drinks one owned Ember Tonic", targetLabel: "the wounded explorer" };
     case "reunite-companion": return { actionLabel: "says hello after returning", targetLabel: state.depth.companionReunion?.companionName ?? "the recorded former companion" };
+    case "share-companion-credit": return { actionLabel: knownCompanionCreditReply(state, candidate)?.heroLine ?? "the unavailable credit response", targetLabel: state.depth.companionCredit?.companionName ?? "the recorded companion" };
     case "start-bell": return { actionLabel: "accepts the Borrowed Bell delivery", targetLabel: "the storehouse board" };
     case "roll-bell": return { actionLabel: "rolls before choosing a pace", targetLabel: `delivery turn ${command.turn}` };
     case "move-bell": return {
@@ -679,7 +698,8 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
     .filter((candidate) => state.depth.usefulReply !== null && state.depth.usefulReply.reply === null
       ? knownUsefulReply(state, candidate) !== undefined : candidate.command.type !== "practice-useful-reply")
     .filter((candidate) => state.depth.roomChallenge !== null && state.depth.roomChallenge.result === null
-      ? knownRoomChallengeReply(state, candidate) !== undefined : candidate.command.type !== "answer-room-challenge");
+      ? knownRoomChallengeReply(state, candidate) !== undefined : candidate.command.type !== "answer-room-challenge")
+    .filter((candidate) => candidate.command.type !== "share-companion-credit" || knownCompanionCreditReply(state, candidate) !== undefined);
   const context = contextFor(state, candidates);
   const profile = actorInstinctProfiles[context];
   const ranked = candidates

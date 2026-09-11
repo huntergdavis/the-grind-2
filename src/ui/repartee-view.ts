@@ -8,6 +8,7 @@ import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyResponses } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeResponses } from "../depth/room-challenge";
 import { projectCompanionReunionScene, type CompanionReunionSceneView } from "./companion-reunion-view";
+import { projectCompanionCreditScene, type CompanionCreditSceneView } from "./companion-credit-view";
 
 export interface ReparteeContestSceneView {
   readonly phase: "reading" | "challenge" | "round" | "result";
@@ -72,7 +73,7 @@ export interface ReparteeRoomSceneView extends Omit<ReparteeContestSceneView, "p
   readonly encore: false;
 }
 
-export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView | CompanionReunionSceneView;
+export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView | CompanionReunionSceneView | CompanionCreditSceneView;
 
 export interface ReparteeWitnessView {
   readonly id: string;
@@ -234,6 +235,7 @@ export function projectRoomChallengeScene(state: WorldState): ReparteeRoomSceneV
 
 /** The current command must own the receipt; revisiting town cannot replay a duel. */
 export function projectReparteeScene(state: WorldState): ReparteeSceneView | null {
+  if (["share-companion-credit", "farewell-companion"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectCompanionCreditScene(state);
   if (state.chronicle.at(-1)?.commandType === "reunite-companion") return projectCompanionReunionScene(state);
   if (["start-room-challenge", "answer-room-challenge"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectRoomChallengeScene(state);
   if (["read-useful-book", "practice-useful-reply"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectUsefulReplyScene(state);
@@ -352,7 +354,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     }
     if (scene === null) {
       caption.replaceChildren();
-      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score", "reunion", "companion", "location"]) delete caption.dataset[key];
+      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score", "reunion", "companion", "location", "credit", "choice", "creditRegard"]) delete caption.dataset[key];
       return;
     }
     caption.dataset.phase = scene.phase;
@@ -379,8 +381,30 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     delete caption.dataset.reunion;
     delete caption.dataset.companion;
     delete caption.dataset.location;
+    delete caption.dataset.credit;
+    delete caption.dataset.choice;
+    delete caption.dataset.creditRegard;
     const title = doc.createElement("h2");
     title.textContent = scene.title;
+    if ("creditId" in scene) {
+      for (const key of ["round", "momentum", "outcome", "resident", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
+      caption.dataset.credit = scene.creditId;
+      caption.dataset.companion = scene.companion.id;
+      caption.dataset.location = scene.locationId;
+      caption.dataset.choice = scene.choice;
+      caption.dataset.creditRegard = `${scene.regardDelta > 0 ? "+" : ""}${scene.regardDelta}`;
+      const children: HTMLElement[] = [title];
+      if (scene.phase === "credit") {
+        const heroLine = dialogue(scene.heroName, scene.call, "repartee-call credit-line");
+        heroLine.dataset.speaker = scene.heroId;
+        children.push(heroLine);
+      }
+      const companionLine = dialogue(scene.companion.name, scene.reply!, "repartee-reply credit-line");
+      companionLine.dataset.speaker = scene.companion.id;
+      children.push(companionLine, paragraph(scene.consequence, "repartee-note"));
+      caption.replaceChildren(...children);
+      return;
+    }
     if (scene.phase === "reunion") {
       for (const key of ["round", "momentum", "outcome", "resident", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
       caption.dataset.reunion = scene.reunionId;

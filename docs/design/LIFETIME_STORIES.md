@@ -63,7 +63,7 @@ and a general relationship system are not implemented by this slice.
 
 ## R2 proposed next slice — Share the credit
 
-Council recommendation, 2026-09-11; not implemented. Turn the existing
+Council recommendation, 2026-09-11; implementation in progress for v0.5.169. Turn the existing
 shared-success/credited-assist idea into one autonomous post-battle exchange.
 An actual, still-present and healthy companion must have dealt positive damage
 to an opponent in a retained shared victory. Roster membership or a victory
@@ -91,8 +91,13 @@ rejection, once-only resolution, exact save/reload and normal continuation.
 Use one compact desktop/mobile/Focus browser sequence. The current hooks are
 `state.ts` combat completion/retained events and `syncActiveCompanionCombat`;
 source inspection establishes plausible admission, not an already measured
-natural journey. Prove that opportunity before implementation, without adding
-a prerequisite chain or extending a search until it succeeds.
+natural journey. The unchanged fresh-start `shared-road-playful:7` case has no
+qualifying help through T160: its only shared victory is a hero one-hit kill.
+It remains ineligible. The existing `shared-road-world-arc` second-town test
+boundary does supply an actual contribution at T93 and healthy shared victory
+at T94 (13 damage by Dima Vale). Only the generated second-town/visited-town start
+is staged, not the recruitment, fight or outcome. Keep that distinction explicit
+in acceptance; do not turn a roster member into an invented contributor.
 
 ## R1 proposed next slice — A familiar face
 
