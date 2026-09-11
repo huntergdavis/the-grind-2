@@ -28,7 +28,8 @@ describe("mana-siphon gameplay and saved expeditions", () => {
   it("generates new rules only at canonical entry, then spends the hidden siphon with exact MP loss and no HP or XP loss", () => {
     const before = enteredFixture();
     expect(before.dungeon!.trapRulesVersion).toBe(2);
-    expect(before.dungeon).toEqual(generateDungeon(seed, "dungeon:location:3", 7, 7, true, 2, 2));
+    // Canonical entry opts into D4; the untouched base maze and siphon stay exact.
+    expect(before.dungeon).toEqual(generateDungeon(seed, "dungeon:location:3", 7, 7, true, 2, 2, 1));
     expect(dungeonTrapAt(before.dungeon!, targetId)).toMatchObject({ kind: "mana-siphon", phase: "hidden",
       detectDifficulty: 11, disarmDifficulty: 12 });
     expect(projectDungeonTraps(before.dungeon!).some((trap) => trap.cellId === targetId)).toBe(false);
