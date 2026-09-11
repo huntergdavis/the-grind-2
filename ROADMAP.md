@@ -5,14 +5,19 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. Finish delivery of **F1 — Books & Flyting (v0.5.159)**: one book, learned language and a real solo duel. Implementation is under release verification; public deployment is not yet claimed.
+1. **Next: F2 — The witness remembers.** Build one present-companion reaction to a real event, with cause-bound directional regard and a later earned callback. F1's solo duel is delivered; witness participation and memory are new work, not existing behavior.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-The mana-siphon dungeon trap is delivered in **v0.5.158**, verified on the public
-site on 2026-09-10 at 17:03 PDT. All 3,424 release tests pass; desktop/mobile
-acceptance and exact deployed-source checks pass. Shipped features, explicitly held work and
+**F1 — Books & Flyting is live in v0.5.159**, publicly verified on 2026-09-10
+at 18:37 PDT: one original book teaches twelve expressions and two counter
+frames, then the hero plays one autonomous three-round verbal duel. Native
+dialogue and the Adventure journal show the actual exchange and result.
+Desktop/mobile acceptance and exact deployed-source checks pass;
+[release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34551019389)
+passed 3,465 tests, with two long journey audits explicitly opt-in. This follows
+the delivered v0.5.158 mana-siphon dungeon trap. Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
 Dependencies are not evidence of implementation. No model is required to play.
@@ -25,16 +30,15 @@ occasionally life-changing situations. Winning, being liked, earning respect
 and behaving well are different outcomes. Keep the screensaver delightful to
 watch without making the viewer operate the game or read a wall of panels.
 
-### Proposed first sequence after mana siphon
+### Next story-producing slices
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F1 — Books & Flyting** | Read one original book, learn useful expressions, then watch a real autonomous verbal duel with win/loss/draw | Implemented in v0.5.159; release verification in progress |
-| **F2 — The witness remembers** | A present companion reacts, gains or loses regard for a reason, and can recall that moment later | Design; follows a real event producer |
+| **F2 — The witness remembers** | A present companion reacts, gains or loses regard for a reason, and can recall that moment later | Next; design builds on the delivered event producer |
 | **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Research/design; not a reskin of movement |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
 
-This is a proposed delivery sequence, not four new blockers before F1. Each
+This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
 and other adventure forms can grow through later individual releases.
 
@@ -49,7 +53,8 @@ The requested sibling project is present locally as
 `/home/hunter/workspace/the-curse-of-the-herder`. Inspection confirms books
 unlock vocabulary packs and affect speaking register. Its current flyting is
 staged banter, not a scored independent battle. Reuse those demonstrated
-building blocks and lessons; do not claim the duel already exists here.
+building blocks and lessons. Grind's scored F1 duel is a new original implementation,
+not a scored engine inherited from that sibling.
 
 ### Keep mechanics and presentation separate
 

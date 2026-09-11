@@ -1,13 +1,13 @@
 # Flyting: learned words, useful counters, remembered conduct
 
-Status: F1 implemented locally for v0.5.159, 2026-09-10; release verification in progress. Broader sections below remain design proposals unless included in the shipped-scope note.
+Status: F1 shipped in v0.5.159, publicly verified 2026-09-10 at 18:37 PDT. Broader sections below remain design proposals unless included in the shipped-scope note.
 This elaborates **V04.11 Original repartee duels** in [BACKLOG.md](../../BACKLOG.md)
 and the encounter contract in V04.19. It is one engine: `repartee`, with flyting
 as its first ruleset. It does not introduce a competing battle framework.
-The v0.5.158 mana-siphon release is publicly verified; F1 now follows it in [ROADMAP.md](../../ROADMAP.md).
+F1 follows the shipped v0.5.158 mana-siphon release; F2 witness reactions are next in [ROADMAP.md](../../ROADMAP.md).
 This proposal requires no LLM, model experiment or protected-ledger edit.
 
-## F1 implementation scope — v0.5.159
+## F1 shipped scope — v0.5.159
 
 One original public reading copy, **A Small Dictionary for Large Nuisances**, unlocks twelve expressions and two semantic counter frames. After level two, the first eligible visited town with a real hall/inn and its resident offers a reading, then one autonomous three-round contest. Recovery, ongoing companion oaths and active encounters retain priority. No resident, book history or past learning is invented during migration.
 

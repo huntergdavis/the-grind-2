@@ -3,8 +3,9 @@
 ## Start here
 
 The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
-active planning source: Books & Flyting is in release verification, followed by further playable
-features one at a time. Shipped work, held experiments and paused LLM work do
+active planning source: Books & Flyting shipped in v0.5.159; next is F2, a real
+witness reaction and directional regard, followed by further playable features
+one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
 The historical specifications and release receipts below are preserved in full
@@ -14,6 +15,23 @@ from the roadmap and is not proof of shipped gameplay.
 
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
+
+## Latest delivery — Books & Flyting (v0.5.159)
+
+Live verification passed on 2026-09-10 at 18:37 PDT. One original book unlocks
+twelve expressions and two semantic counter frames for one autonomous
+three-round duel, with exact saved transcript, native Watch dialogue and a
+collapsed Journal → Adventure section. This is client-side deterministic
+gameplay; the narrator baseline is unchanged. Witness regard and callbacks
+remain the next slice, not a shipped part of F1.
+
+Feature commit `8eceb1a9354eff11ebf35f168a59840535a5a99d`; test-fixture follow-up
+`717b38dbef12cf635ff18994733c85605328afb1`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34551019389):
+236 test files passed, 3,465 tests passed and two explicitly opt-in long journey
+audits skipped. Desktop/mobile browser acceptance and public asset/source
+identity checks passed. See [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md) for evidence,
+the initial failed fixture run and the bounded test-cost changes.
 
 ## Historical development backlog
 

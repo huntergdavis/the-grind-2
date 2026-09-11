@@ -2,6 +2,37 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Books & Flyting F1 — v0.5.159 final delivery
+
+**Delivered and publicly verified on 2026-09-10 at 18:37:46 PDT.** Feature commit
+`8eceb1a9354eff11ebf35f168a59840535a5a99d` and the test-only fixture follow-up
+`717b38dbef12cf635ff18994733c85605328afb1` are pushed to `origin/main`.
+[Pages run 34551019389](https://github.com/huntergdavis/the-grind-2/actions/runs/34551019389)
+succeeded: all 236 release test files passed, with 3,465 tests passed and the
+two explicitly opt-in long journey audits skipped. The main suite took
+216.25 seconds; the complete deploy job took 4 minutes 30 seconds. Version and
+boundary checks, production build and Pages deployment all passed. The skipped
+audits are retained commands, not claimed as executed for this delivery.
+
+The public [game](https://hunterdavis.com/the-grind-2/) returned v0.5.159 and
+matched the frozen accepted build byte-for-byte for its entry
+`assets/index-B_smej6F.js`, stylesheet `assets/index-CcsIpFXf.css` and simulation
+worker `simulation.worker-PZ9zhLbP.js`. Public source maps matched ten committed
+runtime sources: repartee rules/campaign/state, actor policy, simulation,
+repartee view/dwell, spectator inbox, renderer and main. Both narrator worker
+identities remain unchanged. No claim depends on a local preview being deployed.
+
+The representative browser journey and four visually inspected desktop/mobile
+captures are recorded below. Test-fixture changes after that accepted build
+changed no runtime source. The owned acceptance preview was closed; the user's
+existing preview and protected local ledger work were left untouched.
+
+F1 is one book and one solo verbal contest, not the broader flyting/relationship
+system. The active roadmap now starts with F2 witness reactions and directional
+regard. LLM improvements remain paused. The implementation checkpoint and
+first failed CI receipt below are retained as history, superseded by this
+successful delivery receipt.
+
 ## Books & Flyting F1 — v0.5.159 implementation review
 
 The first clean-checkout Pages run,
