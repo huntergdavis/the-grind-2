@@ -30,6 +30,7 @@ import { projectDungeonSearchView } from "./ui/dungeon-search-view";
 import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-view";
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
+import { projectSmithyJobScene } from "./ui/smithy-job-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -4177,12 +4178,14 @@ function checkpointKey(campaignId: string): string {
 }
 
 async function catchUp(world: WorldState): Promise<WorldState> {
-  // Foreground conversations and board turns resume from saved facts, never hidden-time debt.
+  // Foreground conversations, jobs and board turns resume from saved facts, never hidden-time debt.
   if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null
     || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.roomChallenge !== null && world.depth.roomChallenge.result === null
     || selectCompanionReunion(world.depth) !== null
     || selectCompanionCredit(world.depth) !== null
+    || world.depth.smithyJob != null && world.depth.smithyJob.completion === null
+    || projectSmithyJobScene(world) !== null
     || world.depth.bellExpedition !== null && world.depth.bellExpedition.completion === null
     || projectBorrowedBellScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));
@@ -4474,6 +4477,7 @@ function present(): void {
   const dungeonMedicine = projectDungeonFieldMedicineScene(state);
   const dungeonPassage = projectDungeonSecretPassageScene(state);
   const pennywiseGate = projectPennywiseGateScene(state);
+  const smithyJob = projectSmithyJobScene(state);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -4783,7 +4787,14 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (pennywiseGate !== null) {
+  if (smithyJob !== null) {
+    elements.traversalDirective.textContent = `${smithyJob.headline} · ${smithyJob.detail}`;
+    elements.traversalDirective.title = `${smithyJob.smithName}, ${smithyJob.locationName} · ${smithyJob.residentName}. ${state.scene.consequence}`;
+    elements.traversalDirective.dataset.reason = `smithy-job-${smithyJob.phase}`;
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = "";
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (pennywiseGate !== null) {
     elements.traversalDirective.textContent = `${pennywiseGate.headline} · ${pennywiseGate.detail}`;
     elements.traversalDirective.title = `${pennywiseGate.fromName} → ${pennywiseGate.toName}. Gold ${pennywiseGate.goldBefore}→${pennywiseGate.goldAfter}; route ${pennywiseGate.distanceBefore}→${pennywiseGate.distanceAfter} miles. ${state.scene.consequence}`;
     elements.traversalDirective.dataset.reason = `pennywise-gate-${pennywiseGate.phase}`;

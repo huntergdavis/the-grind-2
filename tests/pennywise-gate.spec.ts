@@ -148,7 +148,8 @@ test("a real road gate offers paid passage or a legal stationary lift, with exac
     expect(ready.depth.atlas.terrain).toEqual(before.depth.atlas.terrain);
     expect(pennywiseGateChoices(ready.depth).map(choice => choice.choice)).toEqual(["pay", "lift"]);
     expect(paid.depth.pennywiseGate!.choice!.kind).toBe("pay");
-    expect(paid.depth.pennywiseGate!.completion).toMatchObject({ distance: 7, goldBefore: 12, goldSpent: 2, goldAfter: 10 });
+    expect(paid.depth.pennywiseGate!.completion).toMatchObject({ distance: 7, goldBefore: ready.depth.hero.gold,
+      goldSpent: 2, goldAfter: ready.depth.hero.gold - 2 });
     expectUnchangedExceptGold(ready, paid, 2);
     expect(lifted.depth.pennywiseGate!.choice!.kind).toBe("lift");
     expect(lifted.depth.pennywiseGate!.completion).toBeNull();

@@ -28,20 +28,20 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v171 keeps Depth 35 and adds the earned Pennywise Gate road interruption.
+      // v172 keeps Depth 35 and adds the earned, once-only smithy job.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "6186817d6dce3046",
-      "9e560c9f8bcf8506",
+      "670b0592ed292750",
+      "83d3743213e8303f",
       "35ef2ac487a0236b",
-      "8afdd9e1cd22adef",
-      "abcbe07c976afd24",
-      "1c65777c0b6f1088",
-      "5908c8bc93ed80ec",
-      "abaf08dca4b74947",
-      "d1ac3252ccf4f1b2",
+      "69a9f4095c1837cf",
+      "724b617feb098ca6",
+      "c374b6056067ed17",
+      "6406e2d7945e2ada",
+      "3cecd0337ff656bc",
+      "d0f7fad76ce1f3cf",
       "0b779b3bc8488499",
     ]);
   }, 80_000);

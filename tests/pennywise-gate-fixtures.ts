@@ -5,11 +5,12 @@ export const pennywiseGateCampaignId = "campaign:browser-repartee-memory";
 
 let earned: { beforeApproach: WorldState; ready: WorldState } | undefined;
 
-/** T2 is an original road barrier, not the deferred ferry. The unchanged T7
+/** T2 is an original road barrier, not the deferred ferry. The original v171 T7
  * baseline proved actual interior forest-road points at miles8 and15 of70,
  * within the next ordinary12-mile move. This helper requires the new real
  * approach command and gate choice: no road, location, HP, supplies, encounter
- * outcome or route is staged. The pinned first-road T15 ceiling is unchanged.
+ * outcome or route is staged. Earlier jobs may change ticks/resources; the
+ * pinned first-road T15 ceiling and actual road geometry remain unchanged.
  */
 function pennywiseGateJourney(): { beforeApproach: WorldState; ready: WorldState } {
   if (earned !== undefined) return earned;

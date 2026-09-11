@@ -20,7 +20,9 @@ v0.5.170 with actual clue/open/traverse, exact reload, browser, CI and public-so
 verification passed. T2 — The Pennywise Gate is live in v0.5.171, with actual
 road progress, two-gold versus two-action choices, exact reloads, native browser
 acceptance, CI and public-source verification passed. W1's small smithy job is
-proposed next; ordinary admission is not yet demonstrated. T1's ferry
+implemented for v0.5.172: actual admission, exact MP/wages, all four legal stroke
+sequences and source-preserving saves pass. Browser/deployment verification
+is in progress. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -35,7 +37,25 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — The Pennywise Gate (v0.5.171)
+## Current release checkpoint — Surely I Can Make One Nail (v0.5.172)
+
+A real visited smithy and its actual resident host a two-stroke job. Gentle
+taps cost no MP; focused drives spend one owned MP. Three shaping points make
+a straight nail and pay two gold once. Two points leave it unfinished; four
+bend it: “Excellent. A corner nail.” Both failures honestly pay nothing.
+The actual hero and host share a native workshop with one-shot hammer motion,
+one caption, portrait resources and existing Status history. No extra panel,
+inventory filler, XP, relationship reward, general crafting engine or model.
+
+The unchanged v171 journey proves admission at T1 in 318 ms. Current ordinary
+play then admits at T2, drives at T3, taps/pays at T4 and returns to travel at T5.
+Rules, source/receipt validation, all four legal sequences, 0-MP fallback,
+once-only payment and save/catch-up boundaries are covered. Older gate and
+memory tests now read their actual source facts. D4 retains an exact released
+v171 pre-clue save rather than pretending its old fresh-journey timing survived
+the new job. Details and verification results are in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+
+## Prior delivery — The Pennywise Gate (v0.5.171)
 
 Publicly source-verified 2026-09-11 07:22:21 PDT. One real interior road site
 offers quick passage for two owned gold or a stationary lift followed by free

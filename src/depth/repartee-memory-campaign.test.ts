@@ -12,19 +12,36 @@ function reload(state: DepthState): DepthState {
   return upgradeDepthState(JSON.parse(canonicalStringify(state)), state.seed, state.hero.id, state.hero.name);
 }
 
+// The natural journey may choose a different legal answer as other adventures
+// evolve. Fixed legal-outcome coverage lives in repartee-memory.test.ts; here
+// the exact authored callback must match whichever judgment was really earned.
+const expectedCallbacks = {
+  "precision-counter": { pose: "nod", regard: 1, line: "I kept turning that answer over on the road. It still holds." },
+  "precision-evasion": { pose: "frown", regard: -1, line: "That answer followed us all this way. The question never did get one." },
+  "hollow-boast": { pose: "frown", regard: -1, line: "I remember the volume. I still wanted a reason to follow." },
+  "honest-admission": { pose: "nod", regard: 1, line: "I kept thinking about that admission. I am glad you did not dress it up." },
+  "culinary-absurdity": { pose: "laugh", regard: 1, line: "All that road, and that is still the bit that makes me laugh." },
+  unmoved: { pose: "quiet", regard: 0, line: "I remember it clearly. I am still not sure what to make of it." },
+} as const;
+
 describe("one source-backed shared memory before the actual oath farewell", () => {
   let ready: WorldState;
   beforeAll(() => { ready = naturalReparteeMemoryFixture(); });
 
-  it("recalls the actual drawn contest and quiet reaction without changing regard, bond, resources, or other rewards", () => {
+  it("recalls the actual contest, spoken answer and judgment without changing regard, bond, resources, or other rewards", () => {
     const before = ready.depth, reaction = before.reparteeWitness.reaction!;
+    const contest = before.repartee.completed!, expected = expectedCallbacks[reaction.reactionId as keyof typeof expectedCallbacks];
     const witness = before.companions.active[0]!, proposed = selectReparteeCallback(before)!;
     expect(before.reparteeCallback).toBeNull();
     expect(witness).toMatchObject({ phase: "arrived", injury: "none" });
     expect(witness.resources.health).toBeGreaterThan(0);
     expect(before.atlas.currentLocationId).toBe(witness.destination.locationId);
     expect(before.atlas.currentLocationId).not.toBe(reaction.locationId);
-    expect(reaction).toMatchObject({ reactionId: "unmoved", outcome: "draw", regardAfter: 0 });
+    expect(expected).toBeDefined();
+    expect(contest.rounds).toContainEqual(reaction.evidence);
+    expect(reaction).toMatchObject({ encounterId: contest.encounterId, outcome: contest.outcome,
+      completedTick: contest.completedTick, completionCommandId: contest.completionCommandId,
+      pose: expected.pose, regardAfter: expected.regard, regardDelta: expected.regard });
     const after = advanceWorld(ready), receipt = after.depth.reparteeCallback!;
     expect(receipt).toEqual(proposed);
     expect(receipt).toMatchObject({ encounterId: reaction.encounterId, heroId: before.hero.id,
@@ -32,9 +49,9 @@ describe("one source-backed shared memory before the actual oath farewell", () =
       sourceReactionCommandId: reaction.completionCommandId, sourceReactionTick: reaction.completedTick,
       sourceReactionId: reaction.reactionId, evidenceSourceCommandId: reaction.evidence!.sourceCommandId,
       evidenceRoundIndex: reaction.evidence!.roundIndex, rememberedReply: reaction.evidence!.reply,
-      restLocationId: witness.destination.locationId, tick: before.tick + 1, pose: "quiet" });
+      restLocationId: witness.destination.locationId, tick: before.tick + 1, pose: expected.pose });
     const actualQuote = reaction.evidence!.reply.match(/^[\s\S]*?[.!?](?=\s|$)/u)?.[0] ?? reaction.evidence!.reply;
-    expect(receipt.line).toBe(`“${actualQuote}” I remember it clearly. I am still not sure what to make of it.`);
+    expect(receipt.line).toBe(`“${actualQuote}” ${expected.line}`);
     expect(after.depth.hero).toEqual(before.hero);
     expect(after.hero).toEqual(ready.hero);
     expect(after.depth.companions).toEqual(before.companions);
@@ -108,10 +125,13 @@ describe("one source-backed shared memory before the actual oath farewell", () =
       { evidenceSourceCommandId: "invented-round" }, { evidenceRoundIndex: 99 }, { rememberedReply: "Words never spoken" },
       { witnessId: "absent-witness" }, { witnessName: "An absent stranger" }, { heroId: "another-hero" },
       { joinedTick: receipt.joinedTick + 1 }, { restLocationId: ready.depth.reparteeWitness.reaction!.locationId },
-      { sourceCommandId: "invented-memory" }, { sourceReactionId: "honest-admission" },
-      { pose: "frown" }, { line: "An invented callback" }, { tick: after.tick + 1 }, { duplicate: receipt },
+      { sourceCommandId: "invented-memory" },
+      { sourceReactionId: receipt.sourceReactionId === "honest-admission" ? "unmoved" : "honest-admission" },
+      { pose: receipt.pose === "frown" ? "quiet" : "frown" },
+      { line: "An invented callback" }, { tick: after.tick + 1 }, { duplicate: receipt },
     ]) {
       const forged = { ...after, reparteeCallback: { ...receipt, ...patch } } as DepthState;
+      expect(forged.reparteeCallback).not.toEqual(receipt);
       expect(isValidCampaignReparteeCallback(forged)).toBe(false);
       expect(() => reload(forged)).toThrow("schema invariants");
     }

@@ -1228,6 +1228,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** Established only by the actual once-per-campaign shared smithy job. */
+  smithyJob?: import("./smithy-job").SmithyJob | null;
   /** Absent until an actual road approach establishes this campaign's one gate. */
   pennywiseGate?: import("./pennywise-gate").PennywiseGate | null;
   /** One earned conduct exchange; absent older saves contain no retrospective credit. */
@@ -1267,6 +1269,8 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "start-smithy-job"; jobId: string; locationId: string; smithId: string; residentId: string }
+  | { type: "smithy-stroke"; jobId: string; strokeIndex: 0 | 1; stroke: "tap" | "drive" }
   | { type: "choose-pennywise-gate"; gateId: string; choice: "pay" | "lift" }
   | { type: "pass-pennywise-gate"; gateId: string }
   | { type: "share-companion-credit"; residentId: string; joinedTick: number; combatId: string; choice: import("./companion-credit").CompanionCreditChoice }

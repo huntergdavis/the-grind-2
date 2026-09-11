@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { naturalDungeonSecretPassageBeforeClueFixture, naturalDungeonSecretPassageFixture } from "../../tests/dungeon-secret-passage-fixtures";
+import { releasedDungeonSecretPassageBeforeClueFixture, releasedDungeonSecretPassageFixture } from "../../tests/dungeon-secret-passage-fixtures";
 import { dungeonEffectiveExits, dungeonSecretPassageCommandId, isDungeonPassageOpen, isValidDungeonSecretPassage, projectDungeonSecretPassageCue } from "../depth/dungeon";
 import { depthCommandCandidates, selectAvailableDungeonSecretPassage, stepDepth, upgradeDepthState } from "../depth/state";
 import type { DepthCommand } from "../depth/types";
@@ -8,11 +8,11 @@ import { canonicalStringify } from "./canonical";
 import { advanceWorld, campaignDirector, upgradeWorldState } from "./simulation";
 import type { WorldState } from "./types";
 
-describe("an earned draught opens one useful dungeon shortcut", () => {
+describe("a released v171 save resumes its earned draught and useful dungeon shortcut", () => {
   let beforeClue: WorldState, ready: WorldState, opened: WorldState, crossed: WorldState;
   beforeAll(() => {
-    beforeClue = naturalDungeonSecretPassageBeforeClueFixture();
-    ready = naturalDungeonSecretPassageFixture();
+    beforeClue = releasedDungeonSecretPassageBeforeClueFixture();
+    ready = releasedDungeonSecretPassageFixture();
     opened = advanceWorld(ready);
     crossed = advanceWorld(opened);
   });

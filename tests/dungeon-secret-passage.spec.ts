@@ -5,8 +5,8 @@ import { isDungeonPassageOpen, projectDungeonWayfinding, selectDungeonSecretPass
 import type { MazeDirection } from "../src/depth/types";
 import { projectDungeonPerspectiveView } from "../src/ui/dungeon-perspective-view";
 import { projectDungeonSecretPassageScene } from "../src/ui/dungeon-secret-passage-view";
-import { dungeonSecretPassageCampaignId, naturalDungeonSecretPassageBeforeClueFixture,
-  naturalDungeonSecretPassageFixture } from "./dungeon-secret-passage-fixtures";
+import { dungeonSecretPassageCampaignId, releasedDungeonSecretPassageBeforeClueFixture,
+  releasedDungeonSecretPassageFixture } from "./dungeon-secret-passage-fixtures";
 
 async function installFixture(page: Page, fixture: WorldState): Promise<void> {
   await page.addInitScript(state => {
@@ -142,9 +142,9 @@ async function proveStatus(page: Page, world: WorldState): Promise<void> {
   await page.evaluate(() => document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="watch"]')!.click());
 }
 
-test("an earned draught opens a real stationary shortcut, then normal movement crosses it in both perspectives", async ({ page }, testInfo) => {
+test("a released v171 save opens its real stationary shortcut, then normal movement crosses it in both perspectives", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
-  const beforeClue = naturalDungeonSecretPassageBeforeClueFixture(), ready = naturalDungeonSecretPassageFixture();
+  const beforeClue = releasedDungeonSecretPassageBeforeClueFixture(), ready = releasedDungeonSecretPassageFixture();
   const opened = advanceWorld(ready), crossed = advanceWorld(opened), dungeon = ready.depth.dungeon!;
   const clue = dungeon.secretPassage!.clue!, opening = opened.depth.dungeon!.secretPassage!.opened!;
   const errors: string[] = [], inference: string[] = [], external: string[] = [], startedAt = Date.now();
@@ -201,7 +201,8 @@ test("an earned draught opens a real stationary shortcut, then normal movement c
 
     await installFixture(page, beforeClue);
     await page.emulateMedia({ reducedMotion: "reduce" }); await page.setViewportSize({ width: 1280, height: 800 });
-    // Actual earned checkpoint, explicit fixture-fast playback; no normal dwell/soak claim.
+    // Exact released v171 checkpoint, not fresh-current reachability. Explicit
+    // fixture-fast playback; no normal dwell or background-soak claim.
     await page.goto("./?fast", { timeout: 25_000 }); expect(JSON.parse(await pausedSave(page))).toEqual(beforeClue);
     const cueRaw = await pausedSave(page, beforeClue.tick); expect(JSON.parse(cueRaw)).toEqual(ready);
     await provePassage(page, ready, "map"); await capture("dungeon-passage-draught-1280");
@@ -234,7 +235,7 @@ test("an earned draught opens a real stationary shortcut, then normal movement c
     await expect(page.locator("#stage")).not.toHaveAttribute("data-dungeon-passage-phase");
     expect(errors).toEqual([]); expect(inference).toEqual([]); expect(external).toEqual([]);
   } finally {
-    await testInfo.attach("dungeon-passage-evidence", { body: JSON.stringify({ fixture: "Uninterrupted earned same-seed dungeon; no staged room, health, gate, visit or outcome",
+    await testInfo.attach("dungeon-passage-evidence", { body: JSON.stringify({ fixture: "Exact released v171 pre-clue save; current upgrade and actual cue/open/cross commands, not fresh-current reachability; no staged room, health, gate, visit or outcome",
       cueTick: ready.tick, openedTick: opened.tick, crossedTick: crossed.tick, clue, opening,
       elapsedMs: Date.now() - startedAt, errors, inference, external }, null, 2), contentType: "application/json" });
   }

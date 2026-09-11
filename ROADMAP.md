@@ -5,13 +5,19 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposed: W1 — Surely I Can Make One Nail.** One actual smithy job,
+1. **Release verification: W1 — Surely I Can Make One Nail (v0.5.172).** One actual smithy job,
    two autonomous hammer strokes, real MP and a once-only two-gold wage.
    A straight nail succeeds; unfinished and bent results receive different
    truthful comic endings. Use the existing town stage and Status history.
-   Prove ordinary admission before implementing; no crafting framework or LLM.
+   Ordinary admission and all four legal stroke sequences pass; production
+   browser/deployment verification is in progress. No crafting framework or LLM.
    [Council scope](docs/design/ADVENTURE_FORMS.md#w1-proposed-next-slice--surely-i-can-make-one-nail).
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+2. **Next proposed: B1 — The Cup Is Exaggerating.** A real inn resident offers
+   one short covered-die bluff. Challenge for a one-gold stake or decline;
+   reveal the committed truth and its exact consequence. One table, two actors,
+   one caption. Ordinary admission remains unproven.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
@@ -48,7 +54,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **W1 — Surely I Can Make One Nail** | Two smithy strokes produce a real wage or a comic, unpaid result | Proposed; ordinary admission not yet demonstrated |
+| **W1 — Surely I Can Make One Nail** | Two smithy strokes produce a real wage or a comic, unpaid result | Implemented; release verification in progress |
+| **B1 — The Cup Is Exaggerating** | Challenge a resident's covered-die claim or decline; reveal the actual result | Proposed; ordinary admission not yet demonstrated |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

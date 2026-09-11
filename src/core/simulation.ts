@@ -4,6 +4,7 @@ import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
 import { isValidCampaignDungeonFieldMedicine } from "../depth/dungeon-field-medicine";
 import { isValidDungeonSecretPassage } from "../depth/dungeon";
 import { isValidCampaignPennywiseGate } from "../depth/pennywise-gate";
+import { isValidCampaignSmithyJob } from "../depth/smithy-job";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -234,8 +235,11 @@ export function attentionPolicyForMode(mode: SceneMode): AttentionPolicy {
   return "backgroundSafe";
 }
 
-export function eventPolicyForMode(mode: SceneMode): EventPolicy {
-  const attention = attentionPolicyForMode(mode);
+export function eventPolicyForMode(mode: SceneMode, commandType?: RecordedDepthCommandType): EventPolicy {
+  // A once-only performed job uses the town stage, but should not have its
+  // first showing consumed unseen. Ordinary town visits remain background-safe.
+  const attention = commandType === "start-smithy-job" || commandType === "smithy-stroke"
+    ? attentionPolicyForMode("chronicle") : attentionPolicyForMode(mode);
   if (attention === "backgroundSafe") {
     return {
       attention,
@@ -379,6 +383,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return "travel";
     case "restock-tonic":
     case "buy-disarming-kit":
+    case "start-smithy-job":
+    case "smithy-stroke":
       return "town";
     case "visit-town":
       return projectLegacyManifestation(state, command) === null && projectLegacyMentorArcBeat(state, command) === null
@@ -412,6 +418,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "start-smithy-job":
+    case "smithy-stroke":
     case "choose-pennywise-gate":
     case "pass-pennywise-gate":
       return 0;
@@ -476,6 +484,19 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  const job = depth.smithyJob;
+  if (job != null && (job.admission.tick === depth.tick || job.strokes.at(-1)?.tick === depth.tick)) {
+    const stroke = job.strokes.at(-1), result = job.completion;
+    return { mode: "town", location: job.smithName, goal: "Make one straight nail in two strokes",
+      headline: result !== null ? result.shape === "straight" ? "One surprisingly straight nail" : result.shape === "bent" ? "A corner nail" : "Not quite a nail"
+        : stroke === undefined ? "Surely I can make one nail" : "One more stroke ought to do it",
+      action: result !== null ? `${state.hero.name} finishes the second stroke. ${job.residentName}: “${result.line}”`
+        : stroke === undefined ? `${state.hero.name} meets ${job.residentName} at the anvil and accepts the two-gold job.`
+          : `${state.hero.name} ${stroke.stroke === "drive" ? "drives the hammer with focused technique" : "taps the nail gently"}; the work stays on this anvil.`,
+      consequence: result !== null ? `Shaping ${result.points}/3: ${result.shape}. Gold ${result.goldBefore}→${result.goldAfter}; final stroke MP ${stroke!.manaBefore}→${stroke!.manaAfter}. No HP or XP change.`
+        : stroke === undefined ? "Two strokes: tap +1 for free, drive +2 for one MP. Exactly three shaping points earns two gold; other shapes earn nothing."
+          : `Shaping ${stroke.pointsBefore}→${stroke.pointsAfter}/3; MP ${stroke.manaBefore}→${stroke.manaAfter}. One stroke remains; no wage earned yet.`, sensoryIntensity: 0 };
+  }
   const gate = depth.pennywiseGate;
   if (gate != null && (gate.arrival.tick === depth.tick || gate.choice?.tick === depth.tick || gate.completion?.tick === depth.tick)) {
     const completion = gate.completion;
@@ -1081,7 +1102,7 @@ export function rulesEngine(
   const entry: ChronicleEntry = {
     id: `${state.campaignId}:${tick}`,
     tick,
-    attention: attentionPolicyForMode(opportunity.mode),
+    attention: eventPolicyForMode(opportunity.mode, choice.command.type).attention,
     consideredActions: choice.consideredActions,
     chosenAction: choice.action,
     rationale: choice.rationale,
@@ -1089,7 +1110,7 @@ export function rulesEngine(
     commandType: choice.command.type,
     consideredCommandIds: choice.consideredCommandIds,
     decisionTrace: choice.trace,
-    policy: eventPolicyForMode(opportunity.mode),
+    policy: eventPolicyForMode(opportunity.mode, choice.command.type),
     ...scene,
   };
 
@@ -1264,7 +1285,7 @@ export function catchUpWorld(state: WorldState, request: CatchUpRequest): WorldS
   while (appliedTicks < creditedTicks) {
     const opportunity = campaignDirector(next);
     const choice = actorPolicy(next, opportunity);
-    const policy = eventPolicyForMode(opportunity.mode);
+    const policy = eventPolicyForMode(opportunity.mode, choice.command.type);
     if (policy.attention !== "backgroundSafe") {
       const id = `${next.campaignId}:${next.tick + 1}:attention`;
       stoppedAtEventId = id;
@@ -1597,6 +1618,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
+    !isValidCampaignSmithyJob(state.depth) ||
     !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||
@@ -1787,7 +1809,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     },
     chronicle: candidate.chronicle.map((entry) => ({
       ...entry,
-      policy: entry.policy ?? eventPolicyForMode(entry.mode),
+      policy: entry.policy ?? eventPolicyForMode(entry.mode, entry.commandType),
     })),
     lifecycle,
     forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),

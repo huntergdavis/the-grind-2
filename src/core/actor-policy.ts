@@ -21,6 +21,7 @@ import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCommandId, usef
 import { isValidCampaignRoomChallenge, roomChallengeCommandId, roomChallengeResponses } from "../depth/room-challenge";
 import { companionCreditChoices, companionCreditCommandId, selectCompanionCredit } from "../depth/companion-credit";
 import { pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate } from "../depth/pennywise-gate";
+import { selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions } from "../depth/smithy-job";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -389,6 +390,39 @@ function scoreCandidate(
     const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === command.residentId);
     score = 100;
     reason = `${companion?.destination.name ?? "the promised town"} has been reached and the oath deserves its farewell`;
+  } else if (command.type === "start-smithy-job") {
+    const venue = selectSmithyJobVenue(state.depth);
+    if (venue === null || venue.jobId !== command.jobId || venue.locationId !== command.locationId
+      || venue.smithId !== command.smithId || venue.residentId !== command.residentId
+      || candidate.deciderId !== state.hero.id || candidate.id !== smithyJobCommandId(state.tick + 1, command)) {
+      throw new Error("Actor Policy cannot invent a smithy job or its host");
+    }
+    score = 80; reason = `${venue.residentName} offers two gold for one straight nail: two strokes, a known target, and no other promised reward`;
+  } else if (command.type === "smithy-stroke") {
+    const job = selectSmithyJob(state.depth);
+    const option = smithyStrokeOptions(state.depth).find(entry => entry.stroke === command.stroke);
+    if (job === null || job.jobId !== command.jobId || command.strokeIndex !== job.strokes.length || option === undefined
+      || candidate.deciderId !== state.hero.id || candidate.id !== smithyJobCommandId(state.tick + 1, command)) {
+      throw new Error("Actor Policy cannot invent a smithy stroke");
+    }
+    const points = job.strokes.at(-1)?.pointsAfter ?? 0, mana = state.depth.hero.resources.mana;
+    const conserving = mana <= 2 && !state.hero.values.includes("loyalty");
+    const experimenting = state.hero.values.includes("curiosity") && state.hero.values.includes("courage") && mana >= 2;
+    score = job.strokes.length === 0 ? command.stroke === "drive" ? 50 : 40
+      : points + option.pointsAdded === 3 ? 80 : 20;
+    reason = job.strokes.length === 0 ? command.stroke === "drive"
+      ? "begin with a focused drive, leaving a gentle finishing tap to reach exactly three shaping points"
+      : "begin with a gentle tap, leaving a focused drive to reach exactly three shaping points"
+      : points + option.pointsAdded === 3 ? "the disclosed shaping target is three; this stroke finishes a straight nail and earns the two-gold wage"
+        : "this legal stroke will not meet the disclosed target and earns no wage";
+    if (command.stroke === "tap" && conserving) {
+      score = 110; reason = "keep the last reserves of MP for the road, even if gentle work leaves the nail unfinished and unpaid";
+    } else if (command.stroke === "drive" && experimenting) {
+      score = 100; reason = job.strokes.length === 0 ? "curiosity and courage try the stronger technique, spending one real MP"
+        : points + option.pointsAdded > 3
+          ? "curiosity and courage try a second strong blow, accepting the disclosed bent nail and lost wage to see it through"
+          : "the stronger finish reaches the disclosed target for a straight nail, spending one real MP";
+    }
   } else if (command.type === "choose-pennywise-gate" || command.type === "pass-pennywise-gate") {
     const gate = selectPennywiseGate(state.depth);
     if (gate === null || gate.gateId !== command.gateId || candidate.deciderId !== state.hero.id
@@ -670,6 +704,8 @@ function presentationLabels(
     };
     case "plan-route": return { actionLabel: "plots a route", targetLabel: state.depth.atlas.locations.find((entry) => entry.id === command.destinationId)?.name ?? command.destinationId };
     case "travel": return { actionLabel: `advances ${command.distance} ${command.distance === 1 ? "mile" : "miles"}`, targetLabel: state.scene.location };
+    case "start-smithy-job": return { actionLabel: "takes a two-stroke nail-making job", targetLabel: selectSmithyJobVenue(state.depth)?.smithName ?? "the smithy" };
+    case "smithy-stroke": return { actionLabel: command.stroke === "drive" ? "drives the hammer with focus" : "gives the nail a gentle tap", targetLabel: "one hopefully straight nail" };
     case "choose-pennywise-gate": return { actionLabel: command.choice === "pay" ? "pays two gold and passes" : "lifts the barrier by hand", targetLabel: "the Pennywise Gate" };
     case "pass-pennywise-gate": return { actionLabel: "walks through the lifted barrier", targetLabel: "the Pennywise Gate" };
     case "visit-town": return { actionLabel: "enters town", targetLabel: state.scene.location };

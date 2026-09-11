@@ -21,12 +21,12 @@ describe("the Pennywise Gate on the actual first solo road", () => {
   });
 
   it("stops real ordinary travel at the barrier without reaching the far side", () => {
-    expect(before.tick).toBe(7);
+    expect(ready.tick).toBe(before.tick + 1);
     expect(Object.hasOwn(before.depth, "pennywiseGate")).toBe(false);
     expect(campaignDirector(before).candidates[0]?.command).toEqual({ type: "travel", distance: 8 });
     expect(advanceWorld(before)).toEqual(ready);
     const gate = ready.depth.pennywiseGate!;
-    expect(gate.arrival).toMatchObject({ tick: 8, distance: 8, sourceCommandId: "depth:8:travel:8" });
+    expect(gate.arrival).toMatchObject({ tick: ready.tick, distance: 8, sourceCommandId: `depth:${ready.tick}:travel:8` });
     expect(gate.site).toMatchObject({ nearPointIndex: 313, farPointIndex: 312, nearProgress: 8, farProgress: 15 });
     expect(ready.depth.atlas.route!.legProgress).toBe(8);
     expect(ready.depth.atlas.currentLocationId).toBe(before.depth.atlas.currentLocationId);
@@ -42,9 +42,11 @@ describe("the Pennywise Gate on the actual first solo road", () => {
     expect(paid.tick).toBe(ready.tick + 1);
     const gate = paid.depth.pennywiseGate!;
     expect(gate.choice?.kind).toBe("pay");
-    expect(gate.completion).toMatchObject({ tick: paid.tick, distance: 7, goldBefore: 12, goldSpent: 2, goldAfter: 10 });
-    expect(paid.depth.hero).toEqual({ ...ready.depth.hero, gold: 10 });
-    expect(paid.hero).toEqual({ ...ready.hero, gold: 10 });
+    const goldBefore = ready.depth.hero.gold;
+    expect(goldBefore).toBeGreaterThanOrEqual(2);
+    expect(gate.completion).toMatchObject({ tick: paid.tick, distance: 7, goldBefore, goldSpent: 2, goldAfter: goldBefore - 2 });
+    expect(paid.depth.hero).toEqual({ ...ready.depth.hero, gold: goldBefore - 2 });
+    expect(paid.hero).toEqual({ ...ready.hero, gold: goldBefore - 2 });
     expect(paid.depth.atlas.route!.legProgress).toBe(15);
     expect(paid.depth.atlas.currentLocationId).toBe(ready.depth.atlas.currentLocationId);
     expect(paid.depth).toEqual({ ...ready.depth, tick: paid.tick, hero: paid.depth.hero, atlas: paid.depth.atlas,
@@ -62,7 +64,8 @@ describe("the Pennywise Gate on the actual first solo road", () => {
     expect(passed.depth.atlas).toEqual(paid.depth.atlas);
     expect(passed.depth.hero).toEqual(ready.depth.hero);
     expect(passed.hero).toEqual(ready.hero);
-    expect(passed.depth.pennywiseGate!.completion).toMatchObject({ goldBefore: 12, goldSpent: 0, goldAfter: 12, distance: 7 });
+    expect(passed.depth.pennywiseGate!.completion).toMatchObject({ goldBefore: ready.depth.hero.gold,
+      goldSpent: 0, goldAfter: ready.depth.hero.gold, distance: 7 });
     expect(passed.chronicle.at(-1)?.commandId).toBe(`${passed.campaignId}:${pennywiseGateCommandId(passed.tick,
       { type: "pass-pennywise-gate", gateId: passed.depth.pennywiseGate!.gateId })}`);
     expect(() => stepDepth(lifted.depth, { type: "travel", distance: 7 })).toThrow("Finish");

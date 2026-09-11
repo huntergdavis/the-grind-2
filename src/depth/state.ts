@@ -141,6 +141,7 @@ import { captureCompanionReunionArrival, isValidCampaignCompanionReunion, select
 import { isValidCampaignDungeonFieldMedicine, selectDungeonFieldMedicine, stepDungeonFieldMedicine } from "./dungeon-field-medicine";
 import { captureCompanionCredit, captureCompanionCreditFarewell, companionCreditChoices, companionCreditCommandId, isValidCampaignCompanionCredit, selectCompanionCredit, stepCompanionCredit } from "./companion-credit";
 import { capturePennywiseGateArrival, isValidCampaignPennywiseGate, pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate, selectPennywiseGateApproach, stepPennywiseGate } from "./pennywise-gate";
+import { isValidCampaignSmithyJob, selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions, stepSmithyJob } from "./smithy-job";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -957,7 +958,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -1526,6 +1527,7 @@ export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
 }
 
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (input.smithyJob?.completion === null && command.type !== "smithy-stroke") throw new Error("Finish the active smithy job before another command");
   if (input.pennywiseGate?.completion === null && command.type !== "choose-pennywise-gate"
     && command.type !== "pass-pennywise-gate") throw new Error("Finish the active Pennywise Gate before another command");
   if (input.roomChallenge !== null && input.roomChallenge.result === null && command.type !== "answer-room-challenge") throw new Error("Answer the active room challenge before another command");
@@ -1551,6 +1553,16 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "start-smithy-job":
+    case "smithy-stroke": {
+      const next = stepSmithyJob(input, command), job = next.smithyJob, stroke = job.strokes.at(-1), completed = job.completion;
+      return appendLog({ ...state, smithyJob: job, hero: { ...state.hero, gold: next.gold,
+        resources: { ...state.hero.resources, mana: next.mana } } }, "town", completed !== null
+        ? `${job.residentName}: “${completed.line}” ${completed.shape.toUpperCase()} (${completed.points}/3); gold ${completed.goldBefore}→${completed.goldAfter}. ${stroke!.stroke === "drive" ? "Focused drive" : "Gentle tap"}: MP ${stroke!.manaBefore}→${stroke!.manaAfter}. No HP or XP change.`
+        : stroke !== undefined
+          ? `${input.hero.name} ${stroke.stroke === "drive" ? "drives the hammer with focused technique" : "gives the nail a gentle tap"}. Shaping ${stroke.pointsBefore}→${stroke.pointsAfter}/3; MP ${stroke.manaBefore}→${stroke.manaAfter}. One stroke remains; no wage earned yet.`
+          : `${input.hero.name} meets ${job.residentName} at ${job.smithName} for one nail-making job. Two strokes, exactly three shaping points, two gold for a straight nail. “Surely I can make one nail.”`);
+    }
     case "choose-pennywise-gate":
     case "pass-pennywise-gate": {
       const next = stepPennywiseGate(input, command), completion = next.pennywiseGate.completion;
@@ -2558,6 +2570,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (!isValidCampaignSmithyJob(input)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(input)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
   if (
     !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) || !isValidCampaignDungeonFieldMedicine(input) || !isValidCampaignCompanionCredit(input) ||
@@ -2572,6 +2585,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     throw new TypeError("Campaign state violates schema invariants");
   }
   let output = reduceDepth(input, command);
+  if (!isValidCampaignSmithyJob(output)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(output)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
   // A clue belongs to an actual completed dungeon action, not a renderer query
   // or save migration. Old expeditions without the opt-in remain untouched.
@@ -2791,6 +2805,15 @@ function selectedEmergencyRestorative(state: DepthState) {
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  const smithyJob = selectSmithyJob(state);
+  if (smithyJob !== null) {
+    return smithyStrokeOptions(state).map(option => {
+      const command = { type: "smithy-stroke", jobId: smithyJob.jobId,
+        strokeIndex: smithyJob.strokes.length as 0 | 1, stroke: option.stroke } as const;
+      return { id: smithyJobCommandId(state.tick + 1, command), deciderId: state.hero.id,
+        label: option.stroke === "tap" ? "tap gently: +1 shaping, no MP" : "drive with focus: +2 shaping, spend 1 MP", command };
+    });
+  }
   const gate = selectPennywiseGate(state);
   if (gate !== null) {
     if (gate.choice !== null) {
@@ -3147,6 +3170,13 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     return [commandCandidate(state, `companion:return:${returnVisit.residentId}:${returnVisit.joinedTick}:${returnVisit.locationId}`,
       `return to ${returnVisit.companionName} at ${returnVisit.locationName}, the recorded farewell town`,
       { type: "plan-route", destinationId: returnVisit.locationId })];
+  }
+  const smithyVenue = selectSmithyJobVenue(state);
+  if (smithyVenue !== null) {
+    const command = { type: "start-smithy-job", jobId: smithyVenue.jobId, locationId: smithyVenue.locationId,
+      smithId: smithyVenue.smithId, residentId: smithyVenue.residentId } as const;
+    return [{ id: smithyJobCommandId(state.tick + 1, command), deciderId: state.hero.id,
+      label: `make one nail for ${smithyVenue.residentName} at ${smithyVenue.smithName}`, command }];
   }
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);
   if (neighbors.length === 0) return [commandCandidate(state, "wait", "watch and recover", { type: "wait" })];

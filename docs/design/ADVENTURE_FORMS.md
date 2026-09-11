@@ -639,7 +639,8 @@ premise above, not implementation of the full guardian-house encounter.
 Reuse the existing visited-smithy admission pattern in
 `src/depth/town-disarming-kit.ts`, town action priority in `src/depth/state.ts`
 and the native town stage in `src/render/game-renderer.ts`. No new research,
-source probe, crafting framework or LLM work has been performed for W1.
+source probe had been performed at the proposal checkpoint; no crafting
+framework or LLM work is included. Implementation status is recorded below.
 
 At an actual visited smithy, its actual resident offers one two-gold job:
 produce a straight nail. A living solo hero makes two autonomous strokes.
@@ -671,8 +672,68 @@ sweep, staged smith/resident/MP or expanded search. Four legal stroke sequences
 cover the three shapes and exact costs; separately check zero-MP legality,
 once-only payment, exact boundary reloads and ordinary onward activity. One
 compact desktop/mobile/Focus browser scenario is sufficient for presentation.
-Admission frequency and natural personality-policy variety remain unproven.
-This is the next proposal, not a blocker for shipping T2.
+Admission frequency across devices/campaigns remains unmeasured. This was the
+next proposal at T2 delivery, not a combined release gate.
+
+### W1 implementation checkpoint — v0.5.172
+
+The unchanged v171 `shared-road-playful:7` journey reaches the actual visited
+Wheel Smithy at T1 in 318 ms, after buying its disarming kit. Its resident is
+Hale Cooper, a healer, not a fabricated smith. The start command explicitly
+admits both participants at the worksite; home association alone is not proof
+of prior physical co-presence. New admission excludes active/former companions,
+requires a healthy solo hero and one MP, and gives existing obligations priority.
+
+Current natural play performs T2 admission → T3 drive → T4 tap/straight nail
+and two-gold wage → T5 ordinary route planning. All four legal stroke sequences
+pass with exact costs, outcomes, history and reloads. Conserving personalities
+may accept unfinished work; curious, courageous ones may overwork it. No outcome
+is silently upgraded. Existing canonical campaigns include both straight and
+bent natural outcomes without altering their seeds or personality.
+
+Native admitted workshop staging uses the real hero/host, one-shot hammer
+motion and the exact nail shape. The existing caption, MP portrait and Status
+carry the facts. Only smithy commands queue for foreground presentation;
+startup preserves unfinished work and the exact final result before catch-up.
+Browser and public deployment verification are pending at this checkpoint.
+
+## B1 proposed next slice — The Cup Is Exaggerating
+
+Read-only council recommendation, 2026-09-11 07:56:32 PDT, from the roadmap's
+original bluffing/tells/wagers lane and this document's short-contest principle.
+This is an original two-action inn encounter, not a generic card/deck economy.
+No source journey or new research has been run for B1; admission is unproven.
+
+At an actual visited inn, a real local resident covers a die and announces,
+“At least four. A thoroughly respectable number.” Admission explicitly seats
+both actors and commits a deterministic d6 face plus a fallible public tell.
+The autonomous hero then challenges or declines. A challenge spends one owned
+gold; an exposed bluff pays two back (net +1), while a true claim loses the
+stake (net -1). Declining costs nothing. The face is revealed once and normal
+adventure resumes. Keep private truth out of the public decision view and
+pre-reveal rendering; personality and the actual tell may guide the choice,
+not hindsight. Specify the tell distribution before implementation.
+
+Once per campaign, living healthy solo hero with at least one gold, a real inn
+and resident, no route/combat/dungeon, and no owed recovery/reward/conversation.
+Exclude hosts who have left as companions. No W1 or flyting prerequisite.
+Use one optional receipt with actual participants, both command sources,
+committed face, public tell, chosen action and exact gold delta. No NPC-bankroll
+system, health/MP/XP cost, automatic regard, invented friendship or item reward.
+Absent old saves remain absent; reloading never rerolls or repays.
+
+Winning: “The cup had been speaking above its means.” Losing: “My suspicion
+was free. The explanation was not.” Declining: “I decline to invest in the
+cup's reputation.” Present the actual actors, small table, opaque cup, revealed
+die pips and one reaction gesture in the existing town stage. One caption and
+Status history carry the result, with no betting dashboard or new assets.
+
+First use one unchanged v172 `shared-road-playful:7` journey, at most 64 commands
+and 10 seconds after imports, to demonstrate a real eligible inn boundary.
+Stop if negative; no seed search or staged participants/resources. Then cover
+legal challenge win/loss/decline, hidden-information boundaries, exact sources,
+once-only money, boundary saves and ordinary onward play. One compact existing-
+style production browser scenario is enough. This proposal does not block W1.
 
 ## Make the adventures accumulate into a life
 

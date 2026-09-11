@@ -111,6 +111,8 @@ import { projectDungeonFieldMedicineScene } from "../ui/dungeon-field-medicine-v
 import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } from "../ui/dungeon-secret-passage-view";
 import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennywise-gate-view";
 import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
+import { projectSmithyJobScene, type SmithyJobScene } from "../ui/smithy-job-view";
+import { drawSmithyJob, projectSmithyHammerPose, smithyJobTableau } from "./smithy-job";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
@@ -471,6 +473,9 @@ export class GameRenderer {
   private counterDuelCueStartedAt = 0;
   private animateCounterDuelTransition = false;
   private travelRoadBinding: TravelRoadAnimationBinding | null = null;
+  private smithyBinding: { hammer: Container; arm: Container | null } | null = null;
+  private smithyStrokeCommand: string | null = null;
+  private smithyStrokeStartedAt = 0;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
@@ -517,6 +522,7 @@ export class GameRenderer {
     this.host.dataset.reducedMotion = String(this.reducedMotion);
     this.updateCounterDuelAnimation();
     this.updateTravelRoadAnimation();
+    this.updateSmithyAnimation();
     if (event.matches && this.activeCutawayRecipeKey !== null) this.settleCutaway();
   };
   private readonly handleTick = (ticker: Ticker): void => {
@@ -526,6 +532,7 @@ export class GameRenderer {
     this.updateCounterDuelAnimation();
     this.updateTravelRoadAnimation();
     this.updateHeroRigs();
+    this.updateSmithyAnimation();
     this.updateTrapCutawayAnimation();
     this.updateFarewellCutawayAnimation();
     this.updateHeroLevelUpCutawayAnimation();
@@ -1204,6 +1211,7 @@ export class GameRenderer {
     this.battleBinding = null;
     this.counterDuelBinding = null;
     this.travelRoadBinding = null;
+    this.smithyBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonPerspectiveLabels = [];
@@ -1240,6 +1248,9 @@ export class GameRenderer {
     delete this.host.dataset.disarmingKitPurchaseBuilding;
     delete this.host.dataset.disarmingKitPurchaseReceipt;
     delete this.host.dataset.disarmingKitPurchaseVisual;
+    for (const key of ["smithyPhase", "smithyCommand", "smithyJob", "smithyHero", "smithyResident", "smithyBuilding",
+      "smithyStroke", "smithyShape", "smithyMana", "smithyGold", "smithyHeroPosition", "smithyResidentPosition",
+      "smithyAnvilPosition", "smithyVisual", "smithyHammerAngle"]) delete this.host.dataset[key];
     for (const key of ["reparteePhase", "reparteeCommand", "reparteeBook", "reparteeRound", "reparteeMomentum",
       "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
       "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
@@ -1508,6 +1519,7 @@ export class GameRenderer {
   private clear(layer: Container): void {
     if (layer === this.worldLayer) {
       this.dungeonCaption = null;
+      this.smithyBinding = null;
       for (const key of ["dungeonCaptionLayout", "dungeonCaptionTitle", "dungeonCaptionDetail",
         "dungeonCaptionTitleSize", "dungeonCaptionDetailSize", "dungeonCaptionBounds", "dungeonCaptionRail"]) {
         delete this.host.dataset[key];
@@ -5143,6 +5155,11 @@ export class GameRenderer {
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
+    const smithyJob = projectSmithyJobScene(state);
+    if (smithyJob !== null) {
+      this.drawSmithyJobScene(state, smithyJob, palette);
+      return;
+    }
     const town = state.depth.towns[state.depth.atlas.currentLocationId];
     const latestChronicle = state.chronicle.at(-1);
     const restocking = latestChronicle?.tick === state.tick && latestChronicle.commandType === "restock-tonic";
@@ -5816,6 +5833,60 @@ export class GameRenderer {
     sceneLabel.position.set(9, 9);
     this.worldLayer.addChild(rect(6, 6, sceneLabel.width + 8, 12, 0x17212e, 0.68));
     this.worldLayer.addChild(sceneLabel);
+  }
+
+  private drawSmithyJobScene(state: WorldState, scene: SmithyJobScene, palette: readonly [number, number, number]): void {
+    const pose = smithyJobTableau;
+    this.host.dataset.smithyPhase = scene.phase;
+    this.host.dataset.smithyCommand = scene.commandId;
+    this.host.dataset.smithyJob = scene.jobId;
+    this.host.dataset.smithyHero = scene.heroId;
+    this.host.dataset.smithyResident = scene.residentId;
+    this.host.dataset.smithyBuilding = scene.smithId;
+    this.host.dataset.smithyStroke = `${scene.strokeCount}/2`;
+    this.host.dataset.smithyShape = scene.shape;
+    this.host.dataset.smithyMana = `${scene.manaBefore}/${scene.manaSpent}/${scene.manaAfter}`;
+    this.host.dataset.smithyGold = `${scene.goldBefore}/${scene.goldEarned}/${scene.goldAfter}`;
+    this.host.dataset.smithyHeroPosition = `${pose.heroX},${pose.heroY}`;
+    this.host.dataset.smithyResidentPosition = `${pose.residentX},${pose.residentY}`;
+    this.host.dataset.smithyAnvilPosition = `${pose.anvilX},${pose.anvilY}`;
+    this.host.dataset.smithyVisual = "native-admitted-workshop-v1";
+    const drawing = drawSmithyJob(scene);
+    this.worldLayer.addChild(drawing.layer);
+    this.drawHero(state, pose.heroX, pose.heroY, palette, 1.5, scene.heroId, false);
+    const heroRig = this.heroRigs.pop();
+    if (heroRig !== undefined) {
+      heroRig.puppet.y = 0; heroRig.puppet.rotation = 0;
+      heroRig.frontArm.rotation = -0.82; heroRig.rearArm.rotation = 0.12;
+      heroRig.frontLeg.rotation = -0.1; heroRig.rearLeg.rotation = 0.1;
+    }
+    const host = this.drawHero(state, pose.residentX, pose.residentY, palette, 1.5, scene.residentId, false);
+    host.scale.x *= -1;
+    const hostRig = this.heroRigs.pop();
+    if (hostRig !== undefined) {
+      hostRig.puppet.y = 0; hostRig.puppet.rotation = 0;
+      hostRig.frontArm.rotation = -0.12; hostRig.rearArm.rotation = 0.12;
+      hostRig.frontLeg.rotation = hostRig.rearLeg.rotation = 0;
+    }
+    if (scene.phase !== "admission") {
+      if (this.smithyStrokeCommand !== scene.commandId) {
+        this.smithyStrokeCommand = scene.commandId;
+        // A paused load displays the committed contact pose; resizing or
+        // toggling Focus cannot restart this source-owned one-shot movement.
+        this.smithyStrokeStartedAt = this.elapsed - (this.paused || this.reducedMotion ? 0.7 : 0);
+      }
+      this.smithyBinding = { hammer: drawing.hammer, arm: heroRig?.frontArm ?? null };
+      this.updateSmithyAnimation();
+    }
+    this.drawDungeonCaption(scene.headline, scene.detail, scene.compactDetail, 0x73523d);
+  }
+
+  private updateSmithyAnimation(): void {
+    if (this.smithyBinding === null) return;
+    const rotation = projectSmithyHammerPose(this.elapsed - this.smithyStrokeStartedAt, this.reducedMotion);
+    this.smithyBinding.hammer.rotation = rotation;
+    if (this.smithyBinding.arm !== null) this.smithyBinding.arm.rotation = -0.82 + (rotation - 0.12) * 0.55;
+    this.host.dataset.smithyHammerAngle = rotation.toFixed(3);
   }
 
   private drawPennywiseGateScene(state: WorldState, scene: PennywiseGateScene, corridor: TravelCorridor,

@@ -2,6 +2,91 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Surely I Can Make One Nail — v0.5.172 implementation checkpoint
+
+Reuse: `deja "Surely I Can Make One Nail"` recovered the council's
+2026-09-11 07:02:38 PDT proposal (Codex 2026-09-10T1), committed in
+[Adventure forms](docs/design/ADVENTURE_FORMS.md#w1-proposed-next-slice--surely-i-can-make-one-nail).
+Separate rules/save, native presentation and bounded acceptance owners review
+the slice; root integrates scheduling, actor policy and release. LLM work stays
+paused. Protected ledger edits and untracked user work remain untouched.
+
+The unchanged v171 baseline is positive: the original `shared-road-playful:7`
+journey reaches T1 in 318 ms, well inside the original T320/20-second cap.
+The actual Wheel Smithy contains Hale Cooper, whose actual role is healer.
+Living solo Aster has HP42/42, MP24/24, gold7 and XP0 after buying the real
+disarming kit. No smith, resident, resources, profession or outcome is staged.
+The new start command explicitly admits the actual pair together at the bench;
+residency is not passed off as an old interior-position system. Prior obligation,
+recovery and reward lanes win admission priority; active/former companions are
+ineligible hosts at new admission.
+
+Current integrated source proof passes in 780 ms: T2 admission → T3 drive
+(MP24→23) → T4 tap/straight nail (gold7→9) → T5 ordinary route planning.
+All four separately authored legal stroke sequences pass the full Rules Engine:
+tap/tap unfinished, drive/tap and tap/drive straight, drive/drive bent. The
+outcome, exact source commands, MP and once-only wage agree; HP, XP, inventory,
+regard and previous campaign histories are unchanged. A zero-MP tap still
+finishes a job. Historical completion remains valid after later recruitment.
+
+The native stage uses the real hero/host, an anvil, two discrete non-looping
+hammer motions and the actual nail result. It adds no panel or CSS. Independent
+review caught two presentation-debt boundaries: only the two smithy command
+types now queue for foreground attention, and startup preserves unfinished
+work plus the exact completed scene before ordinary catch-up. The one existing
+browser scenario includes a result reload with 60 seconds of simulated debt;
+it adds no long wait or matrix. Final TypeScript and whitespace checks pass.
+Pure rules and the two memory files pass 21/21; native/view checks pass 9/9;
+smithy plus gate integration pass 7/7. Other checked reunion/field-medicine
+regressions pass. Production browser/build/deployment checks follow.
+
+### Honest repairs to older deterministic fixtures
+
+Adding an early job legitimately changes subsequent ticks, balances and story
+choices. Gate tests retain the same real geometry, passage and two-gold cost,
+but measure arrival tick and gold against their actual source. The original
+T15 fixture cap is unchanged. Shared-memory integration now checks the actual
+retained reaction, round evidence and an independent literal line/pose/regard
+mapping, not one frozen natural reaction. Forged values must actually differ
+before rejection. Explicit failed-joke branch coverage remains untouched.
+
+The old fresh D4 journey honestly has no eligible clue by T320 (8.349 seconds).
+No expanded search or fabricated maze is used. Exact released v171 source at
+`de54654df13706c30abbaac4cb6408b2e26ebc1d`, all 50 project modules from that
+commit, reproduces its real T120 pre-clue checkpoint in 6.015 seconds under the
+original T320/20-second cap. The 214,254-byte committed regression save includes
+provenance and canonical hash `8a9ea71e5cfcbbe3`. Current upgrade preserves its
+canonical bytes; one real command earns the clue, then existing tests perform
+the actual opening and traversal. Both existing suites pass 10/10 and final
+TypeScript passes. Labels explicitly say released-save regression, not current
+fresh reachability. No runtime mechanic was changed to force the old journey.
+
+The existing ten 1,000-turn anchor calculations emitted all ten full-state
+hashes, including natural straight and bent jobs; two no-job seeds are unchanged.
+The helper later exited 143 while closing its Vite server (which reported an
+existing HMR port). Those emitted hashes are recorded, not called a passing
+test run; the ordinary clean CI canonical suite remains the release verdict.
+No test cap, seed set or long-run matrix was expanded.
+
+Version and boundary checks pass after correcting the new source entry's
+alphabetical position in the two existing narrator source inventories. This is
+source-closure metadata, not resumed narrator work. The production build passes;
+browser and public verification are still pending at this checkpoint.
+
+The final production browser scenario passes in 2.0 minutes with its original
+150-second cap. All three native desktop/320px/Focus captures were inspected:
+the actors/anvil are clear, captions stay outside the action, and the bent
+result truthfully says no pay. Exact state reloads, final-result startup debt,
+once-only costs, ordinary onward play and Status source identity pass. No
+browser errors, external requests or model activity occur. Local release
+assets and nine emitted runtime source entries match the working source;
+protected ledger sources are absent. Deployment/public verification follows.
+
+The presentation council's read-only next recommendation at
+2026-09-11 07:56:32 PDT is B1 — The Cup Is Exaggerating, from the existing
+bluffing/tells/wagers backlog. Its separate [bounded proposal](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating)
+has no source probe or implementation yet and does not block W1 delivery.
+
 ## The Pennywise Gate — v0.5.171 final delivery
 
 **Live and publicly source-verified 2026-09-11 07:22:21 PDT.** Feature

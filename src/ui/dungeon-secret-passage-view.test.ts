@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { naturalDungeonSecretPassageBeforeClueFixture, naturalDungeonSecretPassageFixture } from "../../tests/dungeon-secret-passage-fixtures";
+import { releasedDungeonSecretPassageBeforeClueFixture, releasedDungeonSecretPassageFixture } from "../../tests/dungeon-secret-passage-fixtures";
 import { advanceWorld } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { dungeonEffectiveExits, isDungeonPassageOpen } from "../depth/dungeon";
@@ -7,11 +7,11 @@ import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "./dunge
 import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } from "./dungeon-secret-passage-view";
 import { projectStatusHistory } from "./status-history";
 
-describe("one actual draught, opening and passage crossing", () => {
+describe("a released v171 save presents its actual draught, opening and passage crossing", () => {
   let before: WorldState, clue: WorldState, opened: WorldState, crossed: WorldState;
   beforeAll(() => {
-    before = naturalDungeonSecretPassageBeforeClueFixture();
-    clue = naturalDungeonSecretPassageFixture();
+    before = releasedDungeonSecretPassageBeforeClueFixture();
+    clue = releasedDungeonSecretPassageFixture();
     opened = advanceWorld(clue);
     crossed = advanceWorld(opened);
   }, 20_000);
