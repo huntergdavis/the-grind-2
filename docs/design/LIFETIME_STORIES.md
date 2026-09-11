@@ -61,6 +61,39 @@ All four encore commands remain foreground story beats; hidden catch-up stops
 before them. F2b's later safe-rest callback, trust, affection, more performances
 and a general relationship system are not implemented by this slice.
 
+## R2 proposed next slice — Share the credit
+
+Council recommendation, 2026-09-11; not implemented. Turn the existing
+shared-success/credited-assist idea into one autonomous post-battle exchange.
+An actual, still-present and healthy companion must have dealt positive damage
+to an opponent in a retained shared victory. Roster membership or a victory
+counter alone is not contribution evidence. Recovery and settlement keep their
+existing priority; no books, flyting, Bell, reunion or special route is required.
+
+The hero can acknowledge the help or take undue credit, selected through an
+explicit personality-aware policy. Two short attributed lines use the existing
+two-person scene. A dry reply might be: “An impressive solo victory. Particularly
+the part where I helped.” Declare the authored fair-credit preference rather
+than guessing an unrecorded personality or universal sense of humor.
+
+Keep one finite, source-bound conduct/reaction receipt: actual contributor,
+battle and damage evidence, hero's choice, response and companion-to-hero regard
+change (+1 for acknowledgement, −1 for credit-grabbing). Do not relabel existing
+bond or the separate flyting regard record as a cumulative relationship model.
+Battle XP, loot, victory counters and the existing +2 bond reward remain exactly
+as settled. Journal → Company retains the exchange; a source-bound variation
+in the eventual farewell makes it matter beyond the immediate joke. No extra
+dashboard, repeatable regard farming or retroactively invented conversation.
+
+Acceptance: one bounded ordinary shared-combat journey to the exchange, both
+authored choices, exact positive-damage attribution, absent/downed companion
+rejection, once-only resolution, exact save/reload and normal continuation.
+Use one compact desktop/mobile/Focus browser sequence. The current hooks are
+`state.ts` combat completion/retained events and `syncActiveCompanionCombat`;
+source inspection establishes plausible admission, not an already measured
+natural journey. Prove that opportunity before implementation, without adding
+a prerequisite chain or extending a search until it succeeds.
+
 ## R1 proposed next slice — A familiar face
 
 Council scope, 2026-09-11; implemented and publicly verified in v0.5.167.

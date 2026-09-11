@@ -476,7 +476,8 @@ recall found no reusable natural-fixture result. It is planning, not shipped D2.
 
 ## D3 proposed next slice — Dungeon field medicine
 
-Council scope, 2026-09-11; implementation in progress for v0.5.168, not yet live. This takes
+Council scope, 2026-09-11; **shipped in v0.5.168**, publicly source-verified
+2026-09-11 04:03:48 PDT. This takes
 the existing backlog's out-of-combat item use into one active solo dungeon.
 A living, badly wounded hero can use an actually owned Ember Tonic before
 continuing. Reuse `restorativeHealthAmount` in `src/depth/rpg.ts`: restore
@@ -497,10 +498,14 @@ no health, inventory or location was staged. The new T72 medicine action restore
 HP11→22/42, consumes tonic3→2 and keeps the same cell. Exact reload and ordinary
 next movement pass; healing crosses the old cautious-search threshold. Direct
 and autonomous use share the same at-or-below-half-HP rule.
-Acceptance should cover one real consumption, exact item/HP changes, save and
+Acceptance covers one real consumption, exact item/HP changes, save and
 reload, normal next dungeon action, and rejection of empty/forged stacks, full
 health, death and active combat. Clearly label any isolated resource boundary;
 do not manufacture a natural-use claim or widen a journey to find one.
+The production browser sequence passes in 54.5 seconds, with three native
+desktop/320px/Focus captures inspected. [Final release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34591703971)
+passes 3,627 tests with the existing replay limits. Two earlier test-fixture CI
+failures and their fixes remain documented in the council history.
 
 **Why not Echo Cache first?** The council's source inspection finds no voluntary
 retreat/resume producer. Defeat recovery in `src/depth/state.ts` relocates the

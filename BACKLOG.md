@@ -13,9 +13,9 @@ The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
 F3b's later scored public challenge shipped in v0.5.166, using the learned frame
 without forcing every character to choose the winning answer. R1, a genuine
 former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
-field medicine is implemented for v0.5.168 with natural-use/browser checks passed;
-release and public verification are pending. Further playable features follow
-one at a time.
+field medicine is live in v0.5.168 with natural-use, browser, CI and public-source
+verification passed. R2 — Share the credit is the next scoped proposal, not yet
+implemented. Further playable features follow one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -27,7 +27,30 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — A familiar face (v0.5.167)
+## Latest delivery — Dungeon field medicine (v0.5.168)
+
+Publicly source-verified 2026-09-11 04:03:48 PDT. A living solo explorer
+at or below half health automatically spends one actually owned Ember Tonic
+between dungeon actions, restoring the existing quarter-max-HP amount. The
+natural T72 command heals HP11→22/42 and spends tonic3→2, stationary in the same
+room, with no MP/XP/quest change. Existing portrait health, a native amber vial,
+brief dungeon caption and Status history show the action without another panel.
+Exact reload and ordinary next movement do not repeat the dose.
+
+Feature `f5f204dccab33c869692d48ca143ca9de9526a45` and test-only corrections
+`97b10e7d07a78f4149da32dc45bc72b86a08f2df` /
+`3a79ec33668a0d79536b48a9fa717162510c7efc` are on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34591703971):
+256 release files and 3,627 tests passed, two long audits opt-in/skipped;
+canonical replay passed in 18.944 seconds with unchanged limits. The production
+browser sequence passed in 54.5 seconds total; all three desktop/mobile/Focus
+captures were inspected. Three public assets and nine runtime source-map entries
+match the final commit; LLM workers and optional dungeon chunks are unchanged.
+The initial fixture/typing CI failures are recorded in
+[COUNCIL_REVIEW.md](COUNCIL_REVIEW.md), not relabeled as successful runs.
+D3 is complete; R2's credited-assist exchange is proposed next. LLM work stays paused.
+
+## Prior delivery — A familiar face (v0.5.167)
 
 Publicly verified 2026-09-11 at 03:14:19 PDT. One ordinary return to a healthy
 fulfilled former companion's farewell town produces a brief two-person greeting.

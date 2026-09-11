@@ -2,7 +2,31 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Dungeon field medicine — v0.5.168 implementation checkpoint
+## Dungeon field medicine — v0.5.168 final delivery
+
+**Live and publicly source-verified 2026-09-11 04:03:48 PDT.** Feature
+`f5f204dccab33c869692d48ca143ca9de9526a45` and the two test-only corrections
+documented below are pushed to `origin/main`. Final release commit:
+`3a79ec33668a0d79536b48a9fa717162510c7efc`.
+[Pages run 34591703971](https://github.com/huntergdavis/the-grind-2/actions/runs/34591703971)
+passed all 256 release files and 3,627 tests; two long audits remain opt-in.
+Canonical: four tests, 18.944 seconds; forward motion: eight tests, 6.328 seconds.
+All limits are unchanged. Main suite: 282.48 seconds; deployment job: 5m41s.
+
+The production browser's 54.5-second sequence and three inspected native
+desktop/mobile/Focus captures exercise the exact unchanged runtime now live:
+T72 HP11→22/42, tonic3→2, no room/MP/XP/quest changes, exact reload and ordinary
+next movement. One same-command scene cue and existing Status receipts make the
+actual consumption visible; no new panel or model is required.
+
+Public entry `index-CSv-sZUh.js`, CSS `index-B9m_5Qf5.css` and simulation worker
+`simulation.worker-CjmjvM2E.js` match the build byte-for-byte. Nine emitted runtime
+source-map entries match the final commit. Protected ledger sources are absent;
+LLM workers and optional dungeon chunks remain unchanged. Local test/build/
+browser processes are closed. D3 is complete. R2 — Share the credit is the next
+documented proposal, not part of this delivered feature.
+
+## Dungeon field medicine — implementation and CI history
 
 Reusing the committed [D3 scope](docs/design/ADVENTURE_FORMS.md#d3-proposed-next-slice--dungeon-field-medicine)
 and the prior council's 02:51 field-medicine proposal recovered by
@@ -54,7 +78,40 @@ rooms, actual portrait health, no new panel. First-person shares the same receip
 and stationary heading; its projection is unit-covered, not separately browser
 captured in this slice. Three built assets and nine emitted runtime source-map
 entries match the working implementation; protected ledger sources are absent.
-CI and public deployment remain pending.
+Initial [CI run 34590918833](https://github.com/huntergdavis/the-grind-2/actions/runs/34590918833)
+blocked deployment: 3,623 tests passed, four failed in three older fixture files,
+and two long audits remained skipped. Canonical replay passed all four tests in
+18.253 seconds; forward motion passed all eight in 6.157 seconds. The failed
+checks expected search/traversal while retaining a now-usable tonic. The recall
+query surfaced earlier tonic work, not a ready-made repair.
+
+Correction `97b10e7d07a78f4149da32dc45bc72b86a08f2df` makes the existing
+low-HP mana-siphon/disarming-kit fixtures explicitly no-tonic and removes the
+tonic from the staged pre-medicine layout-2 shrine-save reproduction. All original
+trap, reward, reload, reuse and migration assertions remain; no traversal bound
+or test timeout changed. All 69 tests across those three files pass locally.
+No runtime, production asset or canonical anchor changed after the successful
+browser run. The lesson is to inspect every hard-coded dungeon action sequence
+when adding an automatic priority, not expand the test matrix.
+
+[Run 34591523750](https://github.com/huntergdavis/the-grind-2/actions/runs/34591523750)
+then stopped at TypeScript: filtering the inventory made two unannotated fixture
+variables infer mutable arrays, incompatible with the reducer's readonly
+`DepthState` result. The focused tests had passed but root had not rerun
+TypeScript after that edit. Explicit `DepthState` annotations fix the test-only
+inference without casts, relaxed checking or runtime changes. TypeScript and all
+12 affected tests pass (12.14-second runner, 2.98-second test bodies). Correction
+`3a79ec33668a0d79536b48a9fa717162510c7efc` is pushed. Public deployment remains
+pending; neither failed run is represented as a successful release.
+
+While release checks run, the council recommends [R2 — Share the credit](docs/design/LIFETIME_STORIES.md#r2-proposed-next-slice--share-the-credit)
+from the existing credited-assist/lifetime-story backlog. Root inspected retained
+combat completion, `syncActiveCompanionCombat` and farewell preservation: these
+provide concrete hooks without book/Bell/flyting dependencies. Actual positive
+damage, not roster presence, must earn the conversation. The proposal keeps
+combat rewards unchanged, records one directional response and carries it into
+the later farewell. No runtime or extra journey probe was added for this idea;
+its ordinary-play admission still needs one bounded check next session.
 
 ## A familiar face — v0.5.167 final delivery
 

@@ -5,37 +5,28 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: D3 — Dungeon field medicine (v0.5.168).** A living, wounded solo hero
-   uses an actually owned Ember Tonic between dungeon actions, with its existing
-   quarter-max-HP effect and real stack depletion. Reuse the portrait/status log.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#d3-proposed-next-slice--dungeon-field-medicine).
-   The unchanged v0.5.167 journey supplies a real T71 opportunity: HP11/42,
-   three owned tonics, active solo dungeon. T72 consumption, exact reload,
-   normal movement and desktop/mobile/Focus presentation pass; release is pending.
+1. **Next proposed: R2 — Share the credit.** After a real shared victory,
+   acknowledge a companion's actual contribution or take undue credit. Their
+   warm or dry response leaves one directional regard record and can change
+   their eventual farewell. No books, Bell, flyting or reunion prerequisites.
+   [Council scope](docs/design/LIFETIME_STORIES.md#r2-proposed-next-slice--share-the-credit).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-The bounded dungeon-search test refresh is complete (2026-09-11): the fixed
-rules-2 fixture now asserts its actual mana siphon, unchanged HP and MP 26→19.
-The existing search/entry/disarm, exact save/reload and caption checks passed
-in 66.8 seconds against the released v0.5.164 build; four captures were inspected.
-This is test-only maintenance, not a new dungeon mechanic or runtime release.
-
-**R1 — A familiar face is live in v0.5.167**, publicly verified on
-2026-09-11 at 03:14:19 PDT. One ordinary return trip leads to a greeting with
-a healthy fulfilled former companion at the actual farewell town. Exact shared
-history, dialogue and arrival sources stay in Journal → Company; no new oath,
-reward or extra panel. The natural journey returns at T154 and greets Fara at
-T155. The final browser sequence passed, with three desktop/mobile/Focus captures
-inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34587682185)
-passed 3,613 tests, canonical replay and the repaired anti-backtracking checks;
-two long audits remain opt-in. Three public assets and ten runtime source-map
-entries match the corrected release. Initial CI failure and its source-bound
-return-reason repair are preserved in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+**D3 — Dungeon field medicine is live in v0.5.168**, publicly source-verified
+2026-09-11 04:03:48 PDT. A wounded solo explorer uses an owned tonic
+between dungeon actions: the real journey heals HP11→22/42 and spends tonic3→2,
+then resumes movement. Same room, exact reload, portrait health and existing
+Status history; no new panel. Desktop/320px/Focus captures were inspected.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34591703971)
+passed 3,627 tests; two long audits stay opt-in. Three public assets and nine
+runtime source-map entries match the final release. Earlier CI failures and
+their test-only repairs remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use and R1 are shipped.
-Wider 3D remains a separate proposal; dungeon field medicine is next.
+optional first-person preview, F3a's lesson, F3b's scored use, R1 and D3 are shipped.
+Wider 3D remains a separate proposal. Older delivery evidence is below the fold
+in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
@@ -53,7 +44,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D3 — Dungeon field medicine** | Use an owned tonic between dungeon actions; show the real HP and supply change | Implemented for v0.5.168; natural consumption/browser checks pass, release pending |
+| **R2 — Share the credit** | A companion reacts to acknowledgement or credit-grabbing after their actual contribution | Next scoped proposal; not implemented or journey-verified |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
