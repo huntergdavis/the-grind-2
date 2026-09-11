@@ -2,6 +2,68 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Surely I Can Make One Nail — initial release check and test-only repairs
+
+Feature `21462a09d7d1d3b1ecadadcbb8ed232cbf9846f6` is pushed to `origin/main`.
+[Initial Pages run 34613564506](https://github.com/huntergdavis/the-grind-2/actions/runs/34613564506)
+failed 53 existing assertions in 18 files; 3,646 tests passed and two long audits
+remained opt-in/skipped. All 18 new smithy tests passed. The clean canonical
+suite passed all four tests in 13.515 seconds, including the ten existing
+1,000-turn fingerprints. Main suite: 221.92 seconds. Deployment did not run.
+
+Most failures are old setup assumptions that a kit purchase is immediately
+followed by route planning or +1 XP; the new foreground, zero-XP job intervenes.
+Other fixed-seed expectations retain the old gold balance, combat type, dungeon
+action or encounter history. The repairs preserve actual commands and costs,
+not fabricate a completed job or change production behavior. Separate council
+owners handle bounded initial-town helpers, presentation/XP fixtures and exact
+released historical encounter saves. Root handles the remaining gate assertions
+and production-packet fingerprint. The browser-verified runtime stays frozen.
+
+Gate pure/view tests now use actual relative ticks and exact gold differences,
+retaining the same seven-mile geometry, two-gold charge, free two-action option
+and tamper checks. The 20 production narrator inputs were inspected: real smithy
+admission/strokes introduce quiet workshop locations among the first five
+scenes for each unchanged seed. They still expose only scene/place/energy;
+the sealed 200-case corpus and all narrator behavior remain unchanged. The
+reviewed production fingerprint is `78c6964c1a05a366`. These four targeted
+gate/evaluation files pass 25/25.
+
+The six presentation/encounter files pass 47 checks across completed runs.
+Earned level-up fixtures first perform the actual zero-XP job, then retain
+their original exact +1 XP threshold and montage assertions. Bell recovery
+uses the actual seeded Pattern Duel on the same route, with its zero-XP entry;
+medicine resumes the actual offered dungeon action and preserves the consumed
+tonic receipt. One parallel medicine setup hit its existing hook limit; the
+isolated retry passes without changing that limit. No runtime edits are involved.
+
+The exact released v171 `de54654df13706c30abbaac4cb6408b2e26ebc1d` source,
+all 47 project modules from that commit, also reproduces the old Copperhorn and
+reused-route credit cases. The original Golden27 T89-capped replay takes
+1.787 seconds; its 301,855-byte fixture preserves T4 hash `853b63872e22566d`
+and exact after-history T89 hash `a1a114f1387e61ca`. Current code performs the
+four real T4→T8 combat commands and earns all original observations. Migration
+still verifies the actual T89 history, not a substituted shorter checkpoint.
+The original Golden7 T217-capped replay takes 5.877 seconds; its 267,536-byte
+checkpoint hash is `15426ab7c88902ae`. Current T218 Borin victory on the reused
+route leaves Joss's actual T43 credit unchanged. Both fixture files retain
+provenance; current upgrades preserve canonical bytes. These three suites pass
+21/21. No new seed, fabricated contribution, altered roll or extended search
+is used; these are explicitly released-save regressions, not fresh-current
+reachability claims.
+
+A shared test-only helper now commits at most the real initial kit purchase
+plus three smithy commands, stopping before unrelated adventures. It replaces
+six files' obsolete assumption that kit purchase immediately exposes a route.
+The existing tactical fixtures retain that actual completed history; the
+restock lifecycle also retains the resulting Chronicle/hero/lifecycle before
+its explicitly staged combat. All 158 functional checks in the initial six-file
+run passed, with two opt-in skips. Its only failure was the existing 12×400
+forward-motion soak exceeding the unchanged local 40-second limit (72.530s
+under concurrent load). An isolated retry follows, not a raised limit. Final
+TypeScript and the final lifecycle-only assertion pass after all edits. The
+production runtime and browser-verified build remain identical to `21462a0`.
+
 ## Surely I Can Make One Nail — v0.5.172 implementation checkpoint
 
 Reuse: `deja "Surely I Can Make One Nail"` recovered the council's

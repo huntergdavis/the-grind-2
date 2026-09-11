@@ -1,33 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { advanceWorld, actorPolicy, campaignDirector, createWorld, upgradeWorldState } from "../core/simulation";
+import { advanceWorld, actorPolicy, campaignDirector, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
+import { releasedCopperhornChain } from "../../tests/released-copperhorn-fixtures";
 import { createCombat, isValidCombatState, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import { advanceFieldResearch, createFieldResearchState, isValidFieldResearchState, upgradeFieldResearchState } from "./field-research";
 import type { CombatAction, CombatState, FieldResearchStateV3 } from "./types";
 
 const seed = "golden:27";
 const abilityId = "secret:copperhorn:bellmetal-charge";
-let natural: { before: WorldState; applied: WorldState; first: WorldState; guarded: WorldState; finished: WorldState } | undefined;
-
-function naturalChain() {
-  if (natural !== undefined) return natural;
-  let witnessed = createWorld(seed, "campaign:27");
-  for (let tick = 0; tick < 89; tick += 1) witnessed = advanceWorld(witnessed);
-  const proof = witnessed.depth.fieldResearch.copperhorn;
-  if (proof.application === null || proof.aftereffect === null) throw new Error("Expected the existing bounded natural Copperhorn witness");
-  let before = createWorld(seed, "campaign:27");
-  while (before.tick < proof.application.sourceTick - 1) before = advanceWorld(before);
-  const applied = advanceWorld(before);
-  const first = advanceWorld(applied);
-  const guarded = advanceWorld(first);
-  const finished = advanceWorld(guarded);
-  natural = { before, applied, first, guarded, finished };
-  return natural;
-}
-
 function selectedAction(world: WorldState): CombatAction {
   const selected = actorPolicy(world, campaignDirector(world));
-  if (selected.command.type !== "combat-action") throw new Error("Natural proof requires a real combat action");
+  if (selected.command.type !== "combat-action") throw new Error("Released proof requires a real combat action");
   return selected.command.action;
 }
 
@@ -37,7 +20,7 @@ function guard(combat: CombatState): CombatAction {
 
 /** Controlled source/overwrite negatives only; primary occurrence above changes no generated fields. */
 function controlledPair(otherFire = false): CombatState {
-  const hero = naturalChain().before.depth.hero;
+  const hero = releasedCopperhornChain().before.depth.hero;
   const created = createCombat(seed, hero, "copperhorn:controlled", 2);
   const enemies = created.combatants.filter((actor) => actor.side === "enemies");
   const secret = monsterAbilityForLevel(monsterDefinitions[4], 1);
@@ -54,16 +37,16 @@ function resolve(research: FieldResearchStateV3, before: CombatState, action: Co
   expect(isValidCombatState(before)).toBe(true);
   expect(isValidCombatState(after)).toBe(true);
   return { combat: after, research: advanceFieldResearch(research, before, after,
-    { heroId: naturalChain().before.hero.id, depthTick: after.turn + 100 }) };
+    { heroId: releasedCopperhornChain().before.hero.id, depthTick: after.turn + 100 }) };
 }
 
 function cast(combat: CombatState, id = abilityId): Extract<CombatAction, { type: "ability" }> {
-  return { actorId: combat.turnOrder[combat.activeIndex]!, type: "ability", targetId: naturalChain().before.hero.id, abilityId: id, itemId: null };
+  return { actorId: combat.turnOrder[combat.activeIndex]!, type: "ability", targetId: releasedCopperhornChain().before.hero.id, abilityId: id, itemId: null };
 }
 
 describe("Copperhorn final-ember field research", () => {
-  it("observes autonomous Golden 27 application, intermediate burn, enemy Guard, then final burn before victory", () => {
-    const { before, applied, first, guarded, finished } = naturalChain();
+  it("resumes released Golden 27 application, intermediate burn, enemy Guard, then final burn before victory", () => {
+    const { before, applied, first, guarded, finished } = releasedCopperhornChain();
     expect([before.tick, applied.tick, first.tick, guarded.tick, finished.tick]).toEqual([4, 5, 6, 7, 8]);
     expect(before.depth.fieldResearch.copperhorn).toEqual({ taskId: "copperhorn:final-ember@1", application: null, firstTick: null, aftereffect: null });
     const application = applied.depth.fieldResearch.copperhorn.application!;
@@ -96,7 +79,7 @@ describe("Copperhorn final-ember field research", () => {
   });
 
   it("resumes the first observation and intermediary exactly, then retains completed proof after event history disappears", () => {
-    const { applied, first, finished } = naturalChain();
+    const { applied, first, finished } = releasedCopperhornChain();
     for (const world of [applied, first]) {
       const bytes = JSON.stringify(world);
       const restored = upgradeWorldState(JSON.parse(bytes));
@@ -111,7 +94,7 @@ describe("Copperhorn final-ember field research", () => {
   });
 
   it("cannot complete from expiry alone, a missing first tick, a forged source, or a foreign combat", () => {
-    const { guarded, finished } = naturalChain();
+    const { guarded, finished } = releasedCopperhornChain();
     const before = guarded.depth.combat!;
     const after = finished.depth.completedCombats.at(-1)!;
     const proof = guarded.depth.fieldResearch;
@@ -128,7 +111,7 @@ describe("Copperhorn final-ember field research", () => {
   });
 
   it("requires unpruned application and intermediate combat packets, not just persisted matching potency", () => {
-    const { guarded } = naturalChain();
+    const { guarded } = releasedCopperhornChain();
     const before = guarded.depth.combat!;
     const pruned = { ...before, eventStream: { ...before.eventStream, firstRecordedTurn: 4,
       events: before.eventStream.events.filter((event) => event.turn >= 4) } };
@@ -159,8 +142,8 @@ describe("Copperhorn final-ember field research", () => {
   });
 
   it("records fatal final burning before an interrupted intent without inventing a completed action", () => {
-    const { guarded } = naturalChain();
-    // Controlled fatal edge; the natural occurrence above survives.
+    const { guarded } = releasedCopperhornChain();
+    // Controlled fatal edge; the released occurrence above survives.
     const before = { ...guarded.depth.combat!, combatants: guarded.depth.combat!.combatants.map((actor) => actor.id === guarded.hero.id
       ? { ...actor, health: 1 } : actor) };
     const after = resolveCombatTurn(before, guard(before), seed);
@@ -174,7 +157,7 @@ describe("Copperhorn final-ember field research", () => {
   });
 
   it("migrates exact V1/V2 evidence without retrospectively observing old Copperhorn battles", () => {
-    const { finished } = naturalChain();
+    const { finished } = releasedCopperhornChain();
     const current = finished.depth.fieldResearch;
     const old = { schemaVersion: 2 as const, inkcap: current.inkcap, moonhowl: current.moonhowl };
     const before = JSON.stringify(old);
@@ -189,7 +172,7 @@ describe("Copperhorn final-ember field research", () => {
   });
 
   it("rejects extra/future/malformed research and inconsistent source, chronology, duration or HP proof", () => {
-    const { finished } = naturalChain();
+    const { finished } = releasedCopperhornChain();
     const state = finished.depth.fieldResearch;
     const proof = state.copperhorn, application = proof.application!, first = proof.firstTick!, final = proof.aftereffect!;
     const malformed = [null, { ...proof, extra: true }, { ...proof, taskId: "different" }, { ...proof, application: null }, { ...proof, firstTick: null },

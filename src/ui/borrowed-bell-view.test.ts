@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { advanceWorld } from "../core/simulation";
+import { advanceWorld, campaignDirector } from "../core/simulation";
+import { randomInt } from "../core/rng";
 import type { WorldState } from "../core/types";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
 import { borrowedBellMemoryRecoveryBoundaryFixture } from "../../tests/borrowed-bell-memory-fixtures";
@@ -241,8 +242,15 @@ describe("Borrowed Bell presentation", () => {
     expect(after.depth.bellExpedition).toEqual(before.depth.bellExpedition);
     expect(projectBorrowedBellScene(JSON.parse(JSON.stringify(after)))).toEqual(scene);
     expect(projectBorrowedBellScene({ ...after, depth: { ...after.depth, atlas: { ...after.depth.atlas, route: null } } })).toBeNull();
+    expect(randomInt(4, after.seed, "depth-director", rest.encounterId, 0, "encounter-engine")).toBe(0);
+    expect(campaignDirector(after).candidates.map(candidate => candidate.command)).toEqual([
+      { type: "start-counter-duel", encounterId: rest.encounterId },
+    ]);
     const continued = advanceWorld(after);
-    expect(continued.chronicle.at(-1)!.commandType).toBe("start-combat");
+    expect(continued.chronicle.at(-1)!.commandType).toBe("start-counter-duel");
+    expect(continued.depth.counterDuel?.id).toBe(rest.encounterId);
+    expect(continued.depth.hero.resources).toEqual(after.depth.hero.resources);
+    expect(continued.depth.hero.gold).toBe(after.depth.hero.gold);
     expect(projectBorrowedBellScene(continued)).toBeNull();
     expect(continued.depth.bellMemory).toEqual(memory);
   });

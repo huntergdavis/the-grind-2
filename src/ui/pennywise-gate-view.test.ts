@@ -27,7 +27,7 @@ describe("Pennywise Gate's source-bound road presentation", () => {
     expect(projectPennywiseGateScene(arrived)).toMatchObject({ phase: "approach", heroId: arrived.hero.id,
       commandId: arrived.chronicle.at(-1)!.commandId, edgeId: "location:0~location:8",
       nearPointIndex: 313, farPointIndex: 312, nearProgress: 8, farProgress: 15,
-      distanceBefore: 0, distanceAfter: 8, goldBefore: 12, goldSpent: 0, goldAfter: 12,
+      distanceBefore: 0, distanceAfter: 8, goldBefore: arrived.depth.hero.gold, goldSpent: 0, goldAfter: arrived.depth.hero.gold,
       headline: "PENNYWISE GATE", detail: "2 GOLD, OR LIFT THE BAR" });
     expect(arrived.depth.atlas.route!.legProgress).toBe(8);
     expect(arrived.depth.atlas.currentLocationId).toBe(before.depth.atlas.currentLocationId);
@@ -36,11 +36,12 @@ describe("Pennywise Gate's source-bound road presentation", () => {
   });
 
   it("shows a paid passage only after spending two real gold and advancing seven real miles", () => {
-    expect(projectPennywiseGateScene(paid)).toMatchObject({ phase: "paid", goldBefore: 12, goldSpent: 2, goldAfter: 10,
+    const goldBefore = arrived.depth.hero.gold;
+    expect(projectPennywiseGateScene(paid)).toMatchObject({ phase: "paid", goldBefore, goldSpent: 2, goldAfter: goldBefore - 2,
       distanceBefore: 8, distanceAfter: 15, headline: "PAID PASSAGE",
       detail: paid.depth.pennywiseGate!.completion!.line, compactDetail: "2 GOLD · ROAD +7" });
     expect(paid.depth.atlas.route!.legProgress).toBe(15);
-    expect(paid.depth.hero.gold).toBe(10);
+    expect(paid.depth.hero.gold).toBe(goldBefore - 2);
     expect(paid.depth.hero.resources).toEqual(arrived.depth.hero.resources);
     expect(paid.depth.hero.inventory).toEqual(arrived.depth.hero.inventory);
     expect(paid.depth.hero.experience).toBe(arrived.depth.hero.experience);
@@ -49,13 +50,13 @@ describe("Pennywise Gate's source-bound road presentation", () => {
 
   it("keeps lifting stationary, then moves through on a distinct actual command", () => {
     expect(projectPennywiseGateScene(lifting)).toMatchObject({ phase: "lifting", distanceBefore: 8, distanceAfter: 8,
-      goldBefore: 12, goldSpent: 0, goldAfter: 12, headline: "LIFTING THE BAR" });
+      goldBefore: arrived.depth.hero.gold, goldSpent: 0, goldAfter: arrived.depth.hero.gold, headline: "LIFTING THE BAR" });
     expect(lifting.depth.atlas).toEqual(arrived.depth.atlas);
     expect(lifting.depth.hero).toEqual(arrived.depth.hero);
     expect(lifting.depth.pennywiseGate!.completion).toBeNull();
     expect(passed.chronicle.at(-1)!.commandType).toBe("pass-pennywise-gate");
     expect(projectPennywiseGateScene(passed)).toMatchObject({ phase: "passed", distanceBefore: 8, distanceAfter: 15,
-      goldBefore: 12, goldSpent: 0, goldAfter: 12, headline: "FREE PASSAGE", detail: "Free passage. Some lifting required." });
+      goldBefore: arrived.depth.hero.gold, goldSpent: 0, goldAfter: arrived.depth.hero.gold, headline: "FREE PASSAGE", detail: "Free passage. Some lifting required." });
     expect(passed.depth.atlas).toEqual(paid.depth.atlas);
     expect(passed.depth.hero).toEqual(arrived.depth.hero);
   });

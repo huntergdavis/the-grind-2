@@ -9,14 +9,10 @@ import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, isValidCounterDuelGraph, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, selectDungeonEntryPlan, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
-
-function settleTownKitPurchase(state: DepthState): DepthState {
-  const purchase = depthCommandCandidates(state).find((candidate) => candidate.command.type === "buy-disarming-kit");
-  return purchase === undefined ? state : stepDepth(state, purchase.command);
-}
+import { settleInitialTownDepth } from "../../tests/initial-town-fixtures";
 
 function routeCombatFixture(state: DepthState, enemyCount: number): { routed: DepthState; command: Extract<import("./types").DepthCommand, { type: "start-combat" }> } {
-  state = settleTownKitPurchase(state);
+  state = settleInitialTownDepth(state);
   const route = depthCommandCandidates(state).find((candidate) => candidate.command.type === "plan-route");
   if (route?.command.type !== "plan-route") throw new Error("Tactical fixture needs a canonical route");
   const routed = stepDepth(state, route.command);
@@ -1532,7 +1528,7 @@ describe("composed depth state", () => {
   });
 
   it("fully rests at or below half health before one unresolved road encounter", () => {
-    const base = settleTownKitPurchase(createDepthState("critical-roadside-recovery", "hero:roadside", "Tarin Vale"));
+    const base = settleInitialTownDepth(createDepthState("critical-roadside-recovery", "hero:roadside", "Tarin Vale"));
     const route = depthCommandCandidates(base).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Recovery fixture needs a route");
     const planned = stepDepth(base, route.command);

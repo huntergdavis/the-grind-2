@@ -9,6 +9,7 @@ import { createQuest, describeCompletedQuestReward, emberTonicId, heroLevelForEx
 import { depthCommandCandidates, projectRouteEncounterThreatContext, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
+import { settleInitialTownWorld } from "../../tests/initial-town-fixtures";
 import { createChampionInduction } from "./champions";
 import { canonicalHash } from "./canonical";
 import { createHeroGrowthState } from "./hero-growth";
@@ -24,11 +25,6 @@ import {
   rulesEngine,
   upgradeWorldState,
 } from "./simulation";
-
-function settleTownKitPurchase(world: ReturnType<typeof createWorld>) {
-  return depthCommandCandidates(world.depth).some((candidate) => candidate.command.type === "buy-disarming-kit")
-    ? advanceWorld(world) : world;
-}
 
 function worldBeforeTrap() {
   const world = createWorld("world-trap", "campaign:world-trap");
@@ -698,7 +694,7 @@ describe("autonomous simulation", () => {
     );
     if (source.championInduction === null) throw new Error("Mentor arc catch-up fixture needs a Champion");
     const seed = "mentor-arc-catch-up";
-    const base = settleTownKitPurchase(
+    const base = settleInitialTownWorld(
       createWorld(seed, "campaign:mentor-arc-catch-up", createCampaignLegacyState(seed, [source.championInduction])),
     );
     const firstTown = base.depth.towns[base.depth.atlas.currentLocationId];
@@ -1072,7 +1068,7 @@ describe("autonomous simulation", () => {
         atlas: { ...initial.depth.atlas, currentLocationId: junction.id },
       },
     };
-    const prepared = settleTownKitPurchase(world);
+    const prepared = settleInitialTownWorld(world);
     const opportunity = campaignDirector(prepared);
     const choice = actorPolicy(prepared, opportunity);
     expect(choice.consideredActions.length).toBeGreaterThan(1);
@@ -1388,7 +1384,7 @@ describe("autonomous simulation", () => {
   });
 
   it("uses an emergency restorative autonomously without awarding action XP", () => {
-    const base = settleTownKitPurchase(createWorld("restorative-xp", "campaign:restorative-xp"));
+    const base = settleInitialTownWorld(createWorld("restorative-xp", "campaign:restorative-xp"));
     const route = depthCommandCandidates(base.depth).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Restorative XP fixture needs a route");
     const routed = stepDepth(base.depth, route.command);
@@ -1481,9 +1477,10 @@ describe("autonomous simulation", () => {
     });
     expect(upgradeWorldState(structuredClone(restocked))).toEqual(restocked);
 
-    const route = depthCommandCandidates(restocked.depth).find((candidate) => candidate.command.type === "plan-route");
+    const townReady = settleInitialTownWorld(restocked);
+    const route = depthCommandCandidates(townReady.depth).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Restocked lifecycle needs a route");
-    const routed = stepDepth(restocked.depth, route.command);
+    const routed = stepDepth(townReady.depth, route.command);
     const encounterId = unresolvedRouteEncounterId(routed);
     if (encounterId === null) throw new Error("Restocked lifecycle needs an encounter");
     const started = stepDepth(routed, { type: "start-combat", encounterId, enemyCount: 1 });
@@ -1504,10 +1501,10 @@ describe("autonomous simulation", () => {
       },
     };
     const combatWorld = upgradeWorldState({
-      ...restocked,
+      ...townReady,
       tick: combatDepth.tick,
       hero: {
-        ...restocked.hero,
+        ...townReady.hero,
         level: combatDepth.hero.level,
         experience: combatDepth.hero.experience,
         health,
@@ -1515,7 +1512,7 @@ describe("autonomous simulation", () => {
         gold: combatDepth.hero.gold,
       },
       depth: combatDepth,
-      lifecycle: { ...restocked.lifecycle, simulationTick: combatDepth.tick },
+      lifecycle: { ...townReady.lifecycle, simulationTick: combatDepth.tick },
     });
     const combatOpportunity = campaignDirector(combatWorld);
     const combatChoice = actorPolicy(combatWorld, combatOpportunity);
@@ -1906,7 +1903,7 @@ describe("autonomous simulation", () => {
   });
 
   it("saturates maximum hero experience across deterministic positive-XP commands", () => {
-    const initial = settleTownKitPurchase(createWorld("maximum-experience", "campaign"));
+    const initial = settleInitialTownWorld(createWorld("maximum-experience", "campaign"));
     const withExperience = (experience: number) => {
       let world = withHeroExperience(structuredClone(initial), experience);
       // The high-level hero now encounters the actual public book first. Keep
@@ -2152,7 +2149,7 @@ describe("autonomous simulation", () => {
   });
 
   it("rejects malformed active, completed, identity, duplicate, and cross-engine encounter roles", () => {
-    const base = settleTownKitPurchase(createWorld("encounter-role-invariants", "campaign:encounter-role-invariants"));
+    const base = settleInitialTownWorld(createWorld("encounter-role-invariants", "campaign:encounter-role-invariants"));
     const route = depthCommandCandidates(base.depth).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Encounter-role fixture needs a route");
     const routed = stepDepth(base.depth, route.command);

@@ -2,18 +2,14 @@ import { describe, expect, it } from "vitest";
 import { edgeBetween, neighboringLocationIds, projectSuccessorQuestLead } from "../depth";
 import { selectCompanionReturn } from "../depth/companion-reunion";
 import { naturalCompanionReunionArrivalFixture } from "../../tests/companion-reunion-fixtures";
+import { settleInitialTownWorld } from "../../tests/initial-town-fixtures";
 import { actorPolicy } from "./actor-policy";
 import { constrainForwardMotion, forwardMotionLabel, maximumRecentJourneyEntries } from "./forward-motion";
 import { advanceWorld, campaignDirector, createWorld, rulesEngine, upgradeWorldState } from "./simulation";
 import type { DirectedJourneyLeg, WorldState } from "./types";
 
-function settleTownKitPurchase(world: WorldState): WorldState {
-  const purchase = campaignDirector(world).candidates.some((candidate) => candidate.command.type === "buy-disarming-kit");
-  return purchase ? advanceWorld(world) : world;
-}
-
 function atJunction(seed: string): { world: WorldState; fromId: string; junctionId: string; alternateId: string } {
-  const initial = settleTownKitPurchase(createWorld(seed, `campaign:${seed}`));
+  const initial = settleInitialTownWorld(createWorld(seed, `campaign:${seed}`));
   const junction = initial.depth.atlas.locations.find(
     (location) => neighboringLocationIds(initial.depth.atlas, location.id).length >= 2,
   );
@@ -151,7 +147,7 @@ describe("Game Master forward motion", () => {
   }, 40_000);
 
   it("persists one route directive through interruption and records arrival once", () => {
-    let world = settleTownKitPurchase(createWorld("forward-route-life", "campaign:forward-route-life"));
+    let world = settleInitialTownWorld(createWorld("forward-route-life", "campaign:forward-route-life"));
     world = advanceWorld(world);
     const directive = world.forwardMotion.activeDirective;
     expect(world.depth.atlas.route).not.toBeNull();

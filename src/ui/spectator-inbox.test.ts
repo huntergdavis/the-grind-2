@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { settleInitialTownWorld } from "../../tests/initial-town-fixtures";
 import { witnessedEncoreFixture } from "../../tests/repartee-witness-fixtures";
 import {
   advanceWorld,
@@ -284,8 +285,7 @@ describe("spectator inbox", () => {
   });
 
   it("coalesces a real battle from first threat through exact outcome and rewards", () => {
-    let before = createWorld("spectator-battle", "campaign:battle");
-    if (depthCommandCandidates(before.depth).some((candidate) => candidate.command.type === "buy-disarming-kit")) before = advanceWorld(before);
+    let before = settleInitialTownWorld(createWorld("spectator-battle", "campaign:battle"));
     const route = depthCommandCandidates(before.depth).find((candidate) => candidate.command.type === "plan-route");
     if (route?.command.type !== "plan-route") throw new Error("Spectator battle fixture needs a route");
     const routed = stepDepth(before.depth, route.command);

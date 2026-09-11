@@ -103,9 +103,10 @@ describe("narrator evaluation corpus", () => {
     }
     expect(prompts).toHaveLength(20);
     expect(prompts.every(isNarratorPromptV1)).toBe(true);
-    // v157 adds a quiet, real town-supply turn to these early gameplay scenes.
+    // v172's real smithy admission and strokes now occupy the early town scenes.
+    // Reviewed packets expose only scene/place/energy, never job rules or wages.
     // The independent sealed evaluation corpus fingerprint above is unchanged.
-    expect(canonicalHash(prompts)).toBe("cbc119e3e3ded8dc");
+    expect(canonicalHash(prompts)).toBe("78c6964c1a05a366");
     expect(JSON.stringify(prompts)).not.toMatch(/reward|objective|consequence|decision|gold|experience/iu);
   });
 

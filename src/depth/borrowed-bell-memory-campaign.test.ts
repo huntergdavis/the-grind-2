@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
 import { borrowedBellMemoryRecoveryBoundaryFixture } from "../../tests/borrowed-bell-memory-fixtures";
 import { canonicalStringify } from "../core/canonical";
+import { randomInt } from "../core/rng";
 import { advanceWorld, campaignDirector, catchUpWorld, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-bell-memory";
@@ -85,17 +86,23 @@ describe("one delivery memory at an existing real rest", () => {
     const encounterId = `encounter:route:${ready.depth.atlas.route!.path.join(">")}`;
     expect(memory.rest.encounterId).toBe(encounterId);
     expect(selectBellDeliveryMemory(after.depth)).toBeNull();
+    // The earned route now selects a Pattern Duel. Its engine is bound to
+    // the same route ID, not to the recovery tick or the private recollection.
+    expect(randomInt(4, after.seed, "depth-director", encounterId, 0, "encounter-engine")).toBe(0);
     expect(campaignDirector(after).candidates.map(candidate => candidate.command)).toEqual([
-      { type: "start-combat", encounterId, enemyCount: 2 },
+      { type: "start-counter-duel", encounterId },
     ]);
     const continued = advanceWorld(after);
-    expect(continued.chronicle.at(-1)?.commandType).toBe("start-combat");
-    expect(continued.depth.combat?.id).toBe(encounterId);
+    expect(continued.chronicle.at(-1)?.commandType).toBe("start-counter-duel");
+    expect(continued.depth.counterDuel?.id).toBe(encounterId);
+    expect(continued.depth.combat).toBeNull();
     expect(continued.depth.bellMemory).toEqual(memory);
     expect(continued.depth.bellExpedition).toEqual(board);
     expect(continued.depth.hero.gold).toBe(after.depth.hero.gold);
-    // The memory grants no XP; the following ordinary combat entry still grants its existing eight.
-    expect(continued.depth.hero.experience).toBe(after.depth.hero.experience + 8);
+    // Neither the memory nor the actual Pattern Duel admission grants XP.
+    // This is not the tactical-combat entry's separate eight-XP rule.
+    expect(continued.depth.hero.experience).toBe(after.depth.hero.experience);
+    expect(continued.depth.hero.resources).toEqual(after.depth.hero.resources);
     expect(continued.depth.atlas.route).toEqual(after.depth.atlas.route);
     expect(isValidBellDeliveryMemory(continued.depth)).toBe(true);
     expect(reload(continued.depth)).toEqual(continued.depth);
@@ -157,7 +164,7 @@ describe("one delivery memory at an existing real rest", () => {
     }
   });
 
-  it("requires exact current recovery balances and route while allowing later legitimate combat history", () => {
+  it("requires exact current recovery balances and route while allowing later legitimate encounter history", () => {
     const original = after.depth;
     for (const state of [
       { ...original, hero: { ...original.hero, gold: original.hero.gold + 1 } },

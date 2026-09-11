@@ -30,13 +30,12 @@ describe("one source-bound Pennywise Gate on a real road", () => {
   it("establishes the new gate only after ordinary travel reaches real interior terrain points", () => {
     const snapshot = JSON.stringify(before), approach = selectPennywiseGateApproach(before)!;
     expect(before).not.toHaveProperty("pennywiseGate");
-    expect(before.tick).toBe(7);
     expect(approach).toMatchObject({ approachDistance: 8, site: { nearProgress: 8, farProgress: 15 } });
-    expect(ready.tick).toBe(8);
+    expect(ready.tick).toBe(before.tick + 1);
     expect(ready.atlas.currentLocationId).toBe(before.atlas.currentLocationId);
     expect(ready.atlas.route!.legIndex).toBe(before.atlas.route!.legIndex);
     expect(ready.pennywiseGate).toMatchObject({ schemaVersion: 1, rulesVersion: "pennywise-gate-v1", heroId: before.hero.id,
-      arrival: { tick: 8, sourceCommandId: "depth:8:travel:8", distance: 8, routeBefore: before.atlas.route, routeAtGate: ready.atlas.route },
+      arrival: { tick: ready.tick, sourceCommandId: `depth:${ready.tick}:travel:8`, distance: 8, routeBefore: before.atlas.route, routeAtGate: ready.atlas.route },
       choice: null, completion: null });
     expect(ready.atlas.edges).toEqual(before.atlas.edges);
     // Reaching the gate is ordinary travel and keeps its existing one XP.
@@ -44,19 +43,22 @@ describe("one source-bound Pennywise Gate on a real road", () => {
     expect(ready.hero).toEqual({ ...before.hero, experience: before.hero.experience + 1 });
     expect(capturePennywiseGateArrival(before, ready, { type: "travel", distance: 8 })).toEqual(ready.pennywiseGate);
     expect(capturePennywiseGateArrival(before, ready, { type: "travel", distance: 12 })).toBeNull();
-    expect(capturePennywiseGateArrival(before, { ...ready, tick: 9 }, { type: "travel", distance: 8 })).toBeNull();
+    expect(capturePennywiseGateArrival(before, { ...ready, tick: ready.tick + 1 }, { type: "travel", distance: 8 })).toBeNull();
     expect(selectPennywiseGateApproach(ready)).toBeNull();
     expect(JSON.stringify(before)).toBe(snapshot);
   });
 
   it("pays exactly two owned gold and crosses exactly seven miles in one action", () => {
     const snapshot = JSON.stringify(ready), command = choice(ready, "pay"), paid = commit(ready, command), receipt = paid.pennywiseGate!;
+    const goldBefore = ready.hero.gold;
+    expect(goldBefore).toBeGreaterThanOrEqual(2);
+    expect(paid.tick).toBe(ready.tick + 1);
     expect(pennywiseGateChoices(ready).map((entry) => entry.choice)).toEqual(["pay", "lift"]);
-    expect(receipt.choice).toMatchObject({ kind: "pay", tick: 9, sourceCommandId: pennywiseGateCommandId(9, command),
-      goldBefore: 12, goldSpent: 2, goldAfter: 10 });
-    expect(receipt.completion).toMatchObject({ tick: 9, sourceCommandId: receipt.choice!.sourceCommandId,
-      distance: 7, goldBefore: 12, goldSpent: 2, goldAfter: 10, line: "Two gold, and not a splinter on my dignity." });
-    expect(paid.hero.gold).toBe(10);
+    expect(receipt.choice).toMatchObject({ kind: "pay", tick: paid.tick, sourceCommandId: pennywiseGateCommandId(paid.tick, command),
+      goldBefore, goldSpent: 2, goldAfter: goldBefore - 2 });
+    expect(receipt.completion).toMatchObject({ tick: paid.tick, sourceCommandId: receipt.choice!.sourceCommandId,
+      distance: 7, goldBefore, goldSpent: 2, goldAfter: goldBefore - 2, line: "Two gold, and not a splinter on my dignity." });
+    expect(paid.hero.gold).toBe(goldBefore - 2);
     expect(paid.atlas.route!.legProgress).toBe(15);
     expect(paid.atlas.route!.distanceTravelled - ready.atlas.route!.distanceTravelled).toBe(7);
     expect(paid.atlas.currentLocationId).toBe(ready.atlas.currentLocationId);
@@ -76,13 +78,15 @@ describe("one source-bound Pennywise Gate on a real road", () => {
     expect(() => stepPennywiseGate(broke, choice(broke, "pay"))).toThrow();
     expect(() => stepPennywiseGate(broke, { type: "pass-pennywise-gate", gateId: broke.pennywiseGate!.gateId })).toThrow();
     const lifted = commit(broke, choice(broke, "lift"));
+    expect(lifted.tick).toBe(broke.tick + 1);
     expect(lifted.atlas).toEqual(broke.atlas);
     expect(lifted.hero).toEqual(broke.hero);
     expect(lifted.pennywiseGate!.completion).toBeNull();
     expect(isValidCampaignPennywiseGate(lifted)).toBe(true);
     expect(pennywiseGateChoices(lifted)).toEqual([]);
     const pass: GateCommand = { type: "pass-pennywise-gate", gateId: lifted.pennywiseGate!.gateId }, passed = commit(lifted, pass);
-    expect(passed.pennywiseGate!.completion).toMatchObject({ tick: 10, sourceCommandId: pennywiseGateCommandId(10, pass),
+    expect(passed.tick).toBe(lifted.tick + 1);
+    expect(passed.pennywiseGate!.completion).toMatchObject({ tick: passed.tick, sourceCommandId: pennywiseGateCommandId(passed.tick, pass),
       distance: 7, goldBefore: 0, goldSpent: 0, goldAfter: 0, line: "Free passage. Some lifting required." });
     expect(passed.atlas).toEqual(commit(ready, choice(ready, "pay")).atlas);
     expect(preserved(passed)).toEqual(preserved(broke));

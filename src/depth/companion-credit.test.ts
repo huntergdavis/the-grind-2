@@ -2,9 +2,10 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { companionCreditBeforeVictoryFixture, companionCreditFarewellFixture, companionCreditTownBoundaryFixture } from "../../tests/companion-credit-fixtures";
 import { naturalReparteeMemoryFixture } from "../../tests/repartee-memory-fixtures";
 import { actorPolicy } from "../core/actor-policy";
-import { canonicalStringify } from "../core/canonical";
-import { advanceWorld, campaignDirector, catchUpWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { canonicalHash, canonicalStringify } from "../core/canonical";
+import { advanceWorld, campaignDirector, catchUpWorld, upgradeWorldState } from "../core/simulation";
 import type { HeroValue, WorldState } from "../core/types";
+import releasedReuse from "../../tests/fixtures/companion-credit-v171-reused-route.json";
 import { captureCompanionCredit, companionCreditChoices, companionCreditCommandId, companionCreditFarewellLine, isValidCampaignCompanionCredit, selectCompanionCredit } from "./companion-credit";
 import { depthCommandCandidates, stepDepth, upgradeDepthState } from "./state";
 import type { DepthCommand, DepthState } from "./types";
@@ -174,13 +175,19 @@ describe("Share the credit: one actual contributor, two honest consequences", ()
     expect(isValidCampaignCompanionCredit({ ...later, companionCredit: { ...credit, farewell: { ...credit.farewell!, line: "Fabricated applause" } } })).toBe(false);
   });
 
-  describe("a reused route encounter ID", () => {
+  describe("a released v171 save with a reused route encounter ID", () => {
     let world: WorldState;
     beforeAll(() => {
-      // Exact failing canonical journey: the original Joss battle is evicted,
-      // then Borin fights on that route. This is setup, not a staged source.
-      world = createWorld("golden:7", "campaign:7");
-      for (let tick = 0; tick < 217; tick++) world = advanceWorld(world);
+      // Released-save regression, not fresh-current reachability. The exact
+      // original v171 T217 save retains Joss's evicted battle and Borin's real
+      // ongoing rematch. All original modules came from the pinned release;
+      // no roster, route, combat or outcome is staged. One current turn wins.
+      const hash = "15426ab7c88902ae";
+      expect(releasedReuse.provenance.releaseCommit).toBe("de54654df13706c30abbaac4cb6408b2e26ebc1d");
+      expect(canonicalHash(releasedReuse.world)).toBe(hash);
+      world = upgradeWorldState(structuredClone(releasedReuse.world));
+      expect(canonicalHash(world)).toBe(hash);
+      expect(canonicalStringify(world)).toBe(canonicalStringify(releasedReuse.world));
     });
     it("does not confuse another companion's later victory with the archived source", () => {
       const credit = world.depth.companionCredit!;

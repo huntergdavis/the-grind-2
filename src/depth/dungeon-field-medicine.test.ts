@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { naturalDungeonFieldMedicineFixture } from "../../tests/dungeon-field-medicine-fixtures";
 import { canonicalStringify } from "../core/canonical";
-import { advanceWorld, campaignDirector, upgradeWorldState } from "../core/simulation";
+import { actorPolicy, advanceWorld, campaignDirector, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { isValidDungeonState } from "./dungeon";
 import { dungeonFieldMedicineCommandId, isValidCampaignDungeonFieldMedicine, isValidDungeonFieldMedicineUse, selectDungeonFieldMedicine } from "./dungeon-field-medicine";
@@ -53,8 +53,16 @@ describe("one owned tonic between actual dungeon actions", () => {
     expect(reload(after)).toEqual(after);
     expect(upgradeWorldState(JSON.parse(canonicalStringify(used)))).toEqual(used);
     expect(selectDungeonFieldMedicine(after)).toBeNull();
-    expect(campaignDirector(used).candidates[0]!.command.type).toBe("move-dungeon");
-    expect(advanceWorld(used).depth.dungeon!.latestFieldMedicineUse).toEqual(receipt);
+    const opportunity = campaignDirector(used), choice = actorPolicy(used, opportunity);
+    expect(["move-dungeon", "disarm-dungeon-trap", "unlock-dungeon-gate", "search-dungeon", "open-dungeon-passage", "invoke-dungeon-shrine"])
+      .toContain(choice.command.type);
+    const ordinary = stepDepth(used.depth, choice.command), continued = advanceWorld(used);
+    expect(continued.chronicle.at(-1)).toMatchObject({ commandType: choice.command.type, commandId: choice.commandId });
+    expect(continued.depth.dungeon!.latestFieldMedicineUse).toEqual(receipt);
+    // Resume the actually offered room action (including a detected trap),
+    // with its own resource consequences and no repeated medicine effect.
+    expect(continued.depth.hero.resources).toEqual(ordinary.hero.resources);
+    expect(continued.depth.hero.inventory.find(item => item.id === receipt.itemId)?.quantity).toBe(receipt.quantityAfter);
   });
 
   it("depletes the final item and uses the same half-health boundary for direct and automatic commands", () => {

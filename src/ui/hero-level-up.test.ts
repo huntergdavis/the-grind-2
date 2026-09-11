@@ -43,6 +43,19 @@ function resolveLevel(seed: string, targetLevel: number) {
     }
     expect(before.depth.repartee.completed?.rounds).toHaveLength(3);
   }
+  if (campaignDirector(before).candidates[0]?.command.type === "start-smithy-job") {
+    // The actual finite workshop grants no XP. Finish its real admission and
+    // two strokes before isolating the original +1 XP threshold crossing.
+    for (const type of ["start-smithy-job", "smithy-stroke", "smithy-stroke"]) {
+      expect(campaignDirector(before).candidates.every(candidate => candidate.command.type === type)).toBe(true);
+      const previous = before; before = advanceWorld(before);
+      expect(before.chronicle.at(-1)?.commandType).toBe(type);
+      expect(before.hero.experience).toBe(previous.hero.experience);
+      expect(before.hero.level).toBe(previous.hero.level);
+    }
+    expect(before.depth.smithyJob?.strokes).toHaveLength(2);
+    expect(before.depth.smithyJob?.completion).not.toBeNull();
+  }
   const after = advanceWorld(before);
   const source = after.chronicle.at(-1);
   if (source === undefined) throw new Error("Level-up fixture produced no Chronicle source");

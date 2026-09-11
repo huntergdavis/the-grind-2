@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { settleInitialTownDepth } from "../../tests/initial-town-fixtures";
 import { createCounterDuel } from "./counter-duel";
 import { generateDungeon } from "./dungeon";
 import {
@@ -124,7 +125,7 @@ describe("autonomous town tonic restock", () => {
     expect(() => stepDepth(forgedName, { type: "restock-tonic", itemId })).toThrow("unavailable");
     expect(() => stepDepth(present, { type: "restock-tonic", itemId: "item:forged" })).toThrow("unavailable");
 
-    const unfunded = { ...present, hero: { ...present.hero, gold: 0 } };
+    const unfunded = settleInitialTownDepth({ ...present, hero: { ...present.hero, gold: 0 } });
     const routedCandidate = depthCommandCandidates(unfunded).find((candidate) => candidate.command.type === "plan-route");
     if (routedCandidate?.command.type !== "plan-route") throw new Error("Unsafe fixture needs a route candidate");
     const routed = stepDepth(unfunded, routedCandidate.command);
