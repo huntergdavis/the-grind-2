@@ -740,7 +740,7 @@ legal challenge win/loss/decline, hidden-information boundaries, exact sources,
 once-only money, boundary saves and ordinary onward play. One compact existing-
 style production browser scenario is enough. This proposal does not block W1.
 
-### B1 implementation checkpoint — v0.5.173
+### B1 delivered — v0.5.173
 
 The original known v172 journey proves a real eligible inn boundary at T4
 in 456 ms, canonical hash `63f2927459e83ca1`, under the unchanged 64-command /
@@ -773,8 +773,50 @@ version/boundary checks and the production build pass. The single 150-second
 browser scenario passes (2.3-minute runner), covering the natural decline and
 legal loss, exact reloads and Status sources, simulated result-resume debt and
 three inspected desktop/320px/Focus captures. No external/model requests or
-browser errors occur. CI and public-source verification remain **pending**. No new panel,
+browser errors occur. All 3,716 CI tests pass, including unchanged-limit
+canonical and forward-motion checks. Three public assets and ten emitted runtime
+sources match the pushed release at 2026-09-11 09:14:36 PDT. B1 is complete;
+initial fixture failures, their test-only repairs and local replay timeouts
+remain in [the council record](../../COUNCIL_REVIEW.md). No new panel,
 model, inventory filler, HP/MP/XP effect or automatic regard is included.
+
+## D5 proposed next slice — The Room Is Taken
+
+Read-only council recommendation, 2026-09-11 08:55:31 PDT, from the roadmap's
+named-room purposes, dungeon inhabitants and encounter-variety lane. Existing
+generation already produces `lair` cells, but entering one does not currently
+admit a fight. This proposal gives one real room a consequence, not another
+mandatory opening-town scene. Admission and defeat/revisit behavior are unproven.
+
+At the first eligible newly entered lair in a new solo expedition, reveal one
+real guardian, resolve existing tactical combat, then resume the same maze.
+“The map said lair. I had hoped it meant former lair.” A living solo hero,
+actual arrival at a generated lair, active expedition and no owed recovery or
+other encounter are required. Start with one guarded room per expedition,
+represented by one bounded source-bound record in that dungeon; do not populate
+old saves retroactively or reveal an unvisited inhabitant on the map.
+
+Record the actual dungeon, cell, arrival command and combat identity. Only a
+real victory clears the lair. Preserve normal combat HP/MP, learning and reward
+rules, with no extra room-completion payout or repeated victory rewards.
+Defeat must remain defeat, using existing recovery at the dungeon entrance;
+the same surviving guardian cannot become an invented victory or new loot roll.
+Decide and test its exact retained-state/revisit rule before implementation.
+
+`start-combat` currently requires the unresolved active route encounter. Add a
+narrowly validated dungeon-lair admission without weakening that route guard
+or inventing a road. Reuse dungeon → combat → dungeon presentation, one brief
+caption, existing Status history and a truthful cleared-room glyph in both
+2D and first-person. No extra Watch panel, new model, deck engine or art pack.
+
+First inspect one unchanged current `shared-road-playful:7` /
+`campaign:browser-repartee-memory` journey under its existing T320 ceiling and
+a 20-second post-import cap. Stop at its first genuinely entered eligible lair;
+if negative, preserve that result and defer rather than search seeds, alter
+room geometry or raise the cap. This source proof has not yet run. Then cover
+one actual battle/resume, exact boundary saves, strict source rejection,
+victory/defeat distinction and no repeat reward. One bounded production browser
+scenario is enough. This proposal does not gate the B1 release.
 
 ## Make the adventures accumulate into a life
 

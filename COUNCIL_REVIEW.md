@@ -2,16 +2,35 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## The Cup Is Exaggerating — v0.5.173 implementation checkpoint
+## The Cup Is Exaggerating — v0.5.173 final delivery
 
-**In progress; build and browser pass, CI and public-source verification
-remain pending.** Reuse: `deja "The Cup Is Exaggerating B1 inn"` recovered the
+**Live and publicly source-verified 2026-09-11 09:14:36 PDT.** Feature
+`dbae701904d70835886ab9f4fb573ca55696aac9` and test-only correction
+`cb1b436f45f6a6695d035d5a6e7dbd76834206da` are pushed to `origin/main`.
+[Successful Pages run 34620222087](https://github.com/huntergdavis/the-grind-2/actions/runs/34620222087)
+passes all 273 release files and 3,716 tests; two long audits remain opt-in.
+Canonical: four tests, 18.888s. Forward motion: eight tests, 6.651s. Main suite:
+261.14s; deployment job: 5m33s. All original limits remain unchanged; the failed
+initial run, exact fixture corrections and local replay timeouts stay below.
+
+The production browser scenario passes in a 2.3-minute runner under its unchanged
+150-second scenario cap. All three native desktop/320px/Focus captures are
+inspected: the covered cup conceals the die, actual revealed pips match the
+receipt, and captions stay clear of actors. Exact saves, once-only stakes,
+result-resume protection and Status sources pass, without external/model
+requests or browser errors. Public `index-C06xcD3b.js`, `index-B9m_5Qf5.css`
+and `simulation.worker-CjV80p_c.js` match the local build byte-for-byte.
+Ten emitted runtime source-map entries match the corrected commit; protected
+ledger sources are absent. LLM workers, CSS and optional dungeon chunks are
+unchanged. The owned preview port 19897 is closed. B1 is complete.
+
+Reuse: `deja "The Cup Is Exaggerating B1 inn"` recovered the
 2026-09-11 07:56:32 PDT council proposal (Codex 2026-09-10T1), retained in
 [Adventure forms](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
 That earlier recommendation was not implementation or admission evidence.
-Separate rules, presentation and acceptance owners now implement the bounded
-encounter; root owns integration and release. LLM and protected ledger work
-remain untouched. No next proposal is added at this checkpoint.
+Separate rules, presentation and acceptance owners implemented the bounded
+encounter; root integrated and verified the release. LLM and protected ledger work
+remain untouched. The later read-only D5 proposal below is not implementation.
 
 The single unchanged v172 `shared-road-playful:7` / `campaign:browser-repartee-memory`
 baseline stops at T4 in 456 ms, inside its original 64-command/10-second
@@ -64,6 +83,48 @@ packets change only where two T5 routes become inn admissions; their reviewed
 fingerprint is `084f88cba6c5180e`. All eight evaluation tests pass, while the
 separate sealed 200-case corpus stays `63b3a0ee9fef092a`. No model was run.
 
+The subsequent local canonical suite reports two passes and two unchanged-limit
+timeouts: save/migration/replay takes 41.422s against 20s; ten-golden replay takes
+152.563s against 80s (201.18s total). No hash or schema mismatch is reported.
+The independent ten-campaign source generation above completed successfully;
+the clean GitHub run remains the release check. No local retry or limit increase.
+
+Initial [Pages run 34619136894](https://github.com/huntergdavis/the-grind-2/actions/runs/34619136894)
+for feature `dbae701904d70835886ab9f4fb573ca55696aac9` does **not** deploy:
+3,712 tests pass and four assertions fail in three older test files; two long
+audits remain opt-in/skipped. All new inn tests pass. All four canonical checks
+pass in 21.738s, including save/migration/replay in 5.219s and ten golden hashes
+in 16.515s, under their unchanged limits. The main suite takes 301.49s;
+the failed job takes 5m34s. The failures are the forged mentor fact-graph fixture,
+a schema-fifteen restorative fixture and two level-up presentation assertions.
+Their exact causes and corrections are under separate review, not hidden by
+raising limits, skipping tests or marking this run successful.
+
+The mentor-forgery setup now completes the shared finite opening before its
+existing visit-count scenario. It explicitly earns a real `visit-town` and
+round-trips the valid graph before testing both unchanged rehashed forgeries;
+its targeted test passes. The remaining level-up envelope uses the same actual
+zero-XP obligations before its exact +1 XP/Level-1000 crossing. Both checks
+pass; the ordinary-crossing negative now explicitly proves 11→12 XP/Level2.
+These are test-only corrections. The initial CI's eight forward-motion tests
+also pass in 7.771s. The schema-fifteen fixture's completed combat now naturally
+uses an Ember Tonic: a real v2 `restorative-used` event at T21/turn11, three→two
+tonics and HP2→13. Stripping its source fields and labeling it a v1/schema15
+stream invented an impossible legacy record, correctly rejected by validation.
+The correction constructs this explicitly synthetic legacy fixture using only
+the old legal non-item combat action repertoire, with a bounded 64-action
+completion and an explicit no-restorative-event assertion. Original migration,
+idempotence and malformed-current-stream assertions remain intact. No runtime
+validator, save format, resource or outcome is rewritten.
+
+All five directly targeted corrective checks pass (one mentor, two level-up,
+two adjacent migration checks), plus final TypeScript and whitespace checks.
+The three-file test-only correction is pushed as
+`cb1b436f45f6a6695d035d5a6e7dbd76834206da`;
+[Pages run 34620222087](https://github.com/huntergdavis/the-grind-2/actions/runs/34620222087)
+passes, as recorded above. Runtime, production assets and the passed browser scenario are
+unchanged; no redundant production rebuild or browser rerun is needed.
+
 A bounded adjacent-regression review initially finds seven old assumptions
 failing among 29 passes: the real gate approach is now 6→8 miles, ordinary
 post-challenge continuation is ability training, and the later road selects
@@ -75,8 +136,27 @@ final TypeScript and whitespace checks pass. Runtime was not changed or rebuilt.
 Ignored recovery artifacts: `scratch/cup-bluff-baseline-evidence.json`,
 `scratch/cup-bluff-baseline-checkpoint.json` and
 `scratch/inn-bluff-integrated-evidence.json`. They record source evidence, not
-a production deployment. W1 v0.5.172 below remains the latest publicly verified
-release until the remaining B1 gates actually pass.
+a production deployment by themselves. The independent successful CI and
+public-source verification above establish the actual B1 release.
+
+### Next proposal — D5, The Room Is Taken
+
+Read-only acceptance-owner recommendation at 2026-09-11 08:55:31 PDT, checked
+against current code by root. Reuse: `deja "dungeon lair guardian inhabitants"`
+recovers the council discussion in Codex 2026-09-10T1. `dungeon.ts` genuinely
+generates lairs; `move-dungeon` gives shrines, treasure and traps distinct
+consequences but no lair encounter. `start-combat` strictly requires a route
+encounter today. The proposal must add a separate validated admission and keep
+that existing guard, actual combat costs/rewards and defeat recovery intact.
+
+[The bounded proposal](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken)
+selects one real inhabited lair, actual tactical fight and same-maze return,
+with a source-bound cleared-room glyph rather than another panel or mandatory
+town prelude. Its existing-journey T320/20-second admission proof has not run;
+defeat/revisit and retained-guardian behavior need explicit rules before coding.
+No source journey, runtime change, new research or implementation is claimed.
+The larger Echo Cache and last-known-threat proposals retain their missing
+retreat/storage and roaming/sensing dependencies, respectively.
 
 ## Surely I Can Make One Nail — v0.5.172 final delivery
 

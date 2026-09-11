@@ -5,16 +5,21 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: B1 — The Cup Is Exaggerating (v0.5.173).** A real inn resident
-   offers one short covered-die bluff. Challenge for a one-gold stake or decline;
-   reveal the committed truth and its exact consequence. Ordinary admission,
-   real source-bound resolution, focused checks, production build and browser
-   acceptance pass. CI and public deployment remain pending. One table,
-   two actors and the existing caption/Status history; no model or new panel.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
+1. **Next proposal: D5 — The Room Is Taken.** Give one genuinely entered dungeon
+   lair a guardian, resolve real tactical combat, then resume the same maze.
+   Preserve actual costs, defeat and once-only rewards; use existing stages and
+   a cleared-room glyph. Admission and retained-guardian/revisit rules remain
+   unproven; the bounded source proof comes first.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
+
+**Latest live: B1 — The Cup Is Exaggerating, v0.5.173**, publicly source-verified
+2026-09-11 09:14:36 PDT. A real inn resident offers a short covered-die claim.
+Challenge for one gold or decline for free; reveal the committed truth once.
+Winning returns two gold, losing returns none. One table, two actual actors,
+one reveal gesture and existing caption/Status history; no extra panel or model.
 
 The unchanged B1 baseline finds an eligible Candle Inn boundary at T4 in 456 ms, after the
 actual smithy job. Integrated play seats Aster with Cato Ash, an actual scholar,
@@ -24,20 +29,17 @@ gold. Ordinary route planning to Glimmerwood resumes at T7. The tell agrees
 with the hidden claim two times in three, not always; private truth never enters
 the pre-reveal decision or drawing packet. [Current evidence](COUNCIL_REVIEW.md).
 
-**Latest live: W1 — Surely I Can Make One Nail, v0.5.172**, publicly source-verified
-2026-09-11 08:23:11 PDT. A real smithy job has two autonomous strokes:
-tap for free or drive for one owned MP. A straight nail earns two gold once;
-unfinished and bent work get different honest, unpaid endings. Native
-desktop/320px/Focus scenes, exact saves, foreground resume and Status sources
-pass. No extra Watch panel, crafting framework, XP or model.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34615244337)
-passed 3,699 tests; two long audits stay opt-in. Three public assets and nine
-runtime source-map entries match the release. Older fixture repairs and a local
-soak timing failure (passing in clean CI) remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34620222087)
+passes 3,716 tests in 273 files; two long audits remain opt-in. The production
+browser scenario passes with three inspected desktop/320px/Focus views, exact
+saves and no external/model requests or errors. Three public assets and ten
+runtime source-map entries match the pushed release. Initial fixture failures,
+test-only corrections and local replay timeouts (passing in clean CI) remain
+in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 T1's ferry is deferred: the bounded known journey and all 14 roads on its map
 have no recorded river crossings. That negative evidence is preserved.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2 and W1 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2, W1 and B1 are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -57,7 +59,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **B1 — The Cup Is Exaggerating** | Challenge a resident's covered-die claim or decline; reveal the actual result | Build, focused and browser checks pass; CI/public pending |
+| **D5 — The Room Is Taken** | Enter a real inhabited lair, fight its guardian and resume the same dungeon | Next proposal; source admission and defeat/revisit rules unproven |
 
 This is an individual delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -92,7 +94,7 @@ general framework. All remain client-side and work without an LLM.
 - Known-danger avoidance, map exclusions, waypoints and risk-aware routing.
 - Scouting and companion-provided dungeon knowledge.
 - Wider secret-passage networks beyond D4, one-way hazards and passages that change.
-- Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences.
+- Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences; D5 proposes the first occupied lair.
 - **Expedition Echo Cache:** leave actual supplies during retreat and recover them later.
 - **Last-known threat marks:** distinguish remembered monster positions from currently visible threats.
 - Durable movement trails and lifetime dungeon statistics: exploration, disarms, triggers and resource losses.
@@ -185,7 +187,7 @@ general framework. All remain client-side and work without an LLM.
 Each is a real ruleset with consequences—not just another battle animation.
 
 - **Flyting / repartee expansion:** additional rivals and claim families beyond the shipped finite F1/F2 contests, witnessed reactions and F3 book-led public challenge.
-- **Poker-like showdowns:** original bluffing, tells, wagers and reveals.
+- **Poker-like showdowns:** broader original bluffing, tells, wagers and reveals beyond B1's shipped single covered-cup encounter.
 - **Card-based RPG battles:** bounded decks assembled from earned campaign content.
 - **Microgame gauntlets:** short dodge, catch, balance, repair, memory and escape challenges.
 - **Rhythm battles:** autonomous performances, mistakes, recoveries and musical rivalries.

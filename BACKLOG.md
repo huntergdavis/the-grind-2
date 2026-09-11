@@ -22,9 +22,9 @@ road progress, two-gold versus two-action choices, exact reloads, native browser
 acceptance, CI and public-source verification passed. W1's small smithy job is
 live in v0.5.172: actual admission, exact MP/wages, all four legal stroke
 sequences, source-preserving saves, native browser, CI and public verification
-pass. B1's short inn bluff is now in progress for v0.5.173: actual admission,
-source-bound resolution and focused checks pass; build, browser, CI and public
-deployment remain pending. T1's ferry
+pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
+browser, CI and public-source verification pass. D5's inhabited dungeon lair
+is proposed next; its source admission remains unproven. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -36,7 +36,7 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## In progress — The Cup Is Exaggerating (v0.5.173)
+## Latest delivery — The Cup Is Exaggerating (v0.5.173)
 
 Reuses the council's 2026-09-11 07:56:32 PDT B1 scope, recovered with
 `deja "The Cup Is Exaggerating B1 inn"` and retained in
@@ -65,15 +65,27 @@ separate legal challenge, pre-reveal omission, Status sources, exact reloads,
 synthetic resume debt and desktop/320px/Focus geometry. All three captures are
 inspected; no external/model requests or browser errors occur. Three local
 assets and ten emitted runtime sources match the frozen working tree.
-CI and public-source verification remain **pending**, not delivered evidence.
+Publicly source-verified 2026-09-11 09:14:36 PDT. Feature `dbae701` and
+test-only correction `cb1b436` are pushed to `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34620222087):
+273 files and 3,716 tests pass; two long audits stay opt-in. Canonical: four
+tests, 18.888s; forward motion: eight tests, 6.651s. Main suite: 261.14s;
+deployment job: 5m33s. Three public assets and ten emitted runtime sources match
+the corrected commit. Initial CI fixture failures, their exact repairs and
+local replay timeouts are preserved in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 The challenge-win outcome is covered by explicitly separate literal unit
 fixtures, not represented as another natural outcome of this same cup.
-W1 remains the latest live release; historical delivery receipts stay below.
+B1 is complete; historical delivery receipts stay below.
+The next read-only council proposal is
+[D5 — The Room Is Taken](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken):
+one actually inhabited dungeon lair, a real fight and same-maze continuation.
+Its bounded source admission and retained-guardian/revisit rules are unproven;
+it adds no current runtime or release requirement to B1.
 
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Surely I Can Make One Nail (v0.5.172)
+## Prior delivery — Surely I Can Make One Nail (v0.5.172)
 
 Publicly source-verified 2026-09-11 08:23:11 PDT. Feature `21462a0` and
 test-only correction `6285e2d` are pushed to `origin/main`.
