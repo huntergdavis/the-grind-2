@@ -476,7 +476,7 @@ recall found no reusable natural-fixture result. It is planning, not shipped D2.
 
 ## D3 proposed next slice — Dungeon field medicine
 
-Read-only council scope, 2026-09-11; not implemented by v0.5.167. This takes
+Council scope, 2026-09-11; implementation in progress for v0.5.168, not yet live. This takes
 the existing backlog's out-of-combat item use into one active solo dungeon.
 A living, badly wounded hero can use an actually owned Ember Tonic before
 continuing. Reuse `restorativeHealthAmount` in `src/depth/rpg.ts`: restore
@@ -490,8 +490,13 @@ drink. Preserve the current room and all earlier expedition facts. Reuse the
 portrait's HP bar and existing status history with one brief character action;
 do not add another panel or require viewer input or an LLM.
 
-Before implementation, inspect one known earned dungeon journey for a damaged
-hero with an owned tonic. No natural medicine opportunity is verified yet.
+The unchanged v0.5.167 earned journey supplies a genuine T71 opportunity at
+Hollowwatch's dungeon entrance: living solo hero, HP11/42, three owned tonics,
+with search as the old next command. The single bounded probe took 1.846 seconds;
+no health, inventory or location was staged. The new T72 medicine action restores
+HP11→22/42, consumes tonic3→2 and keeps the same cell. Exact reload and ordinary
+next movement pass; healing crosses the old cautious-search threshold. Direct
+and autonomous use share the same at-or-below-half-HP rule.
 Acceptance should cover one real consumption, exact item/HP changes, save and
 reload, normal next dungeon action, and rejection of empty/forged stacks, full
 health, death and active combat. Clearly label any isolated resource boundary;

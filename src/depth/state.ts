@@ -133,6 +133,7 @@ import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-
 import { isValidCampaignUsefulReply, stepCampaignUsefulReply, usefulReplyBook, usefulReplyCall, usefulReplyCommandCandidates } from "./useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeCommandCandidates, stepCampaignRoomChallenge } from "./room-challenge";
 import { captureCompanionReunionArrival, isValidCampaignCompanionReunion, selectCompanionReturn, selectCompanionReunion, stepCampaignCompanionReunion } from "./companion-reunion";
+import { isValidCampaignDungeonFieldMedicine, selectDungeonFieldMedicine, stepDungeonFieldMedicine } from "./dungeon-field-medicine";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -948,7 +949,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) ||
+      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1538,6 +1539,11 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "use-dungeon-tonic": {
+      const next = stepDungeonFieldMedicine(input, command), use = next.dungeon.latestFieldMedicineUse!;
+      return appendLog({ ...state, ...next }, "item",
+        `${input.hero.name} takes a bitter mouthful and steadies their hand. ${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter} · HP ${use.healthBefore}→${use.healthAfter}/${use.maxHealth} (+${use.amount}). One tonic spent; no movement, MP or XP change.`);
+    }
     case "reunite-companion": {
       const companionReunion = stepCampaignCompanionReunion(input, command), completed = companionReunion.completed!;
       return appendLog({ ...state, companionReunion }, "town",
@@ -2500,7 +2506,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
-    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) ||
+    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) || !isValidCampaignDungeonFieldMedicine(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
@@ -2512,7 +2518,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
-    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) || !isValidCampaignCompanionReunion(output) ||
+    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) || !isValidCampaignCompanionReunion(output) || !isValidCampaignDungeonFieldMedicine(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
@@ -2847,6 +2853,10 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     )];
   }
   if (state.dungeon !== null && !state.dungeon.completed) {
+    const medicine = selectDungeonFieldMedicine(state);
+    if (medicine !== null) return [{ id: medicine.sourceCommandId, deciderId: state.hero.id,
+      label: `drink ${medicine.itemName} ×${medicine.quantityBefore}→×${medicine.quantityAfter} for ${medicine.amount} HP before continuing`,
+      command: { type: "use-dungeon-tonic", dungeonId: medicine.dungeonId, cellId: medicine.cellId, itemId: medicine.itemId } }];
     if (dungeonTrapAt(state.dungeon, state.dungeon.currentCellId)?.phase === "detected") {
       return [commandCandidate(
         state,

@@ -5,11 +5,13 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: D3 — Dungeon field medicine.** A living, wounded solo hero
+1. **In progress: D3 — Dungeon field medicine (v0.5.168).** A living, wounded solo hero
    uses an actually owned Ember Tonic between dungeon actions, with its existing
    quarter-max-HP effect and real stack depletion. Reuse the portrait/status log.
    [Council scope](docs/design/ADVENTURE_FORMS.md#d3-proposed-next-slice--dungeon-field-medicine).
-   A natural eligible opportunity is not yet verified; not part of v0.5.167.
+   The unchanged v0.5.167 journey supplies a real T71 opportunity: HP11/42,
+   three owned tonics, active solo dungeon. T72 consumption, exact reload,
+   normal movement and desktop/mobile/Focus presentation pass; release is pending.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -51,7 +53,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D3 — Dungeon field medicine** | Use an owned tonic between dungeon actions; show the real HP and supply change | Scoped proposal; natural eligible opportunity not yet verified |
+| **D3 — Dungeon field medicine** | Use an owned tonic between dungeon actions; show the real HP and supply change | Implemented for v0.5.168; natural consumption/browser checks pass, release pending |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

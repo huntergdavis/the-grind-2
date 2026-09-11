@@ -13,7 +13,8 @@ The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
 F3b's later scored public challenge shipped in v0.5.166, using the learned frame
 without forcing every character to choose the winning answer. R1, a genuine
 former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
-field medicine is the next scoped proposal. Further playable features follow
+field medicine is implemented for v0.5.168 with natural-use/browser checks passed;
+release and public verification are pending. Further playable features follow
 one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.

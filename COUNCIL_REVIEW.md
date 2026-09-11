@@ -2,6 +2,60 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Dungeon field medicine — v0.5.168 implementation checkpoint
+
+Reusing the committed [D3 scope](docs/design/ADVENTURE_FORMS.md#d3-proposed-next-slice--dungeon-field-medicine)
+and the prior council's 02:51 field-medicine proposal recovered by
+`deja "dungeon field medicine"`. That recall supplies a proposal, not an existing
+command. Current `isCanonicalEmberTonic` and `restorativeHealthAmount` in
+`src/depth/rpg.ts` establish the actual item identity and quarter-max-HP effect.
+Rules, presentation and bounded browser acceptance have separate owners; root
+handles integration and release. LLM and protected ledger work stay out of scope.
+
+One unchanged v0.5.167 continuation of `shared-road-playful:7`, from the earned
+T38 checkpoint toward the existing T320 ceiling, finds a real opportunity at
+T71: solo Aster in active `dungeon:location:7`, Hollowwatch, entrance cell `0,0`,
+HP11/42, MP24/24, three canonical owned tonics, gold20 and XP78. The actual last
+command enters the dungeon; the old next action is search. The hero already
+recovered alive from an earlier road defeat—medicine must not claim revival.
+The baseline took 1.846 seconds of source execution, within the 20-second cap;
+no staged fields, seed scan or extended journey was used.
+
+Approved implementation boundary: `use-dungeon-tonic` at or below half HP,
+after existing encounter/recovery/settlement priorities and before dungeon
+actions. Consume exactly one owned tonic, restore the existing clamped quarter
+max HP, and leave room, movement, search, traps, MP, XP and quest history alone.
+A small optional latest-use receipt belongs to the retained dungeon, following
+the existing disarming-kit convention; absent old fields are inert, not invented
+past treatment. No new global archive or Depth schema bump is needed. Reuse
+the dungeon stage, portrait health bar and status history without another panel.
+The new actual T72 command restores HP11→22/42, spends tonic3→2 and leaves
+the room and other facts unchanged. Exact JSON upgrade passes; the next action
+is ordinary eastward movement, not the old search, because healing crosses the
+existing half-HP cautious-search threshold. The source check took 1.961 seconds.
+
+Seven medicine rule tests pass; presentation's 30 focused checks and 31 nearby
+search/policy tests pass. Two existing browser fixtures explicitly stage low HP
+and now no tonic, preserving their search/trap assertions rather than expecting
+search to outrank an available dose. No runtime guard was weakened. TypeScript,
+version, boundaries, production build and diff checks pass. The exact dependency
+checker required the new medicine module and its existing `rpg.ts` dependency
+in both sorted manifests; the recall query found no earlier matching repair.
+All ten existing whole-state campaign anchors were recalculated for actual
+medicine and its consequences, with the canonical 20/80-second caps unchanged.
+
+One production browser check passed in 54.5 seconds total, 31.1 seconds of
+interaction, within its unchanged 120-second limit. It proves real consumption,
+same cell, exact reload, Status Chronicle/mechanics sources and ordinary next
+movement without repeated consumption. No runtime error, model or external
+request occurred. Root directly inspected all three native desktop/320px/Focus
+captures: amber vial by the stationary hero, compact HP/stack caption above the
+rooms, actual portrait health, no new panel. First-person shares the same receipt
+and stationary heading; its projection is unit-covered, not separately browser
+captured in this slice. Three built assets and nine emitted runtime source-map
+entries match the working implementation; protected ledger sources are absent.
+CI and public deployment remain pending.
+
 ## A familiar face — v0.5.167 final delivery
 
 **Live and publicly source-verified 2026-09-11 at 03:14:19 PDT.** Feature

@@ -248,6 +248,9 @@ function scoreCandidate(
     if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
     if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
     reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
+  } else if (command.type === "use-dungeon-tonic") {
+    score = 80;
+    reason = "the living explorer is at half health or below; spending one owned Ember Tonic steadies them before another dungeon action, without moving or discovering anything";
   } else if (command.type === "reunite-companion") {
     score = 60;
     reason = "a real return has brought the hero back to a fulfilled companion's recorded farewell town; a hello honors that history without renewing the oath";
@@ -549,6 +552,7 @@ function presentationLabels(
 ): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
+    case "use-dungeon-tonic": return { actionLabel: "drinks one owned Ember Tonic", targetLabel: "the wounded explorer" };
     case "reunite-companion": return { actionLabel: "says hello after returning", targetLabel: state.depth.companionReunion?.companionName ?? "the recorded former companion" };
     case "start-bell": return { actionLabel: "accepts the Borrowed Bell delivery", targetLabel: "the storehouse board" };
     case "roll-bell": return { actionLabel: "rolls before choosing a pace", targetLabel: `delivery turn ${command.turn}` };

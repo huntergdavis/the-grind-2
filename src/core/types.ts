@@ -419,6 +419,7 @@ export interface PendingAttentionEvent {
 export type RecordedDepthCommandType = DepthCommand["type"] | "progress-objective";
 
 export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
+  "use-dungeon-tonic",
   "reunite-companion",
   "recruit-companion",
   "farewell-companion",

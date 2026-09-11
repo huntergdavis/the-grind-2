@@ -329,6 +329,8 @@ export interface DungeonState {
   search?: DungeonSearchStateV1;
   /** Absent in legacy dungeons; one historical receipt, not an unspent resource. */
   latestDisarmKitUse?: DungeonDisarmKitUseV1 | null;
+  /** Latest actual consumption in this expedition; absent legacy saves grant nothing. */
+  latestFieldMedicineUse?: import("./dungeon-field-medicine").DungeonFieldMedicineUse | null;
   id: string;
   name: string;
   width: number;
@@ -1240,6 +1242,7 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "use-dungeon-tonic"; dungeonId: string; cellId: string; itemId: string }
   | { type: "reunite-companion"; residentId: string; joinedTick: number; arrivalTick: number }
   | { type: "start-room-challenge"; encounterId: string; locationId: string; buildingId: string; residentId: string }
   | { type: "answer-room-challenge"; encounterId: string; responseId: string }

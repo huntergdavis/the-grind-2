@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v167 records Depth 35 and one actual former-companion return/reunion.
+      // v168 keeps Depth 35 and records actual dungeon tonic use and its consequences.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "9fb080f149cd64fe",
-      "ad46df23ccadb041",
-      "71e90c9b7bf01bbe",
-      "3d4195b2dd32f3b0",
-      "9730b51215a2b8e9",
-      "40053369a605cd5b",
-      "d3d0c742bad36cfe",
-      "b46b6ee7e3f558c7",
-      "135d5ca05fb1e883",
-      "e138cefdc0917c70",
+      "6403d2775500bf56",
+      "1f0e4fbca0df4717",
+      "22d1bd2f3947b748",
+      "6958754e410ad9f7",
+      "339dbb53fb16ca78",
+      "ba57bb5f6d876a83",
+      "a1bd0322d850a67c",
+      "e960c70867961178",
+      "91b400db939a77e9",
+      "6a9a5d1701183647",
     ]);
   }, 80_000);
 });

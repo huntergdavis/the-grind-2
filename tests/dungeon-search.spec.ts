@@ -4,7 +4,7 @@ import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simula
 import type { WorldState } from "../src/core/types";
 import { dungeonTrapAt, dungeonTrapKindLabel, projectDungeonSearchExits, resolveDungeonTrapCheck } from "../src/depth/dungeon";
 import type { DungeonTrapKind } from "../src/depth/types";
-import { effectiveAttribute, heroMechanicalLevel } from "../src/depth/rpg";
+import { effectiveAttribute, emberTonicId, heroMechanicalLevel } from "../src/depth/rpg";
 import { selectDungeonEntryPlan, stepDepth } from "../src/depth/state";
 import { dungeonFramingViewRect, projectDungeonFraming } from "../src/render/dungeon-framing";
 import { projectTrapResolution } from "../src/ui/trap-resolution";
@@ -84,8 +84,9 @@ async function pauseOnReady(page: Page): Promise<void> {
 
 function cautiousDungeon(): WorldState {
   // The bounded lookup found this naturally generated one-exit entry. Only the
-  // starting atlas location and hero HP are staged; no rooms, trap difficulties,
-  // attributes, rolls, or search receipts are manufactured.
+  // starting atlas location, low HP and absence of the hero's tonic are staged.
+  // With no field medicine available, this tests the existing cautious search;
+  // no rooms, trap difficulties, attributes, rolls or receipts are manufactured.
   const base = createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search");
   const locationId = "location:3";
   const located = { ...base.depth, atlas: { ...base.depth.atlas, currentLocationId: locationId,
@@ -93,7 +94,9 @@ function cautiousDungeon(): WorldState {
   const plan = selectDungeonEntryPlan(located);
   if (plan === null) throw new Error("Expected the real atlas dungeon's canonical entry plan");
   const entered = stepDepth(located, { type: "enter-dungeon", dungeonId: plan.dungeonId, width: plan.width, height: plan.height });
-  const depth = { ...entered, hero: { ...entered.hero, resources: { ...entered.hero.resources,
+  const depth = { ...entered, hero: { ...entered.hero,
+    inventory: entered.hero.inventory.filter((item) => item.id !== emberTonicId(entered.hero.id)),
+    resources: { ...entered.hero.resources,
     health: Math.floor(entered.hero.resources.maxHealth / 2) } } };
   return upgradeWorldState({ ...base, tick: depth.tick, depth,
     hero: { ...base.hero, health: depth.hero.resources.health, gold: depth.hero.gold, experience: depth.hero.experience },

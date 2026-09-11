@@ -107,6 +107,7 @@ import { projectPaidInnRestScene } from "./paid-inn-rest";
 import { projectDisarmingKitPurchaseScene } from "./disarming-kit-purchase";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "../ui/dungeon-perspective-view";
+import { projectDungeonFieldMedicineScene } from "../ui/dungeon-field-medicine-view";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
@@ -1263,6 +1264,9 @@ export class GameRenderer {
     delete this.host.dataset.dungeonNextDirections;
     delete this.host.dataset.dungeonHeroCell;
     delete this.host.dataset.dungeonHeroScale;
+    for (const key of ["dungeonMedicineCommand", "dungeonMedicineDungeon", "dungeonMedicineCell", "dungeonMedicineItem",
+      "dungeonMedicineHealth", "dungeonMedicineQuantity", "dungeonMedicineCuePosition", "dungeonMedicineCueScale",
+      "dungeonMedicinePerspective", "dungeonMedicineVisual"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonFraming;
     delete this.host.dataset.dungeonFrameCellSize;
     delete this.host.dataset.dungeonFrameOffset;
@@ -5843,6 +5847,26 @@ export class GameRenderer {
       detail: detail.visible ? bounds(detail) : null });
   }
 
+  private drawDungeonMedicineCue(x: number, y: number, scale: number, perspective: "map" | "first-person"): void {
+    // A held vial, not a new world pickup or a magical room effect. Static pose
+    // keeps the action legible during pause and under reduced motion.
+    const vial = new Container();
+    vial.position.set(x, y);
+    vial.scale.set(scale);
+    vial.rotation = -Math.PI / 5;
+    vial.addChild(new Graphics()
+      .roundRect(-3.5, -5, 7, 10, 2).fill({ color: 0x704229 })
+      .stroke({ color: 0xf5d68c, width: 0.85 })
+      .roundRect(-2.5, -1.5, 5, 5.5, 1).fill({ color: 0xe39136 })
+      .rect(-1.8, -8, 3.6, 3.5).fill({ color: 0xd8b871 })
+      .moveTo(-1.8, -3.5).lineTo(-1.8, 1.2).stroke({ color: 0xffedbd, width: 0.8 }));
+    this.worldLayer.addChild(vial);
+    this.host.dataset.dungeonMedicineCuePosition = `${x},${y}`;
+    this.host.dataset.dungeonMedicineCueScale = String(scale);
+    this.host.dataset.dungeonMedicinePerspective = perspective;
+    this.host.dataset.dungeonMedicineVisual = "stationary-hero|held-tonic-vial|actual-hp-recovery";
+  }
+
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(34, 19, 252, 142, 0x0b1117));
     const dungeon = state.depth.dungeon;
@@ -5867,20 +5891,23 @@ export class GameRenderer {
     const cellsById = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
     const traps = projectDungeonTraps(dungeon);
     const search = projectDungeonSearchView(state);
+    const medicine = projectDungeonFieldMedicineScene(state);
     const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
     const currentKnownTrap = traps.find((trap) => trap.current);
-    const triggeredTrap = currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
-    const detectedTrap = currentKnownTrap?.status === "armed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
-    const disarmedTrap = currentKnownTrap?.status === "disarmed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
+    const triggeredTrap = medicine === null && currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
+    const detectedTrap = medicine === null && currentKnownTrap?.status === "armed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
+    const disarmedTrap = medicine === null && currentKnownTrap?.status === "disarmed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
     const hazardBeat = triggeredTrap ?? detectedTrap ?? disarmedTrap;
     const wayfinding = projectDungeonWayfinding(dungeon);
     const keyGate = projectDungeonKeyGate(dungeon);
     const landmark = projectDungeonLandmark(dungeon);
-    const sightedKeyMove = search === null ? projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey) : undefined;
+    const sightedKeyMove = search === null && medicine === null ? projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey) : undefined;
     const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
     const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
     const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
-    const mechanismBeat = search !== null
+    const mechanismBeat = medicine !== null
+      ? { title: medicine.headline, detail: medicine.detail, compact: medicine.compactDetail, color: 0x563c27 }
+      : search !== null
       ? { title: search.headline, detail: search.detail,
         compact: search.discoveries.length === 0 ? "PASSAGES UNVERIFIED" : `${search.discoveries.length} MARKED · STILL ARMED`, color: 0x5b4820 }
       : shrineUse !== null && shrineSummary !== null
@@ -5898,9 +5925,17 @@ export class GameRenderer {
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
     this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status !== "armed").length);
-    this.host.dataset.dungeonTraversalMode = search === null ? wayfinding.mode : "search";
-    this.host.dataset.dungeonBreadcrumbLength = search === null ? String(Math.max(0, wayfinding.routeCellIds.length - 1)) : "0";
-    this.host.dataset.dungeonNextDirections = search === null ? wayfinding.nextPassageDirections.join(",") : "";
+    this.host.dataset.dungeonTraversalMode = medicine !== null ? "field-medicine" : search === null ? wayfinding.mode : "search";
+    this.host.dataset.dungeonBreadcrumbLength = search === null && medicine === null ? String(Math.max(0, wayfinding.routeCellIds.length - 1)) : "0";
+    this.host.dataset.dungeonNextDirections = search === null && medicine === null ? wayfinding.nextPassageDirections.join(",") : "";
+    if (medicine !== null) {
+      this.host.dataset.dungeonMedicineCommand = medicine.commandId;
+      this.host.dataset.dungeonMedicineDungeon = medicine.dungeonId;
+      this.host.dataset.dungeonMedicineCell = medicine.cellId;
+      this.host.dataset.dungeonMedicineItem = medicine.itemId;
+      this.host.dataset.dungeonMedicineHealth = `${medicine.healthBefore}/${medicine.amount}/${medicine.healthAfter}`;
+      this.host.dataset.dungeonMedicineQuantity = `${medicine.quantityBefore}/${medicine.quantityAfter}`;
+    }
     if (search !== null) {
       this.host.dataset.dungeonSearch = search.outcome;
       this.host.dataset.dungeonSearchCell = search.cellId;
@@ -5951,7 +5986,7 @@ export class GameRenderer {
       this.host.dataset.dungeonShrineHealth = `${shrineUse.healthBefore}/${shrineUse.healthRestored}/${shrineUse.healthAfter}`;
       this.host.dataset.dungeonShrineMana = `${shrineUse.manaBefore}/${shrineUse.manaRestored}/${shrineUse.manaAfter}`;
     }
-    if (search === null && wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
+    if (search === null && medicine === null && wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
       ? currentKnownTrap !== undefined
         ? currentKnownTrap.status
@@ -5974,7 +6009,7 @@ export class GameRenderer {
         );
       }
 
-      const routeCells = (search === null ? wayfinding.routeCellIds : []).flatMap((cellId) => {
+      const routeCells = (search === null && medicine === null ? wayfinding.routeCellIds : []).flatMap((cellId) => {
         const cell = cellsById.get(cellId);
         return cell === undefined ? [] : [{ x: offsetX + (cell.x + 0.5) * cellSize, y: offsetY + (cell.y + 0.5) * cellSize }];
       });
@@ -6202,7 +6237,7 @@ export class GameRenderer {
         }
       }
 
-      if (search === null && wayfinding.frontierCellId !== null) {
+      if (search === null && medicine === null && wayfinding.frontierCellId !== null) {
         const frontier = cellsById.get(wayfinding.frontierCellId);
         if (frontier !== undefined) {
           const x = offsetX + frontier.x * cellSize;
@@ -6221,7 +6256,7 @@ export class GameRenderer {
 
       const passageAnchorId = wayfinding.mode === "explore" ? wayfinding.frontierCellId : dungeon.currentCellId;
       const passageAnchor = passageAnchorId === null ? undefined : cellsById.get(passageAnchorId);
-      const passageDirections = search === null ? wayfinding.nextPassageDirections : [];
+      const passageDirections = search === null && medicine === null ? wayfinding.nextPassageDirections : [];
       if (passageAnchor !== undefined && passageDirections.length > 0) {
         const arrows = new Graphics();
         const centerX = offsetX + (passageAnchor.x + 0.5) * cellSize;
@@ -6249,9 +6284,10 @@ export class GameRenderer {
         this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
         this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
         const heroScale = Math.max(0.08, Math.min(0.8, cellSize / 48));
-        this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale);
+        this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale, state.hero.id, medicine === null);
         this.host.dataset.dungeonHeroCell = current.id;
         this.host.dataset.dungeonHeroScale = String(heroScale);
+        if (medicine !== null) this.drawDungeonMedicineCue(x + Math.max(2.5, cellSize * 0.22), y - Math.max(2.5, cellSize * 0.18), Math.max(0.45, Math.min(0.9, heroScale)), "map");
         if (search !== null) {
           // These marks inspect already-public exits, never an unrevealed hazard.
           // They remain complete and stationary under reduced motion.
@@ -6290,6 +6326,7 @@ export class GameRenderer {
         }
       }
     }
+    if (medicine !== null && perspectiveShown) this.drawDungeonMedicineCue(257, 140, 1.1, "first-person");
     if (mechanismBeat !== null && hazardBeat === undefined) {
       this.drawDungeonCaption(mechanismBeat.title, mechanismBeat.detail, mechanismBeat.compact, mechanismBeat.color);
     }

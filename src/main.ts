@@ -27,6 +27,7 @@ import { projectTownChroniclePlate } from "./ui/chronicle-plate";
 import { createChroniclePlateArchive } from "./ui/chronicle-plate-archive";
 import { createChroniclePlateView } from "./ui/chronicle-plate-view";
 import { projectDungeonSearchView } from "./ui/dungeon-search-view";
+import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -4432,6 +4433,7 @@ function present(): void {
   const dungeonShrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
   const dungeonShrineSummary = dungeonShrineUse === null ? null : describeDungeonShrineUse(dungeonShrineUse);
   const dungeonSearch = projectDungeonSearchView(state);
+  const dungeonMedicine = projectDungeonFieldMedicineScene(state);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -4741,7 +4743,14 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (counterDuel !== null) {
+  if (dungeonMedicine !== null) {
+    elements.traversalDirective.textContent = `${dungeonMedicine.headline} · ${dungeonMedicine.detail}`;
+    elements.traversalDirective.title = state.scene.consequence;
+    elements.traversalDirective.dataset.reason = "dungeon-field-medicine";
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = dungeonMedicine.cellId;
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (counterDuel !== null) {
     if (counterDuel.outcome === "ongoing") {
       const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
       elements.traversalDirective.textContent = habit.status === "established"

@@ -1,5 +1,6 @@
 import { pick, randomInt } from "../core/rng";
 import { isDisarmingKit } from "./disarming-kit";
+import { isValidDungeonFieldMedicineUse } from "./dungeon-field-medicine";
 import type { DungeonDisarmKitUseV1, ItemState } from "./types";
 import type {
   DungeonKeyGateState,
@@ -802,6 +803,7 @@ export function generateDungeon(
     keyGate: generated.keyGate,
     latestShrineUse: null,
     latestDisarmKitUse: null,
+    latestFieldMedicineUse: null,
     search: createDungeonSearchState(),
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
@@ -1155,6 +1157,8 @@ export function isValidDungeonTrapRules(value: unknown): boolean {
 
 export function isValidDungeonState(value: unknown): value is DungeonState {
   if (!isRecord(value) || !isValidDungeonTrapRules(value)) return false;
+  if (Object.hasOwn(value, "latestFieldMedicineUse")
+    && !isValidDungeonFieldMedicineUse(value.latestFieldMedicineUse, value as unknown as DungeonState)) return false;
   if (value.search !== undefined && !isValidDungeonSearchState(value.search, value as unknown as DungeonState)) return false;
   if (validDungeonStateCache.has(value)) return true;
   const state = value as unknown as DungeonState;

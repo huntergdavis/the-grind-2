@@ -1,6 +1,7 @@
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCall } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge } from "../depth/room-challenge";
 import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
+import { isValidCampaignDungeonFieldMedicine } from "../depth/dungeon-field-medicine";
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
@@ -378,6 +379,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
         ? "town"
         : "chronicle";
     case "enter-dungeon":
+    case "use-dungeon-tonic":
     case "invoke-dungeon-shrine":
     case "move-dungeon":
     case "search-dungeon":
@@ -403,6 +405,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "use-dungeon-tonic":
     case "reunite-companion":
     case "start-room-challenge":
     case "answer-room-challenge":
@@ -495,6 +498,15 @@ function describeBeat(
       consequence: "The exchange is remembered, not rewarded again. Regard, bond and resources unchanged.",
       sensoryIntensity: 0,
     };
+  }
+  if (choice.command.type === "use-dungeon-tonic" && depth.dungeon?.latestFieldMedicineUse?.tick === depth.tick) {
+    const use = depth.dungeon.latestFieldMedicineUse;
+    const location = depth.atlas.locations.find((entry) => entry.id === use.locationId);
+    return { mode: "dungeon", location: location?.name ?? opportunity.location,
+      goal: "Steady the wounded explorer before continuing", headline: "A bitter mouthful, a steadier hand",
+      action: `${state.hero.name} drinks one ${use.itemName} without leaving the room.`,
+      consequence: `${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter} · HP ${use.healthBefore}→${use.healthAfter}/${use.maxHealth} (+${use.amount}). No movement, MP, XP or quest credit.`,
+      sensoryIntensity: 0 };
   }
   if (choice.command.type === "reunite-companion" && depth.companionReunion?.completed != null) {
     const reunion = depth.companionReunion, completed = reunion.completed!;
@@ -1544,7 +1556,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
