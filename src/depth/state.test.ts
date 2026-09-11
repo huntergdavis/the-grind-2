@@ -4,7 +4,7 @@ import { edgeBetween, findRoute, planRoute } from "./atlas";
 import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, isValidDungeonState, mazeCellId, projectDungeonLandmark, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { createCounterDuel, projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumAbilities, maximumHeroLevel } from "./rpg";
+import { addItem, describeQuestRewardReceipt, emberTonicId, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumAbilities, maximumHeroLevel } from "./rpg";
 import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, isValidCounterDuelGraph, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, selectDungeonEntryPlan, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
@@ -742,6 +742,9 @@ describe("composed depth state", () => {
     if (lead === null) throw new Error("Expected released-save successor lead");
     const atLead: DepthState = {
       ...admitted,
+      // This staged layout-2 save reproduces pre-medicine traversal. No tonic
+      // is available, so new treatment cannot change the legacy shrine setup.
+      hero: { ...admitted.hero, inventory: admitted.hero.inventory.filter((item) => item.id !== emberTonicId(admitted.hero.id)) },
       atlas: {
         ...admitted.atlas,
         currentLocationId: lead.locationId,

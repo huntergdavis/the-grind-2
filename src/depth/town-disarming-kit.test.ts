@@ -3,7 +3,7 @@ import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation
 import { createDisarmingKit, disarmingKitId } from "./disarming-kit";
 import { depthCommandCandidates, selectDungeonEntryPlan, stepDepth, upgradeDepthState } from "./state";
 import { dungeonTrapAt } from "./dungeon";
-import { inventoryCapacity } from "./rpg";
+import { emberTonicId, inventoryCapacity } from "./rpg";
 import { isValidDisarmingKitPurchaseReceipt, selectDisarmingKitPurchase } from "./town-disarming-kit";
 
 const world = () => createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search");
@@ -85,12 +85,15 @@ describe("smith disarming-kit supplies", () => {
   it("consumes and repurchases a kit with exact proof, rejecting reuse and a newer purchase without its item", () => {
     const purchased = advanceWorld(world()).depth;
     const locationId = "location:3";
-    // Deliberate location/HP staging, not fabricated inventory or trap mechanics.
+    // Deliberate location/low-HP/no-tonic staging isolates cautious search.
+    // The kit, its purchase receipt, trap mechanics and disarm remain real.
     const located = { ...purchased, atlas: { ...purchased.atlas, currentLocationId: locationId,
       discoveredLocationIds: [...new Set([...purchased.atlas.discoveredLocationIds, locationId])] } };
     const plan = selectDungeonEntryPlan(located)!;
     const entered = stepDepth(located, { type: "enter-dungeon", dungeonId: plan.dungeonId, width: plan.width, height: plan.height });
-    let state = { ...entered, hero: { ...entered.hero, resources: { ...entered.hero.resources,
+    let state = { ...entered, hero: { ...entered.hero,
+      inventory: entered.hero.inventory.filter((item) => item.id !== emberTonicId(entered.hero.id)),
+      resources: { ...entered.hero.resources,
       health: Math.floor(entered.hero.resources.maxHealth / 2) } } };
     for (const expected of ["search-dungeon", "move-dungeon", "disarm-dungeon-trap"]) {
       const action = depthCommandCandidates(state)[0]!.command;

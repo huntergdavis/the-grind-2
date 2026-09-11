@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
 import { disarmingKitId } from "./disarming-kit";
 import { dungeonTrapAt, generateDungeon, projectDungeonTraps } from "./dungeon";
+import { emberTonicId } from "./rpg";
 import { depthCommandCandidates, selectDungeonEntryPlan, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState } from "./types";
 
@@ -58,7 +59,11 @@ describe("mana-siphon gameplay and saved expeditions", () => {
 
   it.each([false, true])("uses a real search and same-roll disarm, with purchased assistance=%s", (purchase) => {
     const entered = enteredFixture(purchase);
-    let state = { ...entered, hero: { ...entered.hero, resources: { ...entered.hero.resources, health: 22 } } };
+    // Explicit low-HP/no-tonic boundary: test cautious search and the actual
+    // disarm roll without available field medicine taking priority.
+    let state = { ...entered, hero: { ...entered.hero,
+      inventory: entered.hero.inventory.filter((item) => item.id !== emberTonicId(entered.hero.id)),
+      resources: { ...entered.hero.resources, health: 22 } } };
     for (const type of ["search-dungeon", "move-dungeon", "disarm-dungeon-trap"]) {
       const command = depthCommandCandidates(state)[0]!.command;
       expect(command.type).toBe(type);
