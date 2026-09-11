@@ -89,6 +89,36 @@ versus 18.464 seconds for all canonical tests in clean CI. These local failures
 are not relabeled passes or isolated evidence of a new runtime regression.
 No timeout, seed count or CI matrix is changed; clean CI supplies the verdict.
 
+The first pushed feature is `6e312b10924730ae8af489b173e53bb39738d33b`.
+[Pages run 34597140358](https://github.com/huntergdavis/the-grind-2/actions/runs/34597140358)
+failed one golden replay with `Campaign state violates schema invariants` after
+the retained-source comparison was added. It passed 257 files and 3,643 tests;
+two long audits stayed skipped. Save/migrate/replay passed in 3.653 seconds and
+all eight forward-motion checks passed in 5.024 seconds. Thus the local timeouts
+did not reproduce in CI, but the later state failure is real and blocks release.
+The failing run is not a deployment or a golden replay pass; its narrow repair
+and new evidence will be recorded below.
+
+The stop-first diagnostic over the existing golden set identifies
+`golden:7` / `campaign:7`, T217→218. Joss Vale's T43 source battle was already
+evicted. The hero now wins a different battle on the same route with Borin Ash;
+its reusable route encounter ID happens to match Joss's archive. Comparing
+those two battles as one source incorrectly rejected the legitimate transition.
+The source lookup now matches route encounter ID **and the actual credited
+resident on the heroes' side**, before applying full content equality. Existing
+oaths own one route and former residents cannot rejoin in this release, so a
+different companion's later battle is not mistaken for the archived source.
+No source-name tamper allowance, new state field, hash normalization or rule
+change is introduced. A new actual T217→218 regression preserves Joss's record
+through Borin's later victory, without staging either battle. Nine focused
+tests and final TypeScript checks pass, including T218→219 and exact world/
+depth reloads. The first local regression run spent 5.591 seconds rebuilding
+its real journey inside the five-second test; that unchanged setup now runs
+in a scoped fixture hook, with all existing hook/test limits retained. The
+final focused run took 16.58 seconds. Production build, boundaries and exact
+working-source bundle checks pass. The repaired-build browser and next clean
+Pages run remain pending.
+
 ## Dungeon field medicine — v0.5.168 final delivery
 
 **Live and publicly source-verified 2026-09-11 04:03:48 PDT.** Feature

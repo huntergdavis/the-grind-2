@@ -3,7 +3,7 @@ import { companionCreditBeforeVictoryFixture, companionCreditFarewellFixture, co
 import { naturalReparteeMemoryFixture } from "../../tests/repartee-memory-fixtures";
 import { actorPolicy } from "../core/actor-policy";
 import { canonicalStringify } from "../core/canonical";
-import { advanceWorld, campaignDirector, catchUpWorld, upgradeWorldState } from "../core/simulation";
+import { advanceWorld, campaignDirector, catchUpWorld, createWorld, upgradeWorldState } from "../core/simulation";
 import type { HeroValue, WorldState } from "../core/types";
 import { captureCompanionCredit, companionCreditChoices, companionCreditCommandId, companionCreditFarewellLine, isValidCampaignCompanionCredit, selectCompanionCredit } from "./companion-credit";
 import { depthCommandCandidates, stepDepth, upgradeDepthState } from "./state";
@@ -172,6 +172,33 @@ describe("Share the credit: one actual contributor, two honest consequences", ()
     expect(reload(later).companionCredit).toEqual(credit);
     expect(selectCompanionCredit(later)).toBeNull();
     expect(isValidCampaignCompanionCredit({ ...later, companionCredit: { ...credit, farewell: { ...credit.farewell!, line: "Fabricated applause" } } })).toBe(false);
+  });
+
+  describe("a reused route encounter ID", () => {
+    let world: WorldState;
+    beforeAll(() => {
+      // Exact failing canonical journey: the original Joss battle is evicted,
+      // then Borin fights on that route. This is setup, not a staged source.
+      world = createWorld("golden:7", "campaign:7");
+      for (let tick = 0; tick < 217; tick++) world = advanceWorld(world);
+    });
+    it("does not confuse another companion's later victory with the archived source", () => {
+      const credit = world.depth.companionCredit!;
+      expect(credit.companionName).toBe("Joss Vale");
+      expect(credit.evidence.tick).toBe(43);
+      expect(world.depth.completedCombats.some((battle) => battle.id === credit.evidence.combat.id)).toBe(false);
+      expect(world.depth.companions.active[0]!.identity.name).toBe("Borin Ash");
+      const after = advanceWorld(world), repeated = after.depth.completedCombats.at(-1)!;
+      expect(after.tick).toBe(218);
+      expect(repeated.id).toBe(credit.evidence.combat.id);
+      expect(repeated.outcome).toBe("victory");
+      expect(repeated.combatants.some((actor) => actor.id === credit.residentId)).toBe(false);
+      expect(after.depth.companionCredit).toEqual(credit);
+      expect(isValidCampaignCompanionCredit(after.depth)).toBe(true);
+      expect(reload(after.depth).companionCredit).toEqual(credit);
+      expect(upgradeWorldState(JSON.parse(canonicalStringify(after)))).toEqual(after);
+      expect(advanceWorld(after).depth.companionCredit).toEqual(credit);
+    });
   });
 
   it("stops hidden catch-up before the actual exchange and farewell with exact once-only pending sources", () => {

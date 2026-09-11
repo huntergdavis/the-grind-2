@@ -123,7 +123,12 @@ export function isValidCampaignCompanionCredit(state: DepthState): boolean {
       || contributor.health !== evidence.companion.resources.health || contributor.mana !== evidence.companion.resources.mana
       || damage?.id !== evidence.damageEventId || outcome?.kind !== "outcome" || outcome.outcome !== "victory"
       || outcome.id !== evidence.outcomeEventId) return false;
-    const retained = state.completedCombats.find((entry) => entry.id === battle.id);
+    // Route encounter IDs can recur after eviction. The credited resident
+    // identifies this oath's battle: an oath owns one route and former
+    // residents are excluded from recruitment. Another party on that route
+    // is not the source of this archived exchange.
+    const retained = state.completedCombats.find((entry) => entry.id === battle.id
+      && entry.combatants.some((actor) => actor.id === credit.residentId && actor.side === "heroes"));
     // While its source still exists, an archive cannot silently rename a foe,
     // alter the recorded contribution, or otherwise tell a different battle.
     // The finite snapshot remains sufficient after ordinary source eviction.
