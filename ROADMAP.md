@@ -5,11 +5,11 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In implementation: F3a — A useful reply (v0.5.165).** One new original public
-   book teaches a constructive counter, followed by one unscored practice
-   exchange with a real resident. Show learning changing what the hero can say;
-   retain both sources in the existing Journal. Preserve the old scored
-   transcripts. [Bounded scope](docs/design/FLYTING.md#f3a-proposed-next-slice--a-useful-reply).
+1. **Next: F3b — Let the room answer.** After the Bell expedition, one real
+   resident's public challenge tests the learned constructive frame. One scored
+   reply can earn +1 town reputation; old contests and learning stay intact.
+   [Scoped proposal](docs/design/FLYTING.md#f3b-proposed-next-slice--let-the-room-answer),
+   not yet implemented or part of v0.5.165.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -20,18 +20,18 @@ The existing search/entry/disarm, exact save/reload and caption checks passed
 in 66.8 seconds against the released v0.5.164 build; four captures were inspected.
 This is test-only maintenance, not a new dungeon mechanic or runtime release.
 
-**D2 — Through their eyes is live in v0.5.164**, publicly verified on
-2026-09-11 at 00:02:46 PDT. Menu → Dungeon view selects an optional first-person
-2.5D room preview; the saved choice defaults to 2D. Only known facts are drawn,
-only actual movement turns the view, and failed optional loading keeps the map.
-The existing captions and portrait/resource card remain shared. Main browser
-acceptance passed in 53.6 seconds, failed-load continuation in 25.4 seconds;
-three final desktop/mobile/Focus captures were inspected.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34571954359)
-passed 3,567 tests and canonical replay, with two long audits explicitly opt-in.
-Five public assets and nine source-map entries match the feature commit.
-The finite Books & Flyting/witness/memory arc, both D1 board slices and D2's
-first preview are shipped. Wider 3D remains a separate proposal.
+**F3a — A useful reply is live in v0.5.165**, publicly verified on
+2026-09-11 at 01:10:32 PDT. One second public book opens a constructive answer
+in a real resident's unscored practice exchange. The native book/two-speaker
+stage and existing Journal retain both sources and known alternatives, with
+no extra panel or reward. Old contests, witness judgment and memory are intact.
+The natural browser journey passed in 41.8 seconds; three desktop/mobile/Focus
+captures were inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34577292255)
+passed 3,580 tests and canonical replay, with two long audits explicitly opt-in.
+Three public assets and eight source-map entries match the committed release.
+The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
+optional first-person preview and F3a's lesson are shipped. Wider 3D remains
+a separate proposal; the scored use of the new frame is the next slice.
 Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
@@ -49,7 +49,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F3a — A useful reply** | A new book opens a constructive reply in a brief resident practice scene | Implementing v0.5.165; original content, unscored, no changes to old contest results |
+| **F3b — Let the room answer** | Apply the learned frame to one later scored public challenge | Scoped proposal; +1 town reputation on victory, once; post-Bell admission unverified |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

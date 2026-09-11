@@ -26,9 +26,9 @@ Native dialogue and a dedicated book/two-person stage replace duplicate Watch pa
 
 Recovery evidence reused before implementation: `deja "flyting"`, the committed design below and the pinned Herder reading/vocabulary findings (Claude session `7dc8bf11-9b0`). The runtime content here is original; no sibling book prose was copied.
 
-## F3a implementation — A useful reply (v0.5.165)
+## F3a shipped scope — A useful reply (v0.5.165)
 
-Implemented and browser-verified, pending CI/public delivery. After the actual witnessed
+Live and publicly verified 2026-09-11 at 01:10:32 PDT. After the actual witnessed
 encore, arrival memory and farewell, a safe solo hero can read a second public
 book at a real visited hall/inn: **How to Chair a Meeting Without Becoming the
 Furniture**. Its original passage compares a useful chair with one that merely
@@ -61,6 +61,52 @@ One bounded actual continuation proves reachability: recall T39 → farewell T40
 Bell offer. This uses the existing natural `shared-road-playful:7` journey,
 not staged health, roster, book or venue fields. Final release evidence belongs
 in [COUNCIL_REVIEW.md](../../COUNCIL_REVIEW.md).
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34577292255)
+passed 3,580 tests across 250 files, including all four canonical tests in
+14.722 seconds; two long audits remain explicitly opt-in/skipped. Natural
+browser acceptance passed in 41.8 seconds using fixture-fast mode, with three
+inspected desktop/mobile/Focus captures. Three public assets and eight runtime
+source-map entries match release commit `e6266d2c76cce2fc0f5861f22fcf9fbf5ef9bbce`.
+The initial older Bell-fixture failures and test-only follow-up are preserved
+in the council receipt. F3b below remains a separate proposal.
+
+## F3b proposed next slice — Let the room answer
+
+Read-only council scope, 2026-09-11; not implemented or a v0.5.165 release gate.
+After the existing Bell expedition settles, a real resident offers one scored
+public claim: “If you ask the room what it needs, the room is leading you.”
+This tests listening as leadership, rather than repeating the earlier loudness
+claim. The second book's learned constructive frame opens an answer that was
+unavailable before reading. The earlier practice need not have chosen it.
+
+Two foreground commands admit the real venue/resident/claim/stakes, then commit
+one reply and result. A direct counter wins (+1), a concession draws (0), and
+competing in volume misses the claim (−1). A victory grants one point of the
+existing town reputation, capped at 100, once. Other outcomes grant no reward;
+HP, MP, gold, XP, quests, bonds and regard stay unchanged. The actor's values
+may prefer a nonwinning response; wording alone cannot change its meaning.
+Reuse the existing dialogue stage, one result mark and Journal, not a new panel
+or another three-round engine.
+
+Require a completed valid F3a lesson and Bell expedition, a later actual safe
+solo town visit with a real eligible hall/inn resident, and the existing recovery,
+reward, quest, farewell and encounter priorities. On-time and late Bell returns
+both count; a rival is not claimed to have witnessed that delivery. Do not wait
+for the optional D1b camp memory or lock old campaigns to a missed venue.
+
+Use one separate finite, versioned challenge receipt: learned frame/reading,
+lesson and Bell completion sources, real participants/venue, exact claim,
+start/reply sources and ticks, meaning/outcome, reputation before/after.
+Do not append into frozen F1/F2 tables or rewrite F3a. Migration adds no invented
+challenge; later rival recruitment must preserve genuine old history.
+
+The known natural journey already reaches reading T41, practice T42 and the
+Bell offer. Continue that one finite board to locate the next real challenge
+opportunity; its exact post-Bell admission tick remains unverified. Acceptance
+should cover learned versus unlearned options, the three outcomes, once-only
+reward/cap, exact start/result reload, unchanged prior records and ordinary
+continuation. No seed sweep, model evaluation or broader framework is required.
 
 ## F3a proposed next slice — A useful reply
 

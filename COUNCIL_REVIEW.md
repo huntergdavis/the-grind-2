@@ -2,7 +2,40 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## A useful reply — v0.5.165 implementation checkpoint
+## A useful reply — v0.5.165 final delivery
+
+**Live and publicly source-verified 2026-09-11 at 01:10:32 PDT.** Feature
+`70e0afb286e738ac6272b7e196d2ad218fd1118e` and test-only follow-up
+`e6266d2c76cce2fc0f5861f22fcf9fbf5ef9bbce` are pushed to `origin/main`.
+[Pages run 34577292255](https://github.com/huntergdavis/the-grind-2/actions/runs/34577292255)
+passed all 250 release test files and 3,580 tests, with two explicitly opt-in
+long audits skipped. All four canonical tests passed in 14.722 seconds under
+unchanged limits. Main suite: 275.92 seconds; deployment job: 5 minutes 39 seconds.
+The historical checkpoints below preserve the failed first CI run and its
+bounded test-only repairs; no runtime invariant or timeout was loosened.
+
+The final natural browser acceptance passed in 41.8 seconds, including both
+exact save/reloads, the unlocked reply, old-history preservation and ordinary
+Bell continuation. Three native desktop/mobile/Focus captures were inspected.
+This is fixture-fast browser evidence, not a measured new normal-speed hold.
+The gameplay catch-up regression separately passed for both foreground commands.
+The production build and this runtime remain unchanged by the later test repair.
+
+Public version/service-worker manifests are v0.5.165. Entry
+`index-DnRntrVC.js`, unchanged CSS `index-B9m_5Qf5.css` and simulation worker
+`simulation.worker-CFMEfpMi.js` exactly match the built release. Eight emitted
+runtime source-map entries match the release commit, including the book/reply
+rules, reducer, actor policy, simulation, Watch/Journal integration and renderer.
+The checked maps contain no protected-ledger sources. No LLM, external model,
+new artwork or extra panel was introduced.
+
+F3a is complete. The read-only council proposal for F3b, **Let the room answer**,
+is recorded in [FLYTING.md](docs/design/FLYTING.md#f3b-proposed-next-slice--let-the-room-answer):
+one later scored public challenge using the new frame, with a once-only town
+reputation consequence. That next admission has not yet been implemented or
+probed and is not represented as part of this release.
+
+## A useful reply — v0.5.165 historical implementation checkpoint
 
 F3a is in implementation, not yet publicly delivered. Reused the committed
 [F3a scope](docs/design/FLYTING.md#f3a-proposed-next-slice--a-useful-reply), prior

@@ -8,8 +8,9 @@ encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
 delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
 shipped in v0.5.163. D2's optional first-person dungeon view shipped in v0.5.164.
+F3a's second book and constructive practice exchange shipped in v0.5.165.
 The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
-Next: one new book-led constructive practice scene (F3a, implementing v0.5.165),
+Next: F3b, one later scored public challenge that uses the learned frame,
 followed by further playable features one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
@@ -22,7 +23,31 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Through their eyes (v0.5.164)
+## Latest delivery — A useful reply (v0.5.165)
+
+Publicly verified 2026-09-11 at 01:10:32 PDT. A second original public book,
+**How to Chair a Meeting Without Becoming the Furniture**, teaches “sounding
+board” and a constructive answer about helping people be heard. One actual
+resident practice exchange then demonstrates the new reply. This is unscored:
+no victory, resource, reputation or relationship reward. The existing book/
+two-speaker stage and collapsed Journal entry preserve the words, alternatives
+and both sources without another panel. Original contests and witness history
+remain unchanged. LLM work remains paused.
+
+Feature `70e0afb286e738ac6272b7e196d2ad218fd1118e` and test-only follow-up
+`e6266d2c76cce2fc0f5861f22fcf9fbf5ef9bbce` are on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34577292255):
+250 release files and 3,580 tests passed, two long audits opt-in/skipped;
+all four canonical tests passed in 14.722 seconds with unchanged limits.
+Main suite 275.92 seconds; deployment job 5 minutes 39 seconds. The natural
+browser journey passed in 41.8 seconds with exact reload/continuation checks;
+three desktop/mobile/Focus captures were inspected. It uses explicit fixture-
+fast mode, not a new measurement of the existing normal eight-second hold.
+Three public assets and eight source-map entries match the committed release.
+Initial local failures and four repaired older Bell-fixture assertions remain
+in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md). F3b is scoped, not shipped.
+
+## Prior delivery — Through their eyes (v0.5.164)
 
 Publicly verified 2026-09-11 at 00:02:46 PDT. Menu → Dungeon view now offers
 an optional first-person 2.5D preview of the same dungeon. The saved preference
