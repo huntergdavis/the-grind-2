@@ -5,29 +5,29 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: D4 — A draught in the wall (v0.5.170).** A disclosed clue admits one stationary
-   investigation that opens a real shortcut between already visited rooms.
-   Show the doorway in 2D/first-person, then use ordinary movement through it.
-   Actual T121 clue → T122 opening → T123 traversal and exact reloads pass;
-   the known route shortens from six moves to four. Production browser acceptance
-   passes in both views, mobile and Focus; release CI/public verification pending.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#d4-proposed-next-slice--a-draught-in-the-wall).
+1. **Next proposed: T1 — The Pennywise Ferry.** At one actual river crossing,
+   pay two owned gold for a quick passage or haul the rope for free in two actions.
+   Use real route progress, a native travel scene and existing Status history.
+   Not implemented; one bounded natural approach still needs to be proved.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#t1-proposed-next-slice--the-pennywise-ferry).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**R2 — Share the credit is live in v0.5.169**, publicly source-verified
-2026-09-11 05:24:24 PDT. A companion reacts to acknowledgement or an
-undue boast after their actual damaging contribution to a shared victory.
-Their words return at a real farewell and remain in Journal → Company.
-Battle rewards and bond stay unchanged; one shared caption keeps actors clear
-in desktop/320px/Focus. No new panel or LLM requirement.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34598199598)
-passed 3,645 tests; two long audits stay opt-in. Three public assets and nine
-runtime source-map entries match the final release. The initial replay failure
-and original-contributor repair remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+**D4 — A draught in the wall is live in v0.5.170**, publicly source-verified
+2026-09-11 06:07:04 PDT. A solo explorer notices a draught, opens the wall
+while staying in the room, then actually traverses a shorter route between two
+familiar rooms. New expeditions opt in; old expeditions and the key gate stay
+unchanged. The real T121 → T122 → T123 sequence shortens the known route six
+→ four moves. 2D, first-person, desktop/320px/Focus and exact reloads pass.
+No extra Watch panel, model, resource change or teleport.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34601841131)
+passed 3,662 tests; two long audits stay opt-in. Four public assets and ten
+runtime source-map entries match the final release. The initial stale
+mana-siphon fixture expectation and exact correction remain in
+[COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1, D3 and R2 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2 and D4 are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -47,7 +47,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D4 — A draught in the wall** | Investigate a disclosed clue, open a real secret passage, then traverse the shortcut | In progress for v0.5.170; acceptance and release pending |
+| **T1 — The Pennywise Ferry** | Trade two gold for speed or haul a rope ferry for free at a real river crossing | Proposed; source reachability and implementation pending |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -81,7 +81,7 @@ general framework. All remain client-side and work without an LLM.
 - Additional trap families, status consequences, tools and expedition supplies.
 - Known-danger avoidance, map exclusions, waypoints and risk-aware routing.
 - Scouting and companion-provided dungeon knowledge.
-- Secret passages, one-way hazards and passages that change.
+- Wider secret-passage networks beyond D4, one-way hazards and passages that change.
 - Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences.
 - **Expedition Echo Cache:** leave actual supplies during retreat and recover them later.
 - **Last-known threat marks:** distinguish remembered monster positions from currently visible threats.

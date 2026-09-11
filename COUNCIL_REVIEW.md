@@ -2,7 +2,31 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## A draught in the wall — v0.5.170 implementation checkpoint
+## A draught in the wall — v0.5.170 final delivery
+
+**Live and publicly source-verified 2026-09-11 06:07:04 PDT.** Feature
+`e2a8d9698aff9f8f5db964f7142cce58fbac2501` and test-only entry-fixture correction
+`44236a9b874fcb6e920ee5cc9b31755046bfa05b` are pushed to `origin/main`.
+[Pages run 34601841131](https://github.com/huntergdavis/the-grind-2/actions/runs/34601841131)
+passed all 261 release files and 3,662 tests; two long audits remain opt-in.
+Canonical: four tests, 21.823 seconds. Forward motion: eight tests, 6.668 seconds.
+Main suite: 308.11 seconds; deployment job: 6m08s. All limits stay unchanged.
+
+The verified production browser sequence is actual T120 → T121 draught →
+T122 stationary opening → T123 crossing → T124 ordinary movement. Both
+perspectives, desktop/320px/Focus, exact reloads, Status sources and three native
+captures pass; no external requests, model activity or errors. The opening
+shortens a known route six → four moves without changing resources, prior story
+records or the base maze. Old absent expedition rules remain absent.
+
+Public entry `index-CKTDaCkU.js`, CSS `index-B9m_5Qf5.css`, simulation worker
+`simulation.worker-Bgip4VNo.js` and optional `dungeon-perspective-CF_ngVaV.js`
+match the local build byte-for-byte. Ten emitted runtime source-map entries
+match the corrected commit; protected ledger sources are absent. LLM workers,
+CSS and framing remain unchanged. Owned test/build/browser processes are closed.
+D4 is complete; T1's ferry is separately proposed below, not implemented.
+
+## A draught in the wall — implementation and verification history
 
 Reuse: the council's 2026-09-11 05:08:53 D4 recommendation recovered by
 `deja "A draught in the wall"` (Codex 2026-09-10T1), now scoped in
@@ -36,8 +60,38 @@ ordinary movement, exact reloads, both perspectives, desktop/320px/Focus,
 source-bound Status entries, no external requests, model activity or errors.
 All three native captures were inspected. The cue sits above the maze, the
 opening stays stationary and the first-person view turns only on real movement.
-Its owned preview process is closed. Release CI and public verification remain
-pending; no new long-run matrix or relaxed time limit is introduced.
+Its owned preview process is closed. Release CI and public verification were
+still pending at this checkpoint; the final delivery receipt is above. No new
+long-run matrix or relaxed time limit is introduced.
+
+### Initial release check and narrow fixture correction
+
+[Initial Pages run 34601167389](https://github.com/huntergdavis/the-grind-2/actions/runs/34601167389)
+failed one stale `mana-siphon-state.test.ts` full-dungeon expectation; 3,661
+tests passed, two long audits skipped. Canonical replay passed all four tests
+in 20.747 seconds with unchanged per-test limits. The expected bare generator
+call omitted D4's new explicit entry opt-in; the only state difference was the
+empty `secretPassage` record. Recalled mana-siphon history (`deja "mana-siphon"`,
+Codex sessions 06/09/10) confirms the intended exact generated trap and resource
+receipt; those assertions remain intact. Correct only that expected generator
+argument, retaining full equality, trap identity, MP26→19, unchanged HP/XP and
+exact reload checks. All six focused mana-siphon tests and final typecheck pass;
+independent read-only review approves the unchanged-strength expectation.
+Test-only correction `44236a9b874fcb6e920ee5cc9b31755046bfa05b` is pushed.
+Runtime/build/anchors/browser behavior are unchanged; the same four local assets
+and ten emitted runtime source entries match that exact commit.
+
+### Next-slice council recommendation
+
+The 2026-09-11 05:51:05 PDT read-only follow-up recommends
+[T1 — The Pennywise Ferry](docs/design/ADVENTURE_FORMS.md#t1-proposed-next-slice--the-pennywise-ferry)
+from the larger roadmap's canonical crossings/location-specific road events.
+The current atlas already records crossing points and exact oriented route
+distances; a ferry itself needs new canonical admission and consequences.
+One solo crossing trades two real gold for speed or two actions for free
+passage, shown on the existing travel stage. Natural reachability is still
+unproven; no new probe was run. This remains separate from D4's release and
+does not reopen LLM, companion participation or a general travel framework.
 
 ## Share the credit — v0.5.169 final delivery
 

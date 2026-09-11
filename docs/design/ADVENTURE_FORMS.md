@@ -518,10 +518,11 @@ and creates a useful choice without those additional systems.
 
 ## D4 proposed next slice — A draught in the wall
 
-Council recommendation, 2026-09-11; in progress for v0.5.170. The actual earned
-journey now reaches the clue at T121, opens it at T122 and crosses at T123,
-shortening a known route six → four moves. Final browser/release checks remain
-pending. This narrows the roadmap's secret-passage idea to one useful shortcut
+Council recommendation, 2026-09-11; shipped in v0.5.170 and publicly
+source-verified 2026-09-11 06:07:04 PDT. The actual earned journey reaches
+the clue at T121, opens it at T122 and crosses at T123, shortening a known route
+six → four moves. Production browser, exact reload, release CI and public-source
+checks pass. This narrows the roadmap's secret-passage idea to one useful shortcut
 in an ordinary solo dungeon, without another adventure engine.
 
 A public draught cue in the current room admits one stationary investigation.
@@ -552,6 +553,44 @@ cue → investigation/open → actual shortcut traversal, exact reload before an
 after, once-only opening and unchanged resources. No new long-run matrix or
 seed search is a prerequisite. Wider secret networks and changing passages
 remain later backlog items.
+
+## T1 proposed next slice — The Pennywise Ferry
+
+Council recommendation, 2026-09-11 05:51:05 PDT. Proposed only: no ferry rules,
+natural reachability or browser acceptance are claimed. This narrows the
+roadmap's canonical ferries and location-specific road events into one small
+original situation, using the existing travel view rather than another engine.
+
+An unattended rope ferry offers two prices: two gold, or personally hauling
+the rope. A living solo hero approaching an actual river crossing, after the
+road encounter and higher-priority recovery/story obligations, reaches a real
+bank checkpoint. Only then does the new canonical ferry event offer its choices.
+Pay two actually owned gold for one-action passage, or take the rope and haul
+across in two actions. The autonomous choice should expose its authored reason;
+neither option is spectator input. The free branch remains legal without gold.
+Both finish at the same far-bank terrain point by ordinary measured route
+progress, never a settlement teleport. No HP, MP, XP, bond or bonus reward.
+Original payoff: “Free passage. Every inch of it.”
+
+Existing source hooks are `AtlasEdge.crossingPointIndices`, `pathDistances`,
+`orientedEdgePath()` and `advanceRoute()` in `src/depth/atlas.ts`, the ordinary
+travel lane in `src/depth/state.ts`, and its native river/traveler renderer.
+Those fields prove a path crosses water, not that a ferry already exists.
+The new event must explicitly establish that fact, with exact route, approach,
+choice and completion sources. One versioned record per campaign is sufficient;
+save/load must not infer a past crossing, repeat a fee or reroll the choice.
+
+Present rope, platform, actual water and hero through the existing travel
+stage: leaning into a haul versus riding. Reuse one short caption and Status
+history for the cost, progress and exact source. No new Watch panel or invented
+ferryman. First evidence is one bounded existing journey that really reaches
+an eligible crossing, then bank → choice → far bank → ordinary travel. Check
+both legal branches and exact reloads; do not stage a river or scan seeds to
+claim reachability. Stop and rescope if that source boundary is unavailable.
+
+Exclude companion participation, NPC schedules, weather, swimming, injury,
+randomized loss, repeat tolls, a general travel-event framework and later
+callbacks. Those are separate possible slices, not gates for this proposal.
 
 ## Make the adventures accumulate into a life
 

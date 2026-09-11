@@ -15,9 +15,10 @@ without forcing every character to choose the winning answer. R1, a genuine
 former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
 field medicine is live in v0.5.168 with natural-use, browser, CI and public-source
 verification passed. R2 — Share the credit is live in v0.5.169 with browser,
-CI and public-source verification passed. D4 — A draught in the wall is in
-progress for v0.5.170: its actual clue/open/traverse journey, exact reloads and
-production browser acceptance pass; release CI/deployment remain pending. Further playable features follow
+CI and public-source verification passed. D4 — A draught in the wall is live in
+v0.5.170 with actual clue/open/traverse, exact reload, browser, CI and public-source
+verification passed. T1 — The Pennywise Ferry is the next scoped proposal,
+not implemented or reachability-proven. Further playable features follow
 one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
@@ -30,7 +31,32 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Share the credit (v0.5.169)
+## Latest delivery — A draught in the wall (v0.5.170)
+
+Publicly source-verified 2026-09-11 06:07:04 PDT. One useful draught in a
+new solo expedition leads to a stationary latch opening and an actual ordinary
+move through the resulting shortcut. Both rooms were already visited and the
+key gate earned. The actual T121 clue → T122 opening → T123 crossing shortens
+the known route six → four moves; T124 continues normal exploration. Base maze,
+HP/MP/XP, supplies, quest rewards and old expeditions stay unchanged.
+
+Native 2D/first-person cues and real doorways use the existing caption and
+Status history, without another Watch panel. Three desktop/320px/Focus captures
+were inspected; the production browser scenario passes with exact reloads and
+no external/model requests or errors (2.6-minute runner, 150-second scenario cap).
+Feature `e2a8d9698aff9f8f5db964f7142cce58fbac2501` and test-only correction
+`44236a9b874fcb6e920ee5cc9b31755046bfa05b` are on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34601841131):
+261 release files and 3,662 tests passed; two long audits remain opt-in/skipped.
+Canonical replay: four tests, 21.823 seconds; forward motion: eight tests,
+6.668 seconds. Main suite 308.11 seconds; deployment job 6 minutes 8 seconds.
+No test limits changed. Four public assets and ten emitted runtime source-map
+entries match the corrected commit; LLM workers, CSS and framing are unchanged.
+The initial stale mana-siphon expectation and narrow fix remain recorded in
+[COUNCIL_REVIEW.md](COUNCIL_REVIEW.md). D4 is complete; T1's ferry is proposed next.
+LLM work remains paused.
+
+## Prior delivery — Share the credit (v0.5.169)
 
 Publicly source-verified 2026-09-11 05:24:24 PDT. Actual positive companion
 damage in a shared victory earns one autonomous acknowledgement or boast.
