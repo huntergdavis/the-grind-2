@@ -5,9 +5,10 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: That line followed you home.** At a genuine reunion,
+1. **In progress: An old line returns, v0.5.178.** At a genuine reunion,
    a former companion remembers an exact flyting line they actually witnessed.
-   First establish the matching current journey; no invented affection or reward.
+   The current T85 Ada Fen return and matching T32 witness are verified;
+   preserve her neutral reaction, old transcripts, and all resources/relationships.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -133,7 +134,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **That line followed you home** | A returning former companion recalls a specific answer they actually witnessed | Next proposal; current matching reunion/witness journey must first be established |
+| **An old line returns** | A returning former companion recalls a specific answer they actually witnessed | In progress; actual Ada Fen reunion and original neutral witness match verified |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 

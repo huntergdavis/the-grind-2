@@ -112,7 +112,7 @@ with unchanged replay limits. D4 is proposed next in the adventure track.
 
 Council scope, 2026-09-11; implemented and publicly verified in v0.5.167.
 The retained scope below describes the shipped boundary; the optional witnessed
-quotation remains later work. Delivery evidence is in [ROADMAP.md](../../ROADMAP.md).
+quotation is now the separate v0.5.178 slice below. Delivery evidence is in [ROADMAP.md](../../ROADMAP.md).
 This picks up the larger backlog's actual former-companion reunions; it does
 not require F3a, F3b or the Borrowed Bell. Existing code forbids re-recruiting a
 former companion. A short reunion must not bypass that rule or reset the oath.
@@ -168,6 +168,34 @@ arrival; that receipt ends further return offers. There is no teleport,
 re-recruitment, new routing framework or invented trip home. The first exchange
 uses the fulfilled oath and actual shared victories; optional witnessed-reply
 quotations remain later work.
+
+## An old line returns — v0.5.178
+
+**In progress, not yet released.** A newly completed reunion may recall an
+actual flyting answer witnessed by that same former companion. The earlier
+working title, “That line followed you home,” does not establish a home or
+an off-screen journey; staging stays at the recorded farewell town.
+
+The unchanged current journey reaches Ada Fen at Elderwatch at T85. She joined
+at T28, witnessed the actual T32 contest and departed at T45. Her retained
+reaction is unmoved, with quiet pose, zero regard and a draw. The exact remembered
+first sentence is “I will accept being called cautious.” The hero can bring it
+back into conversation, and Ada can remain uncertain about it. Remembering
+someone is not necessarily agreeing with them or liking them more.
+
+An optional versioned memory under the completed reunion keeps the original
+reply, exact quoted sentence, contest/reaction/evidence sources and matching
+resident/oath. New dialogue is authored from the recorded reaction; the six
+reaction families do not collapse into universal praise. No extra bond,
+regard, money, resources, XP, journey, model, panel or reading timer is added.
+The existing two-person Watch scene and collapsed Company transcript carry it.
+
+Old completed greetings without memory load with their exact original words;
+no migration backfill occurs. The actual v177 T86 save was preserved before
+implementation with canonical hash `d9cce50f7bc14aa8`, using one 426ms step from
+the already-earned T85 checkpoint rather than another journey replay. The
+unchanged full source proof took 2,643ms under the existing T320 bound.
+Browser acceptance, CI and live verification are still pending.
 
 ## The point
 

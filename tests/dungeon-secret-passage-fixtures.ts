@@ -1,7 +1,7 @@
 import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, campaignDirector, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
-import releasedSave from "./fixtures/dungeon-secret-passage-v171-before-clue.json";
+import releasedSave from "./fixtures/dungeon-secret-passage-v171-before-clue.json" with { type: "json" };
 
 export const dungeonSecretPassageCampaignId = releasedSave.provenance.campaignId;
 const releaseCommit = "de54654df13706c30abbaac4cb6408b2e26ebc1d";

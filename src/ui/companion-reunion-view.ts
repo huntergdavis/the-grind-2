@@ -1,5 +1,5 @@
 import type { WorldState } from "../core/types";
-import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
+import { isValidCampaignCompanionReunion, type CompanionReunionMemory } from "../depth/companion-reunion";
 import type { ReparteeContestSceneView } from "./repartee-view";
 
 export interface CompanionReunionSceneView extends Omit<ReparteeContestSceneView, "phase" | "buildingId" | "buildingName" | "bookId" | "momentum"> {
@@ -12,6 +12,7 @@ export interface CompanionReunionSceneView extends Omit<ReparteeContestSceneView
   readonly arrivalTick: number;
   readonly departureTick: number;
   readonly sharedVictories: number;
+  readonly memory?: Readonly<CompanionReunionMemory>;
   readonly buildingId: null;
   readonly buildingName: null;
   readonly bookId: null;
@@ -31,7 +32,10 @@ export function projectCompanionReunionScene(state: WorldState): CompanionReunio
     || source?.commandType !== "reunite-companion" || source.tick !== state.tick || state.depth.tick !== state.tick
     || reunion.completed.tick !== state.tick || source.commandId !== `${state.campaignId}:${reunion.completed.sourceCommandId}`
     || source.mode !== "chronicle" || state.scene.mode !== "chronicle"
-    || reunion.heroId !== state.depth.hero.id || reunion.locationId !== state.depth.atlas.currentLocationId
+    || state.hero.id !== state.depth.hero.id || reunion.heroId !== state.depth.hero.id
+    || (["location", "headline", "action", "goal", "consequence", "sensoryIntensity"] as const)
+      .some((key) => state.scene[key] !== source[key])
+    || reunion.locationId !== state.depth.atlas.currentLocationId
     || state.depth.atlas.route !== null || state.depth.companions.active.length !== 0) return null;
   const former = state.depth.companions.former.find((entry) => entry.identity.residentId === reunion.residentId
     && entry.joinedTick === reunion.joinedTick && entry.identity.name === reunion.companionName
@@ -39,6 +43,7 @@ export function projectCompanionReunionScene(state: WorldState): CompanionReunio
     && entry.departure.outcome === "fulfilled" && entry.injury === "none" && entry.resources.health > 0);
   const location = state.depth.atlas.locations.find((entry) => entry.id === reunion.locationId && entry.kind === "town");
   if (former === undefined || location === undefined || !state.depth.atlas.discoveredLocationIds.includes(location.id)) return null;
+  const memory = reunion.completed.memory;
   return Object.freeze({
     phase: "reunion", reunionId: reunion.completed.sourceCommandId,
     commandId: source.commandId, tick: source.tick, heroId: reunion.heroId, heroName: state.hero.name,
@@ -46,10 +51,12 @@ export function projectCompanionReunionScene(state: WorldState): CompanionReunio
     locationId: location.id, locationName: location.name,
     arrivalSourceCommandId: reunion.arrival.sourceCommandId, arrivalTick: reunion.arrival.tick,
     departureTick: reunion.departureTick, sharedVictories: reunion.sharedVictories,
+    ...(memory === undefined ? {} : { memory: Object.freeze({ ...memory }) }),
     buildingId: null, buildingName: null, bookId: null, residentId: null, residentName: null,
-    title: `A familiar face · ${location.name}`, call: reunion.completed.heroLine, reply: reunion.completed.companionLine,
+    title: `${memory === undefined ? "A familiar face" : "An old line returns"} · ${location.name}`,
+    call: reunion.completed.heroLine, reply: reunion.completed.companionLine,
     marks: Object.freeze([]) as readonly [], momentum: null, outcome: null, witness: null, encore: false,
-    consequence: "Two roads cross again.",
+    consequence: memory === undefined ? "Two roads cross again." : "Some words travel with you.",
   });
 }
 
@@ -57,7 +64,8 @@ export function projectCompanionReunionScene(state: WorldState): CompanionReunio
 export function createCompanionReunionRecord(doc: Document, state: WorldState, residentId: string, joinedTick: number): HTMLDetailsElement | null {
   const reunion = state.depth.companionReunion;
   if (reunion === null || reunion.completed === null || reunion.residentId !== residentId || reunion.joinedTick !== joinedTick
-    || !isValidCampaignCompanionReunion(state.depth)) return null;
+    || state.hero.id !== state.depth.hero.id || !isValidCampaignCompanionReunion(state.depth)) return null;
+  const memory = reunion.completed.memory;
   const location = state.depth.atlas.locations.find((entry) => entry.id === reunion.locationId);
   const sourceLocation = state.depth.atlas.locations.find((entry) => entry.id === reunion.arrival.sourceLocationId);
   const record = doc.createElement("details");
@@ -70,7 +78,7 @@ export function createCompanionReunionRecord(doc: Document, state: WorldState, r
   record.dataset.location = reunion.locationId;
   record.dataset.arrivalSource = reunion.arrival.sourceCommandId;
   const summary = doc.createElement("summary");
-  summary.textContent = `A familiar face · ${location?.name ?? reunion.locationId} · T${reunion.completed.tick}`;
+  summary.textContent = `${memory === undefined ? "A familiar face" : "An old line returns"} · ${location?.name ?? reunion.locationId} · T${reunion.completed.tick}`;
   function paragraph(text: string, source = false): HTMLElement {
     const node = doc.createElement(source ? "small" : "p");
     node.textContent = text;
@@ -91,5 +99,16 @@ export function createCompanionReunionRecord(doc: Document, state: WorldState, r
     paragraph(`Fulfilled oath: joined T${reunion.joinedTick}, farewell T${reunion.departureTick} at ${location?.name ?? reunion.locationId}. ${reunion.sharedVictories} shared ${reunion.sharedVictories === 1 ? "victory" : "victories"}. The former companion remains a former companion; bond, regard and resources unchanged.`),
     paragraph(`Actual return from ${sourceLocation?.name ?? reunion.arrival.sourceLocationId}, T${reunion.arrival.tick}. Arrival source: ${reunion.arrival.sourceCommandId}. Route: ${reunion.arrival.route.path.join(" → ")}; committed travel distance ${reunion.arrival.distance}.`, true),
     paragraph(`Reunion T${reunion.completed.tick} · Command: ${reunion.completed.sourceCommandId}. Resident: ${reunion.residentId}; oath joined T${reunion.joinedTick}. Rules ${reunion.rulesVersion}; presence ${reunion.presenceRule}. This is the recorded farewell town, not an invented journey home.`, true));
+  if (memory !== undefined) {
+    record.dataset.memoryRule = memory.rulesVersion;
+    record.dataset.memoryReaction = memory.sourceReactionCommandId;
+    record.dataset.memoryEvidence = memory.evidenceSourceCommandId;
+    record.dataset.memoryRegard = String(memory.regardAfter);
+    const remembered = paragraph(`Remembered reply: “${memory.rememberedReply}”`);
+    remembered.className = "journal-reunion-memory";
+    record.append(remembered,
+      paragraph(`Original witnessed opinion, unchanged: ${memory.pose}; regard ${memory.regardAfter > 0 ? "+" : ""}${memory.regardAfter}. Original contest outcome: ${memory.outcome}. No new contest, regard or reward.`),
+      paragraph(`Witness ${memory.witnessId}, oath joined T${memory.joinedTick}, hero ${memory.heroId}. Encounter ${memory.encounterId}. Reaction ${memory.sourceReactionId} at T${memory.sourceReactionTick}: ${memory.sourceReactionCommandId}. Exact reply source: ${memory.evidenceSourceCommandId}; round index ${memory.evidenceRoundIndex}. Memory rules ${memory.rulesVersion}.`, true));
+  }
   return record;
 }

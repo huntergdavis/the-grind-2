@@ -1,7 +1,7 @@
 import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
-import released from "./fixtures/copperhorn-v171-witness.json";
+import released from "./fixtures/copperhorn-v171-witness.json" with { type: "json" };
 
 type CopperhornChain = { before: WorldState; applied: WorldState; first: WorldState; guarded: WorldState; finished: WorldState };
 let chain: CopperhornChain | undefined, retainedWitness: WorldState | undefined;

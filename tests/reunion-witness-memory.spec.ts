@@ -1,14 +1,37 @@
 import { expect, test, type Page } from "@playwright/test";
+import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, campaignDirector, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
-import { companionReunionCampaignId, naturalCompanionReunionArrivalFixture, naturalCompanionReunionFixture } from "./companion-reunion-fixtures";
+import { projectCompanionReunionScene } from "../src/ui/companion-reunion-view";
+import { naturalReunionWitnessMemoryFixture, releasedCompanionReunionFixture, reunionWitnessMemoryCampaignId } from "./reunion-witness-memory-fixtures";
 
-async function installFixture(page: Page, fixture: WorldState): Promise<void> {
-  await page.addInitScript(state => {
-    const key = `the-grind-2:campaign:${state.campaignId}`;
-    if (sessionStorage.getItem(key) === null) sessionStorage.setItem(key, JSON.stringify(state));
-    sessionStorage.setItem("the-grind-2:activeCampaignId", state.campaignId);
-    localStorage.setItem(`the-grind-2:last-active:${state.campaignId}`, String(Date.now() + 3_600_000));
+async function installDurableFixture(page: Page, world: WorldState): Promise<void> {
+  // Existing IndexedDB save seam. Restore the actual unchanged T85 arrival;
+  // no witness, quotation, route, health or relationship is staged.
+  await page.goto("./version.json", { timeout: 20_000 });
+  await page.evaluate(async state => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2", 2);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore("campaigns", { keyPath: "campaignId" });
+        request.result.createObjectStore("settings");
+        request.result.createObjectStore("champions", { keyPath: "id" });
+      };
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(["campaigns", "settings"], "readwrite");
+      transaction.objectStore("campaigns").put(state);
+      transaction.objectStore("settings").put(state.campaignId, "activeCampaignId");
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    database.close();
+  }, world);
+  await page.addInitScript(campaignId => {
+    localStorage.setItem(`the-grind-2:last-active:${campaignId}`, String(Date.now() + 3_600_000));
     localStorage.setItem("the-grind-2:play-mode:v1", '{"schemaVersion":1,"mode":"deterministic"}');
     localStorage.setItem("the-grind-2:adventure-speed:v1", '{"schemaVersion":1,"speed":1}');
     localStorage.setItem("the-grind-2:stage-focus:v1", "panels");
@@ -19,14 +42,27 @@ async function installFixture(page: Page, fixture: WorldState): Promise<void> {
       if (app.dataset.presentationPaused !== "true") button.click();
       window.clearInterval(pause);
     }, 20);
-  }, fixture);
+  }, world.campaignId);
+}
+
+async function durableSave(page: Page): Promise<WorldState> {
+  return page.evaluate(id => new Promise<WorldState>((resolve, reject) => {
+    const request = indexedDB.open("the-grind-2", 2);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result, transaction = database.transaction("campaigns", "readonly");
+      const saved = transaction.objectStore("campaigns").get(id);
+      transaction.oncomplete = () => { database.close(); resolve(saved.result as WorldState); };
+      transaction.onerror = () => { database.close(); reject(transaction.error); };
+    };
+  }), reunionWitnessMemoryCampaignId);
 }
 
 async function pausedSave(page: Page, afterTick?: number): Promise<string> {
   return page.evaluate(({ id, tick }) => new Promise<string>((resolve, reject) => {
     const app = document.querySelector<HTMLElement>("#app")!, button = document.querySelector<HTMLButtonElement>("#pause-button")!;
     let requested = false;
-    const timeout = window.setTimeout(() => { window.clearInterval(poll); reject(new Error("Reunion turn did not settle within 20 seconds")); }, 20_000);
+    const timeout = window.setTimeout(() => { window.clearInterval(poll); reject(new Error("Witness-memory turn did not settle within20 seconds")); }, 20_000);
     const poll = window.setInterval(() => {
       if (document.documentElement.dataset.ready !== "true") return;
       const raw = sessionStorage.getItem(`the-grind-2:campaign:${id}`);
@@ -36,9 +72,8 @@ async function pausedSave(page: Page, afterTick?: number): Promise<string> {
       window.clearInterval(poll); window.clearTimeout(timeout); resolve(raw);
     }, 20);
     if (tick !== undefined) button.click();
-  }), { id: companionReunionCampaignId, tick: afterTick });
+  }), { id: reunionWitnessMemoryCampaignId, tick: afterTick });
 }
-
 function olderStories(world: WorldState): string {
   return JSON.stringify({ repartee: world.depth.repartee, witness: world.depth.reparteeWitness,
     callback: world.depth.reparteeCallback, lesson: world.depth.usefulReply, challenge: world.depth.roomChallenge,
@@ -100,7 +135,7 @@ async function proveReunion(page: Page, world: WorldState): Promise<void> {
 }
 
 async function proveCompanyJournal(page: Page, world: WorldState): Promise<void> {
-  const reunion = world.depth.companionReunion!, completed = reunion.completed!;
+  const reunion = world.depth.companionReunion!, completed = reunion.completed!, memory = completed.memory!;
   const journal = await page.evaluate(({ residentId, source }) => {
     document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="journal"]')!.click();
     document.querySelector<HTMLButtonElement>("#journal-company-button")!.click();
@@ -117,31 +152,31 @@ async function proveCompanyJournal(page: Page, world: WorldState): Promise<void>
   }, { residentId: reunion.residentId, source: completed.sourceCommandId });
   expect(journal).toMatchObject({ visible: true, records: 1,
     data: { campaign: world.campaignId, companionReunion: completed.sourceCommandId, command: completed.sourceCommandId,
-      companion: reunion.residentId, joinedTick: String(reunion.joinedTick), location: reunion.locationId, arrivalSource: reunion.arrival.sourceCommandId },
+      companion: reunion.residentId, joinedTick: String(reunion.joinedTick), location: reunion.locationId, arrivalSource: reunion.arrival.sourceCommandId,
+      memoryRule: memory.rulesVersion, memoryReaction: memory.sourceReactionCommandId,
+      memoryEvidence: memory.evidenceSourceCommandId, memoryRegard: String(memory.regardAfter) },
     lines: [{ speaker: reunion.heroId, text: `${world.hero.name}: ${completed.heroLine}` },
       { speaker: reunion.residentId, text: `${reunion.companionName}: ${completed.companionLine}` }] });
   for (const text of [completed.sourceCommandId, reunion.arrival.sourceCommandId, reunion.residentId,
     `joined T${reunion.joinedTick}`, `farewell T${reunion.departureTick}`, reunion.arrival.route.path.join(" → "),
     `committed travel distance ${reunion.arrival.distance}`, "former companion remains a former companion", "bond, regard and resources unchanged"]) expect(journal.text).toContain(text);
+  for (const text of [memory.rememberedReply, memory.quote, memory.sourceReactionCommandId,
+    memory.evidenceSourceCommandId, memory.encounterId, memory.witnessId, memory.heroId,
+    `Reaction ${memory.sourceReactionId} at T${memory.sourceReactionTick}`,
+    `round index ${memory.evidenceRoundIndex}`, `regard ${memory.regardAfter}`,
+    `Original contest outcome: ${memory.outcome}`, "No new contest, regard or reward."]) expect(journal.text).toContain(text);
   expect(journal.formerText).toContain(reunion.companionName);
   expect(journal.text).toContain(world.depth.atlas.locations.find(location => location.id === reunion.locationId)!.name);
   expect(journal.text).toContain(world.depth.atlas.locations.find(location => location.id === reunion.arrival.sourceLocationId)!.name);
   await page.evaluate(() => document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="watch"]')!.click());
 }
 
-test("a genuine return meets one former companion without reopening the oath or inventing a shared victory", async ({ page }, testInfo) => {
-  test.setTimeout(120_000);
-  const beforeArrival = naturalCompanionReunionArrivalFixture(), arrived = advanceWorld(beforeArrival);
-  const ready = naturalCompanionReunionFixture(), expected = advanceWorld(ready);
-  const reunion = expected.depth.companionReunion!, completed = reunion.completed!;
-  const former = ready.depth.companions.former.find(companion => companion.identity.residentId === reunion.residentId
-    && companion.joinedTick === reunion.joinedTick)!;
-  const errors: string[] = [], inference: string[] = [], external: string[] = [], startedAt = Date.now();
-  const milestone = (message: string): void => {
-    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZoneName: "short" }).formatToParts(new Date()).map(part => [part.type, part.value]));
-    console.log(`[${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second} ${p.timeZoneName}] Companion reunion +${((Date.now() - startedAt) / 1000).toFixed(1)}s: ${message}`);
-  };
+test("the same former companion remembers an exact witnessed line without changing the old opinion", async ({ page }, testInfo) => {
+  test.setTimeout(100_000);
+  const startedAt = Date.now(), { before, completed: world, next } = naturalReunionWitnessMemoryFixture();
+  const reunion = world.depth.companionReunion!, completed = reunion.completed!, memory = completed.memory!;
+  const reaction = before.depth.reparteeWitness.reaction!, evidence = reaction.evidence!;
+  const errors: string[] = [], inference: string[] = [], external: string[] = [];
   const modelUrl = /huggingface|SmolLM|creative-writer|local-narrator|ort-wasm/iu;
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
@@ -150,100 +185,96 @@ test("a genuine return meets one former companion without reopening the oath or 
     if (modelUrl.test(request.url())) inference.push(request.url());
     if (new URL(request.url()).origin !== new URL(testInfo.project.use.baseURL!).origin) external.push(request.url());
   });
+  const milestone = (message: string): void => {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZoneName: "short" }).formatToParts(new Date()).map(part => [part.type, part.value]));
+    console.log("[" + p.year + "-" + p.month + "-" + p.day + " " + p.hour + ":" + p.minute + ":" + p.second + " " + p.timeZoneName
+      + "] Reunion memory +" + ((Date.now() - startedAt) / 1000).toFixed(1) + "s: " + message);
+  };
   const capture = async (name: string): Promise<void> => {
     if (process.env.TG2_VISUAL_CAPTURE !== "1") return;
-    const path = testInfo.outputPath(`${name}.png`);
+    const path = testInfo.outputPath(name + ".png");
     await page.screenshot({ path, timeout: 8_000 });
     await testInfo.attach(name, { path, contentType: "image/png" });
   };
   try {
-    expect(beforeArrival.depth.companionReunion).toBeNull();
-    expect(beforeArrival.forwardMotion.activeDirective?.reason).toBe("companion-return");
-    expect(arrived.chronicle.at(-1)?.commandType).toBe("travel");
-    expect(arrived.depth.atlas.route).toBeNull();
-    expect(beforeArrival.depth.atlas.currentLocationId).not.toBe(arrived.depth.atlas.currentLocationId);
-    expect(reunion.arrival).toMatchObject({ tick: arrived.tick, route: beforeArrival.depth.atlas.route,
-      sourceLocationId: beforeArrival.depth.atlas.currentLocationId,
-      sourceCommandId: `depth:${arrived.tick}:travel:${reunion.arrival.distance}` });
-    expect(arrived.chronicle.at(-1)?.commandId).toBe(`${arrived.campaignId}:${reunion.arrival.sourceCommandId}`);
-    expect(reunion.locationId).toBe(beforeArrival.depth.atlas.route!.destinationId);
-    expect(reunion.locationId).toBe(former.departure.locationId);
-    expect(reunion.locationId).toBe(former.destination.locationId);
-    expect(reunion.arrival.tick).toBeGreaterThan(former.departure.tick);
-    expect(reunion.sharedVictories).toBe(former.victories);
-    expect(former).toMatchObject({ injury: "none", departure: { outcome: "fulfilled" } });
-    expect(former.resources.health).toBeGreaterThan(0);
-    expect(ready.depth.companions.active).toEqual([]);
-    expect(ready.depth.companionReunion!.completed).toBeNull();
-    expect(campaignDirector(ready).candidates[0]?.command).toEqual({ type: "reunite-companion",
-      residentId: reunion.residentId, joinedTick: reunion.joinedTick, arrivalTick: reunion.arrival.tick });
+    expect([before.tick, world.tick, next.tick]).toEqual([85, 86, 87]);
+    expect(canonicalHash(before)).toBe("b9f956d8d29d2d94");
+    expect(before.chronicle.at(-1)!.commandId).toBe(before.campaignId + ":" + reunion.arrival.sourceCommandId);
+    expect(reunion.arrival).toMatchObject({ tick: 85, sourceCommandId: "depth:85:travel:9", sourceLocationId: "location:10", distance: 9 });
+    expect(reunion).toMatchObject({ companionName: "Ada Fen", joinedTick: 28, departureTick: 45, locationId: "location:0" });
+    expect(memory).toEqual({ schemaVersion: 1, rulesVersion: "reunion-witness-memory-v1",
+      heroId: reunion.heroId, witnessId: reaction.witnessId, joinedTick: reaction.joinedTick,
+      encounterId: reaction.encounterId, sourceReactionCommandId: reaction.completionCommandId,
+      sourceReactionTick: reaction.completedTick, sourceReactionId: reaction.reactionId,
+      evidenceSourceCommandId: evidence.sourceCommandId, evidenceRoundIndex: evidence.roundIndex,
+      rememberedReply: evidence.reply, quote: "I will accept being called cautious.",
+      pose: reaction.pose, outcome: reaction.outcome, regardAfter: reaction.regardAfter });
+    expect(memory).toMatchObject({ witnessId: reunion.residentId, sourceReactionTick: 32,
+      sourceReactionId: "unmoved", pose: "quiet", outcome: "draw", regardAfter: 0 });
+    expect(memory.rememberedReply).toBe("I will accept being called cautious. I do not need your applause badly enough to perform a foolish dare.");
+    expect(completed.heroLine).toBe("I brought an old line back with me: “I will accept being called cautious.”");
+    expect(completed.companionLine).toBe("It is exactly as I remember. I am still not sure what to make of it.");
+    expect(before.depth.reparteeCallback).toMatchObject({ tick: 44, sourceReactionTick: 32,
+      witnessId: reunion.residentId, joinedTick: 28, rememberedReply: memory.rememberedReply });
+    expect(world.depth.hero).toEqual(before.depth.hero);
+    expect(world.hero).toEqual(before.hero);
+    for (const key of ["atlas", "towns", "companions", "quest", "completedQuests", "pendingQuestReward", "completedCombats",
+      "repartee", "reparteeWitness", "reparteeCallback", "usefulReply", "roomChallenge", "bellExpedition", "bellMemory",
+      "companionCredit", "smithyJob", "innBluff", "pennywiseGate", "roadSupper", "spareGearTrade"] as const) {
+      expect(world.depth[key]).toEqual(before.depth[key]);
+    }
+    expect(olderStories(world)).toBe(olderStories(before));
+    expect(world.chronicle.at(-1)!.commandId).toBe(world.campaignId + ":" + completed.sourceCommandId);
+    expect(advanceWorld(before)).toEqual(world); expect(advanceWorld(world)).toEqual(next);
+    for (const state of [before, world, next]) expect(canonicalStringify(upgradeWorldState(JSON.parse(canonicalStringify(state))))).toBe(canonicalStringify(state));
+    const old = releasedCompanionReunionFixture();
+    expect(canonicalHash(old)).toBe("d9cce50f7bc14aa8");
+    expect(old.depth.companionReunion!.completed).not.toHaveProperty("memory");
+    expect(projectCompanionReunionScene(old)!.title).toBe("A familiar face · Elderwatch");
 
-    await installFixture(page, beforeArrival);
+    await installDurableFixture(page, before);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1280, height: 800 });
-    // Explicit fixture-fast mode: this is not a new timing measurement of normal spoken-scene dwell.
+    // Fixture-fast playback of the actual arrival save, not a normal-dwell timing claim.
     await page.goto("./?fast", { timeout: 25_000 });
-    expect(JSON.parse(await pausedSave(page))).toEqual(beforeArrival);
-    const arrivalRaw = await pausedSave(page, beforeArrival.tick);
-    expect(JSON.parse(arrivalRaw)).toEqual(arrived);
+    const beforeRaw = await pausedSave(page);
+    expect(JSON.parse(beforeRaw)).toEqual(before);
+    expect(canonicalStringify(await durableSave(page))).toBe(canonicalStringify(before));
     await expect(page.locator("#repartee-caption")).toBeHidden();
-    await page.reload({ timeout: 25_000 });
-    expect(await pausedSave(page)).toBe(arrivalRaw);
-    expect(upgradeWorldState(JSON.parse(arrivalRaw))).toEqual(arrived);
-    await expect(page.locator("#repartee-caption")).toBeHidden();
-    milestone(`actual route arrives at T${arrived.tick}; exact pending arrival survives reload without an invented exchange`);
-
-    let current = arrived;
-    expect(ready.tick - arrived.tick).toBeLessThanOrEqual(4);
-    while (current.tick < ready.tick) {
-      const raw = await pausedSave(page, current.tick);
-      current = advanceWorld(current);
-      expect(JSON.parse(raw)).toEqual(current);
-      expect(current.depth.companionReunion!.completed).toBeNull();
-    }
-    expect(current).toEqual(ready);
-    const reunionRaw = await pausedSave(page, ready.tick);
-    expect(JSON.parse(reunionRaw)).toEqual(expected);
-    expect(expected.chronicle.at(-1)).toMatchObject({ commandType: "reunite-companion", mode: "chronicle",
-      tick: expected.tick, commandId: `${expected.campaignId}:${completed.sourceCommandId}` });
-    expect(expected.depth.companionReunion!.arrival).toEqual(arrived.depth.companionReunion!.arrival);
-    expect(expected.depth.companions).toEqual(ready.depth.companions);
-    expect(expected.depth.companions.active).toEqual([]);
-    expect(expected.depth.hero).toEqual(ready.depth.hero);
-    expect(expected.hero).toEqual(ready.hero);
-    expect(expected.depth.towns).toEqual(ready.depth.towns);
-    expect(expected.depth.quest).toEqual(ready.depth.quest);
-    expect(expected.depth.completedQuests).toEqual(ready.depth.completedQuests);
-    expect(expected.depth.pendingQuestReward).toEqual(ready.depth.pendingQuestReward);
-    expect(olderStories(expected)).toBe(olderStories(ready));
-    await proveReunion(page, expected); await capture("companion-reunion-1280");
+    const completedRaw = await pausedSave(page, before.tick);
+    expect(JSON.parse(completedRaw)).toEqual(world);
+    expect(canonicalStringify(await durableSave(page))).toBe(canonicalStringify(world));
+    await proveReunion(page, world); await capture("reunion-memory-1280");
+    await proveCompanyJournal(page, world);
     await page.setViewportSize({ width: 320, height: 568 });
-    await proveReunion(page, expected); await capture("companion-reunion-320");
-    await page.evaluate(() => document.querySelector<HTMLButtonElement>("#stage-focus-button")!.click());
-    await proveReunion(page, expected); await capture("companion-reunion-320-focus");
-    expect(await pausedSave(page)).toBe(reunionRaw);
-    await page.evaluate(() => document.querySelector<HTMLButtonElement>("#stage-focus-button")!.click());
-    await proveCompanyJournal(page, expected);
-    await page.reload({ timeout: 25_000 });
-    expect(await pausedSave(page)).toBe(reunionRaw);
-    expect(upgradeWorldState(JSON.parse(reunionRaw))).toEqual(expected);
-    await proveReunion(page, expected);
-    milestone(`T${expected.tick} reunites the actual pair; both spoken lines and Company sources survive reload without a new oath or reward`);
+    await proveReunion(page, world); await capture("reunion-memory-320");
+    await page.locator("#stage-focus-button").click();
+    await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+    await proveReunion(page, world); await capture("reunion-memory-320-focus");
+    expect(await pausedSave(page)).toBe(completedRaw);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "panels");
+    milestone("actual Ada remembers the exact T32 line; neutral opinion, T44 callback and former oath stay unchanged");
 
-    expect(campaignDirector(expected).candidates.every(candidate => candidate.command.type !== "reunite-companion")).toBe(true);
-    const continued = JSON.parse(await pausedSave(page, expected.tick)) as WorldState;
-    expect(continued).toEqual(advanceWorld(expected));
-    expect(continued.depth.companionReunion).toEqual(reunion);
-    expect(continued.depth.companions.former).toEqual(expected.depth.companions.former);
-    expect(continued.chronicle.at(-1)?.commandType).not.toBe("reunite-companion");
+    await page.reload({ timeout: 25_000 });
+    expect(await pausedSave(page)).toBe(completedRaw);
+    expect(canonicalStringify(await durableSave(page))).toBe(canonicalStringify(world));
+    await proveReunion(page, world); await proveCompanyJournal(page, world);
+    expect(campaignDirector(world).candidates.every(candidate => candidate.command.type !== "reunite-companion")).toBe(true);
+    expect(JSON.parse(await pausedSave(page, world.tick))).toEqual(next);
+    expect(canonicalStringify(await durableSave(page))).toBe(canonicalStringify(next));
+    expect(next.depth.companionReunion).toEqual(reunion);
+    expect(next.depth.companions.former).toEqual(world.depth.companions.former);
+    expect(next.depth.reparteeWitness).toEqual(before.depth.reparteeWitness);
+    expect(next.depth.reparteeCallback).toEqual(before.depth.reparteeCallback);
     await expect(page.locator("#repartee-caption")).toBeHidden();
-    await proveCompanyJournal(page, continued);
+    await proveCompanyJournal(page, next);
     expect(errors).toEqual([]); expect(inference).toEqual([]); expect(external).toEqual([]);
-    milestone(`ordinary ${continued.chronicle.at(-1)?.commandType} resumes with one historical reunion; no runtime errors, models or external requests`);
+    milestone("exact reload keeps one reunion; ordinary next command clears Watch while Company retains all original sources");
   } finally {
-    await testInfo.attach("Companion reunion diagnostics", { body: JSON.stringify({ errors, inference, external,
-      beforeArrivalTick: beforeArrival.tick, arrivalTick: arrived.tick, readyTick: ready.tick, reunionTick: expected.tick,
-      route: reunion.arrival.route, departureTick: reunion.departureTick, residentId: reunion.residentId,
-      elapsedMs: Date.now() - startedAt }, null, 2), contentType: "application/json" });
+    await testInfo.attach("Reunion memory actual source diagnostics", { body: JSON.stringify({ errors, inference, external,
+      ticks: [before.tick, world.tick, next.tick], commandId: completed.sourceCommandId,
+      nextCommand: next.chronicle.at(-1)!.commandType, memory, elapsedMs: Date.now() - startedAt }, null, 2), contentType: "application/json" });
   }
 });

@@ -3,7 +3,7 @@ import { createForwardMotionState } from "../src/core/forward-motion";
 import { canonicalHash } from "../src/core/canonical";
 import type { WorldState } from "../src/core/types";
 import { generateTown, visitTown } from "../src/depth/towns";
-import releasedCreditSave from "./fixtures/companion-credit-v170-pre-victory.json";
+import releasedCreditSave from "./fixtures/companion-credit-v170-pre-victory.json" with { type: "json" };
 
 export const companionCreditCampaignId = "campaign:shared-road-world-arc";
 

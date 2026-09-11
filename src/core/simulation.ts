@@ -629,9 +629,13 @@ function describeBeat(
     const reunion = depth.companionReunion, completed = reunion.completed!;
     const location = depth.atlas.locations.find((entry) => entry.id === reunion.locationId);
     return { mode: "chronicle", location: location?.name ?? opportunity.location,
-      goal: "A hello after the shared road", headline: `A familiar face: ${reunion.companionName}`,
+      goal: completed.memory === undefined ? "A hello after the shared road" : "Remember a line from the shared road",
+      headline: `${completed.memory === undefined ? "A familiar face" : "An old line returns"}: ${reunion.companionName}`,
       action: `${state.hero.name}: “${completed.heroLine}” ${reunion.companionName}: “${completed.companionLine}”`,
-      consequence: "The fulfilled oath stays fulfilled. No new journey, reward or relationship change is claimed.", sensoryIntensity: 0 };
+      consequence: completed.memory === undefined
+        ? "The fulfilled oath stays fulfilled. No new journey, reward or relationship change is claimed."
+        : "An actual witnessed answer returns to the conversation. The old judgment and fulfilled oath remain unchanged; no new reward or relationship change.",
+      sensoryIntensity: 0 };
   }
   if ((choice.command.type === "start-room-challenge" || choice.command.type === "answer-room-challenge") && depth.roomChallenge !== null) {
     const challenge = depth.roomChallenge, result = challenge.result;

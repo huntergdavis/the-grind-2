@@ -1,7 +1,29 @@
 import { advanceRoute, planRoute } from "./atlas";
 import { isValidCompanionReferences, isValidFormerCompanion } from "./companion";
+import { isValidCampaignRepartee } from "./repartee-campaign";
+import type { ReparteeWitnessReaction } from "./repartee-witness";
 import { selectPaidInnRest } from "./town-rest";
 import type { DepthCommand, DepthState, FormerCompanion, RoutePlan } from "./types";
+
+/** A quotation of one witnessed answer, not a new opinion or a changed contest result. */
+export interface CompanionReunionMemory {
+  readonly schemaVersion: 1;
+  readonly rulesVersion: "reunion-witness-memory-v1";
+  readonly heroId: string;
+  readonly witnessId: string;
+  readonly joinedTick: number;
+  readonly encounterId: string;
+  readonly sourceReactionCommandId: string;
+  readonly sourceReactionTick: number;
+  readonly sourceReactionId: string;
+  readonly evidenceSourceCommandId: string;
+  readonly evidenceRoundIndex: number;
+  readonly rememberedReply: string;
+  readonly quote: string;
+  readonly pose: ReparteeWitnessReaction["pose"];
+  readonly outcome: ReparteeWitnessReaction["outcome"];
+  readonly regardAfter: ReparteeWitnessReaction["regardAfter"];
+}
 
 export interface CompanionReunion {
   readonly schemaVersion: 1;
@@ -27,6 +49,8 @@ export interface CompanionReunion {
     readonly tick: number;
     readonly heroLine: string;
     readonly companionLine: string;
+    /** Absent on released greetings; loading a save never invents a remembered conversation. */
+    readonly memory?: CompanionReunionMemory;
   } | null;
 }
 type ReunionCommand = Extract<DepthCommand, { type: "reunite-companion" }>;
@@ -71,6 +95,38 @@ export function companionReunionLines(sharedVictories: number): { heroLine: stri
         ? "One shared victory. I am glad this time we can simply say hello."
         : `${sharedVictories} victories together. I am glad this time we can simply say hello.`,
   };
+}
+
+/** Authored copy only; campaign admission/validation separately proves the exact remembered source. */
+export function companionReunionMemoryLines(memory: Pick<CompanionReunionMemory, "quote" | "sourceReactionId">): { heroLine: string; companionLine: string } {
+  const replies: Record<string, string> = {
+    "precision-counter": "A sound answer travels well. The score never was the reason I remembered it.",
+    "precision-evasion": "I remember the detour. The question is still waiting where you left it.",
+    "hollow-boast": "The echo arrived first. I am still waiting for the argument.",
+    "honest-admission": "You left the pretence out. An honest limit still travels better than borrowed swagger.",
+    "culinary-absurdity": "The judges had their score. I had that sentence. I still know which I would keep.",
+    unmoved: "It is exactly as I remember. I am still not sure what to make of it.",
+  };
+  if (!Object.hasOwn(replies, memory.sourceReactionId)) throw new TypeError("Unknown remembered witness reaction");
+  return { heroLine: `I brought an old line back with me: “${memory.quote}”`, companionLine: replies[memory.sourceReactionId]! };
+}
+
+function witnessedMemory(state: DepthState, reunion: CompanionReunion): CompanionReunionMemory | null {
+  if (!isValidCampaignRepartee(state)) return null;
+  const reaction = state.reparteeWitness.reaction;
+  if (reaction === null || reaction.evidence === null || reaction.heroId !== reunion.heroId
+    || reaction.witnessId !== reunion.residentId || reaction.witnessName !== reunion.companionName
+    || reaction.joinedTick !== reunion.joinedTick || reaction.completedTick >= reunion.departureTick
+    || reunion.departureTick >= reunion.arrival.tick) return null;
+  const evidence = reaction.evidence;
+  // Same exact first-sentence rule as the earlier shared-road callback; retain the full answer too.
+  const quote = evidence.reply.match(/^[\s\S]*?[.!?](?=\s|$)/u)?.[0] ?? evidence.reply;
+  return { schemaVersion: 1, rulesVersion: "reunion-witness-memory-v1", heroId: reunion.heroId,
+    witnessId: reaction.witnessId, joinedTick: reaction.joinedTick, encounterId: reaction.encounterId,
+    sourceReactionCommandId: reaction.completionCommandId, sourceReactionTick: reaction.completedTick,
+    sourceReactionId: reaction.reactionId, evidenceSourceCommandId: evidence.sourceCommandId,
+    evidenceRoundIndex: evidence.roundIndex, rememberedReply: evidence.reply, quote,
+    pose: reaction.pose, outcome: reaction.outcome, regardAfter: reaction.regardAfter };
 }
 export function companionReunionCommandId(atTick: number, command: ReunionCommand): string {
   return `depth:${atTick}:reunite-companion:${command.residentId}:${command.joinedTick}:${command.arrivalTick}`;
@@ -160,8 +216,15 @@ export function isValidCampaignCompanionReunion(state: DepthState): boolean {
     const replay = advanceRoute({ ...state.atlas, currentLocationId: arrival.sourceLocationId, route }, arrival.distance);
     if (replay.route !== null || replay.currentLocationId !== reunion.locationId) return false;
     if (reunion.completed !== null) {
-      const completed = reunion.completed, lines = companionReunionLines(reunion.sharedVictories);
-      if (!keys(completed, ["sourceCommandId", "tick", "heroLine", "companionLine"]) || !integer(completed.tick, 1)
+      const completed = reunion.completed, hasMemory = Object.hasOwn(completed, "memory");
+      let lines = companionReunionLines(reunion.sharedVictories);
+      if (hasMemory) {
+        const expected = witnessedMemory(state, reunion), memory: unknown = completed.memory;
+        if (expected === null || !keys(memory, Object.keys(expected))
+          || !Object.entries(expected).every(([key, value]) => memory[key] === value)) return false;
+        lines = companionReunionMemoryLines(expected);
+      }
+      if (!keys(completed, ["sourceCommandId", "tick", "heroLine", "companionLine", ...(hasMemory ? ["memory"] : [])]) || !integer(completed.tick, 1)
         || completed.tick <= arrival.tick || completed.tick > state.tick
         || completed.sourceCommandId !== companionReunionCommandId(completed.tick, { type: "reunite-companion", residentId: reunion.residentId, joinedTick: reunion.joinedTick, arrivalTick: arrival.tick })
         || completed.heroLine !== lines.heroLine || completed.companionLine !== lines.companionLine) return false;
@@ -178,8 +241,10 @@ export function selectCompanionReunion(state: DepthState): NonNullable<Companion
   if (reunion === null || reunion.completed !== null || !integer(state.tick) || state.tick >= Number.MAX_SAFE_INTEGER
     || !isValidCampaignCompanionReunion(state) || !quietSolo(state) || selectPaidInnRest(state) !== null) return null;
   const atTick = state.tick + 1;
+  const memory = witnessedMemory(state, reunion);
   return { sourceCommandId: companionReunionCommandId(atTick, { type: "reunite-companion", residentId: reunion.residentId,
-    joinedTick: reunion.joinedTick, arrivalTick: reunion.arrival.tick }), tick: atTick, ...companionReunionLines(reunion.sharedVictories) };
+    joinedTick: reunion.joinedTick, arrivalTick: reunion.arrival.tick }), tick: atTick,
+    ...(memory === null ? companionReunionLines(reunion.sharedVictories) : { memory, ...companionReunionMemoryLines(memory) }) };
 }
 
 export function stepCampaignCompanionReunion(state: DepthState, command: ReunionCommand): CompanionReunion {

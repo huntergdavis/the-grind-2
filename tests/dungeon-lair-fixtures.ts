@@ -2,7 +2,7 @@ import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
 import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import type { WorldState } from "../src/core/types";
 import { selectDungeonFieldMedicine } from "../src/depth/dungeon-field-medicine";
-import releasedSave from "./fixtures/dungeon-lair-v174-before-arrival.json";
+import releasedSave from "./fixtures/dungeon-lair-v174-before-arrival.json" with { type: "json" };
 
 export const dungeonLairCampaignId = "campaign:browser-repartee-memory";
 const releasedCommit = "0c1cbb381dddd0f993edf85ebecd411c55c5fb81";

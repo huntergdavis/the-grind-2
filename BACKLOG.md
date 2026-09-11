@@ -32,8 +32,10 @@ terminal recap to the existing Watch ribbon and source notes to Status; no
 canonical or LLM changes. **Spare change (v0.5.177) is live:** sell one
 actual unused, outclassed spare weapon at a later market for one gold, preserving
 equipped gear and earned weapon history. Browser, CI and public-source checks
-pass; it adds no panel or LLM request. Next is the proposed specific shared-memory
-reunion, **That line followed you home**, subject to a real matching witness.
+pass; it adds no panel or LLM request. **An old line returns (v0.5.178)** is now
+in progress: the current Ada Fen reunion has a proven matching flyting witness.
+The new optional memory preserves her actual neutral reaction and old saves;
+browser acceptance, CI and live verification remain pending.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.

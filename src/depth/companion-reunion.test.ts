@@ -62,8 +62,8 @@ describe("one earned return to a fulfilled companion's farewell town", () => {
     expect(command).toEqual({ type: "reunite-companion", residentId: receipt.residentId,
       joinedTick: receipt.joinedTick, arrivalTick: receipt.arrival.tick });
     if (command.type !== "reunite-companion") throw new Error("Expected reunion command");
-    expect(receipt.completed).toEqual({ sourceCommandId: companionReunionCommandId(completed.tick, command),
-      tick: completed.tick, ...companionReunionLines(receipt.sharedVictories) });
+    expect(receipt.completed).toEqual(selectCompanionReunion(ready.depth));
+    expect(receipt.completed).toMatchObject({ sourceCommandId: companionReunionCommandId(completed.tick, command), tick: completed.tick });
     expect(unchangedFacts(completed.depth)).toEqual(unchangedFacts(ready.depth));
     expect(completed.hero).toEqual(ready.hero);
     expect(completed.scene).toMatchObject({ mode: "chronicle",

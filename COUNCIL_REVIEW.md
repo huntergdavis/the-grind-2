@@ -2,6 +2,63 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## An old line returns — v0.5.178 in progress
+
+Reuses the prior council's witnessed-quotation proposal recovered with
+`deja "That line followed you home"`, and the explicit optional R1 memory
+branch in `docs/design/LIFETIME_STORIES.md`. The shorter title does not imply
+an invented journey home: the former remains at the actual farewell town.
+
+One unchanged `2cd22da` known-journey read completed in **2,643 ms** under its
+existing T320 bound. Actual arrival T85 (from location10 to Elderwatch/location0)
+has hash **`b9f956d8d29d2d94`**; before-arrival T84 is `149799a49664a51e` and the
+original T86 completion is `d9cce50f7bc14aa8`. The returning former is Ada Fen,
+joined T28 and farewell T45, with one actual shared victory. Her T32 witness
+record matches that same resident/oath. The exact first sentence is:
+“I will accept being called cautious.” Her judgment was **unmoved**, pose quiet,
+regard zero, contest draw. The T44 private callback remains retained.
+
+Only a new matching reunion may add a versioned optional memory under its
+completed record. Missing memory preserves old transcripts verbatim on load;
+malformed present evidence must fail validation. Retain full source reply,
+exact quote, witness and oath identity, reaction/outcome and source IDs. Authored
+dialogue preserves the meaning of that reaction, without new affection,
+forgiveness, reward, route, actor, panel, model request or reading timer.
+Rules, presentation and acceptance are independently assigned. Implementation
+is complete; **24 focused checks** pass (13 rules, nine UI, two scene checks),
+with TypeScript, version metadata and module boundaries clean. The UI reviewer
+also closed narrow world-hero and scene/source mismatch gaps in the existing
+projector. The production build and local three-asset/four-source verification
+pass; renderer, main shell, CSS and both LLM workers are unchanged.
+
+The first browser invocation stopped during collection, before any scenario:
+the released-save JSON import lacked Node's explicit JSON import attribute.
+This is a test-loader issue, not a runtime game failure or a browser pass.
+Native Node loading demonstrated the same requirement for all six existing
+checkpoint imports; each now declares `with { type: "json" }`. The JSON bytes
+are unchanged. Test collection and TypeScript pass without a production rebuild.
+Browser acceptance, full CI and public verification remain pending.
+
+After the collection correction, the first complete production-browser scenario
+passes in **54.5s**, within the unchanged 100s limit. All three desktop/320px/
+Focus captures were inspected **2026-09-11 14:47:51 PDT**: both actual actors
+remain clear of the complete dialogue, with no extra panel or clipped text.
+Actual T85→T86→T87 saves are exact; Company keeps the full original reply and
+all source IDs after reload and ordinary continuation. The T44 callback,
+fulfilled oath, neutral regard, resources and prior stories stay unchanged.
+There are no page/console errors, model workers/requests or external requests.
+The preview server closed normally. Full CI and public verification are pending.
+
+The unchanged ten-seed / 1,000-command workload completed all results in
+**173.348s locally**, so its runner correctly reports the existing **80s timeout**;
+this is not called a passing local replay test. Six campaigns earn new memories:
+0/T617 (honest admission), 1/T92 (culinary absurdity), 2/T457 (precise counter),
+4/T91 (unmoved), 7/T90 (honest admission), 8/T735 (unmoved). Their entire-state
+anchors change; the other four remain byte-for-byte hash-identical to v177.
+No seeds, state fields or limits were changed to force those outcomes, and no
+second local replay matrix was added. CI will check the anchors under its
+unchanged canonical gate.
+
 ## Spare change — v0.5.177 verified release
 
 **Live and publicly source-verified 2026-09-11 14:13:01 PDT.** Feature

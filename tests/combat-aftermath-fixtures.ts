@@ -1,4 +1,4 @@
-import checkpoint from "./fixtures/combat-aftermath-v176-before-ending.json";
+import checkpoint from "./fixtures/combat-aftermath-v176-before-ending.json" with { type: "json" };
 import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
