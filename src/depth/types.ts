@@ -319,6 +319,25 @@ export interface DungeonDisarmKitUseV1 {
   readonly success: boolean;
 }
 
+export interface DungeonSecretPassageClue {
+  readonly dungeonId: string;
+  readonly fromCellId: string;
+  readonly toCellId: string;
+  readonly direction: MazeDirection;
+  readonly revealedTick: number;
+  readonly revealSourceCommandId: string;
+  readonly revealedTurn: number;
+  /** The already walked alternative, not hidden geometry. */
+  readonly knownRouteCellIds: readonly string[];
+}
+
+export interface DungeonSecretPassageState {
+  readonly schemaVersion: 1;
+  readonly rulesVersion: "draught-v1";
+  readonly clue: DungeonSecretPassageClue | null;
+  readonly opened: { readonly tick: number; readonly sourceCommandId: string; readonly turn: number } | null;
+}
+
 export interface DungeonState {
   layoutVersion: DungeonLayoutVersion;
   /** Absent legacy fixtures use rules 1; generated dungeons record their family rules explicitly. */
@@ -331,6 +350,8 @@ export interface DungeonState {
   latestDisarmKitUse?: DungeonDisarmKitUseV1 | null;
   /** Latest actual consumption in this expedition; absent legacy saves grant nothing. */
   latestFieldMedicineUse?: import("./dungeon-field-medicine").DungeonFieldMedicineUse | null;
+  /** Explicit opt-in on a newly generated expedition; absent old rooms gain no edge. */
+  secretPassage?: DungeonSecretPassageState;
   id: string;
   name: string;
   width: number;
@@ -1245,6 +1266,7 @@ export interface DepthState {
 
 export type DepthCommand =
   | { type: "share-companion-credit"; residentId: string; joinedTick: number; combatId: string; choice: import("./companion-credit").CompanionCreditChoice }
+  | { type: "open-dungeon-passage"; dungeonId: string; fromCellId: string; toCellId: string }
   | { type: "use-dungeon-tonic"; dungeonId: string; cellId: string; itemId: string }
   | { type: "reunite-companion"; residentId: string; joinedTick: number; arrivalTick: number }
   | { type: "start-room-challenge"; encounterId: string; locationId: string; buildingId: string; residentId: string }

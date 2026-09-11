@@ -28,6 +28,7 @@ import { createChroniclePlateArchive } from "./ui/chronicle-plate-archive";
 import { createChroniclePlateView } from "./ui/chronicle-plate-view";
 import { projectDungeonSearchView } from "./ui/dungeon-search-view";
 import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-view";
+import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -4470,6 +4471,7 @@ function present(): void {
   const dungeonShrineSummary = dungeonShrineUse === null ? null : describeDungeonShrineUse(dungeonShrineUse);
   const dungeonSearch = projectDungeonSearchView(state);
   const dungeonMedicine = projectDungeonFieldMedicineScene(state);
+  const dungeonPassage = projectDungeonSecretPassageScene(state);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -4785,6 +4787,13 @@ function present(): void {
     elements.traversalDirective.dataset.reason = "dungeon-field-medicine";
     elements.traversalDirective.dataset.directions = "";
     elements.traversalDirective.dataset.frontierCell = dungeonMedicine.cellId;
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (dungeonPassage !== null) {
+    elements.traversalDirective.textContent = `${dungeonPassage.headline} · ${dungeonPassage.detail}`;
+    elements.traversalDirective.title = state.scene.consequence;
+    elements.traversalDirective.dataset.reason = `dungeon-passage-${dungeonPassage.phase}`;
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = dungeonPassage.cellId;
     elements.traversalDirective.dataset.routeLength = "0";
   } else if (counterDuel !== null) {
     if (counterDuel.outcome === "ongoing") {

@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v169 keeps Depth 35 and records earned companion credit and farewell callbacks.
+      // v170 keeps Depth 35 and adds earned secret passages to newly entered dungeons.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "61420837e4c1a80f",
-      "85cfd532bd45f69d",
-      "12b13917cc86a33c",
-      "1647fcb604b0bce4",
-      "0d03f0090cd1a483",
-      "218d78d719c0535a",
-      "7a1fe09acd8397d3",
-      "5253d4e04efb58c6",
-      "8775a639b56287f5",
-      "53490ba5e7f78b0e",
+      "34646fbfc3260502",
+      "d8ac8f11c19d4676",
+      "431a0f4265bb67a8",
+      "255537f681f95b2b",
+      "d9ea711bf79b5a1d",
+      "918282eaf0d6a5a3",
+      "96c785f4f73b6796",
+      "13491a1675e9cf6d",
+      "0234e72f2d597391",
+      "1bf40851f55c0193",
     ]);
   }, 80_000);
 });

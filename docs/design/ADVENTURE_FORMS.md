@@ -518,9 +518,11 @@ and creates a useful choice without those additional systems.
 
 ## D4 proposed next slice — A draught in the wall
 
-Council recommendation, 2026-09-11. Not implemented; reachability has not yet
-been measured. This narrows the roadmap's secret-passage idea to one useful
-shortcut in an ordinary solo dungeon, without another adventure engine.
+Council recommendation, 2026-09-11; in progress for v0.5.170. The actual earned
+journey now reaches the clue at T121, opens it at T122 and crosses at T123,
+shortening a known route six → four moves. Final browser/release checks remain
+pending. This narrows the roadmap's secret-passage idea to one useful shortcut
+in an ordinary solo dungeon, without another adventure engine.
 
 A public draught cue in the current room admits one stationary investigation.
 An eligible hidden latch connects two already visited, physically adjacent
@@ -534,12 +536,13 @@ the text, in both the existing 2D and optional first-person views.
 Existing hooks are `generateDungeon`, `isDungeonPassageOpen` and
 `projectDungeonWayfinding` in `src/depth/dungeon.ts`, the dungeon command lane
 in `src/depth/state.ts`, and the public packet in
-`src/ui/dungeon-perspective-view.ts`. These are implementation leads, not proof
-that an eligible journey exists. The current validator checks the original
-maze's tree after removing its key-gate edge. Any new version must explicitly
-account for the secret edge before that same base-tree check; do not weaken
-connectivity, reciprocity, key ordering or the existing gate shortcut. The
-new connection must not bypass an unearned gate or reveal an unvisited room.
+`src/ui/dungeon-perspective-view.ts`. The original validator checks the maze's
+tree after removing its key-gate edge. D4 stores its one extra edge separately
+from the base cells, so that same base-tree check remains unchanged. Effective
+movement, wayfinding, search and rendering include only the actually opened
+extra edge. Connectivity, reciprocity and key ordering are preserved: a clue
+is eligible only after the key gate is open and its shortcut already visited.
+The new connection cannot bypass an unearned gate or reveal an unvisited room.
 
 Keep one versioned passage and its exact reveal/open receipt per eligible new
 expedition. Old expeditions remain unchanged. Public rendering sees only the

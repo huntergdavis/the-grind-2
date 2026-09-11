@@ -2,6 +2,43 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## A draught in the wall — v0.5.170 implementation checkpoint
+
+Reuse: the council's 2026-09-11 05:08:53 D4 recommendation recovered by
+`deja "A draught in the wall"` (Codex 2026-09-10T1), now scoped in
+[Adventure forms](docs/design/ADVENTURE_FORMS.md#d4-proposed-next-slice--a-draught-in-the-wall).
+Rules, native presentation and bounded acceptance have separate owners; root
+handles command integration, replay anchors and release. LLM and protected
+ledger changes remain out of scope. Keep the original maze/key-gate invariants,
+old expedition behavior and public knowledge boundaries. No new test matrix.
+The unchanged-runtime source check reused the existing earned dungeon journey
+with its T320 ceiling and 20-second post-import limit. It found the first useful
+wall at T121 in 2.859 seconds. One pinned metadata replay (3.134 seconds)
+confirmed the key gate was already open and its shortcut visited; no seed scan,
+staged room, health, gate or outcome was used. Implementation then proceeded.
+The integrated source check passed in 3.419 seconds: actual T121 draught,
+T122 stationary opening, T123 crossing, then ordinary T124 movement. The known
+route shortens six → four moves. Exact saves at each boundary, unchanged base
+cells, hero/resources and prior story records pass. The optional extra edge
+is stored separately from the original maze; existing tree/key-gate checks
+stay intact. Old expeditions without the opt-in record remain unchanged.
+
+Rules: 36 focused tests and final typecheck pass. Presentation: 26 focused
+tests (including field-medicine regressions) and final typecheck pass. Root's
+four integration checks pass. The existing ten 1,000-turn campaigns complete;
+their full-state anchors include the real new expedition record and actions.
+Version/boundary/typecheck/production build and local emitted-source checks pass.
+The independent read-only integration review finds no blockers in source
+binding, safety priority, stationary effects, old saves or public knowledge.
+The production browser scenario passes (2.6-minute runner, unchanged 150-second
+scenario cap): actual T120 → T121 cue → T122 opening → T123 crossing → T124
+ordinary movement, exact reloads, both perspectives, desktop/320px/Focus,
+source-bound Status entries, no external requests, model activity or errors.
+All three native captures were inspected. The cue sits above the maze, the
+opening stays stationary and the first-person view turns only on real movement.
+Its owned preview process is closed. Release CI and public verification remain
+pending; no new long-run matrix or relaxed time limit is introduced.
+
 ## Share the credit — v0.5.169 final delivery
 
 **Live and publicly source-verified 2026-09-11 05:24:24 PDT.** Feature

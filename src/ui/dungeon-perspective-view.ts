@@ -1,9 +1,10 @@
 import type { WorldState } from "../core/types";
 import {
-  isDungeonPassageOpen, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps,
+  dungeonEffectiveExits, isDungeonPassageOpen, isValidDungeonSecretPassage, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps,
 } from "../depth/dungeon";
 import type { DungeonTrapKind, MazeDirection } from "../depth/types";
 import { projectDungeonSearchView } from "./dungeon-search-view";
+import { projectCurrentDungeonSecretPassage, type DungeonSecretPassageView } from "./dungeon-secret-passage-view";
 
 const directions: readonly MazeDirection[] = ["north", "east", "south", "west"];
 const relativeDirections = ["front", "right", "back", "left"] as const;
@@ -45,6 +46,7 @@ export interface DungeonPerspectiveView {
   readonly keyStatus: "unknown" | "sighted" | "carried" | "used";
   readonly landmark: { readonly kind: "far-stair-shrine"; readonly status: "promised" | "mapped" | "awakened"; readonly here: boolean } | null;
   readonly search: { readonly outcome: "marked" | "unrevealed"; readonly headline: string; readonly detail: string } | null;
+  readonly secretPassage: (DungeonSecretPassageView & { readonly relative: DungeonPerspectiveExit["relative"] }) | null;
 }
 
 function validFacing(value: unknown): value is MazeDirection {
@@ -93,6 +95,7 @@ export function projectDungeonPerspectiveView(state: WorldState, facing: MazeDir
     const dungeon = state.depth.dungeon;
     if (dungeon === null || state.scene.mode !== "dungeon" || state.tick !== state.depth.tick
       || !Number.isSafeInteger(state.tick) || state.tick < 0 || state.hero.id !== state.depth.hero.id
+      || !isValidDungeonSecretPassage(dungeon, state.tick)
       || !dungeon.visitedCellIds.includes(dungeon.currentCellId) || !dungeon.discoveredCellIds.includes(dungeon.currentCellId)
       || !dungeon.cells.some((cell) => cell.id === dungeon.currentCellId)) return null;
     const heading = validFacing(facing) ? facing : "north";
@@ -106,7 +109,7 @@ export function projectDungeonPerspectiveView(state: WorldState, facing: MazeDir
     const current = dungeon.cells.find((cell) => cell.id === dungeon.currentCellId)!;
     const available = projectDungeonMoveKnowledge(dungeon);
     const exits: DungeonPerspectiveExit[] = directions.flatMap((direction) => {
-      if (!current.exits.includes(direction)) return [];
+      if (!dungeonEffectiveExits(dungeon, current.id).includes(direction)) return [];
       const neighbor = dungeon.cells.find((cell) => cell.x === current.x + delta[direction][0]
         && cell.y === current.y + delta[direction][1]);
       if (neighbor === undefined || !discovered.has(neighbor.id) || !isDungeonPassageOpen(dungeon, current.id, neighbor.id)) return [];
@@ -126,6 +129,7 @@ export function projectDungeonPerspectiveView(state: WorldState, facing: MazeDir
     exits.sort((left, right) => directions.indexOf(left.direction) - directions.indexOf(right.direction));
     if (exits.length > 4 || new Set(exits.map((exit) => exit.direction)).size !== exits.length) return null;
     const landmark = projectDungeonLandmark(dungeon), search = projectDungeonSearchView(state);
+    const secretPassage = projectCurrentDungeonSecretPassage(dungeon);
     const source = state.chronicle.at(-1);
     return Object.freeze({ schemaVersion: 1, campaignId: state.campaignId, dungeonId: dungeon.id, tick: state.tick,
       sourceCommandId: source?.tick === state.tick && source.mode === "dungeon" ? source.commandId ?? null : null,
@@ -135,6 +139,7 @@ export function projectDungeonPerspectiveView(state: WorldState, facing: MazeDir
       landmark: landmark === null ? null : Object.freeze({ kind: landmark.kind, status: landmark.status,
         here: landmark.cellId !== null && landmark.cellId === dungeon.currentCellId }),
       search: search === null ? null : Object.freeze({ outcome: search.outcome, headline: search.headline, detail: search.detail }),
+      secretPassage: secretPassage === null ? null : Object.freeze({ ...secretPassage, relative: relative(secretPassage.direction, heading) }),
     });
   } catch { return null; }
 }

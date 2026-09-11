@@ -7,7 +7,7 @@ const room: DungeonPerspectiveView = Object.freeze({
   schemaVersion: 1, campaignId: "campaign:perspective-drawing", dungeonId: "dungeon:public",
   tick: 3, sourceCommandId: "campaign:perspective-drawing:step:3", currentCellId: "known-room",
   heroId: "hero:perspective-drawing", heroName: "Aster", facing: "north", completed: false,
-  exits: Object.freeze([]), currentTrap: null, keyStatus: "unknown", landmark: null, search: null,
+  exits: Object.freeze([]), currentTrap: null, keyStatus: "unknown", landmark: null, search: null, secretPassage: null,
 });
 
 describe("public-only dungeon perspective drawing", () => {
@@ -51,5 +51,33 @@ describe("public-only dungeon perspective drawing", () => {
     const known = drawDungeonPerspective({ ...room, currentTrap: { kind: "mana-siphon", status: "armed" } });
     expect(known.labels.map(label => label.text)).toEqual(["ARMED", "↑ N"]);
     for (const drawing of [baseline, promised, remote, known]) drawing.layer.destroy({ children: true });
+  });
+
+  it("keeps a draught on intact stone in each orientation, including a compass cue behind", () => {
+    for (const [relative, direction] of [["front", "north"], ["right", "east"], ["back", "south"], ["left", "west"]] as const) {
+      const drawing = drawDungeonPerspective({ ...room, secretPassage: { phase: "draught", relative, direction } });
+      expect(drawing.labels.map(label => label.text)).toEqual(relative === "back" ? ["↑ N · ↓ S"] : [direction[0]!.toUpperCase(), "↑ N"]);
+      // A draft adds only one bounded air graphic (plus a direction label), no doorway polygon.
+      const baseline = drawDungeonPerspective(room);
+      expect(drawing.layer.children.filter(child => child instanceof Graphics).length)
+        .toBe(baseline.layer.children.filter(child => child instanceof Graphics).length + 1);
+      for (const child of drawing.layer.children) {
+        if (!(child instanceof Graphics)) continue;
+        expect(child.context.bounds.minX).toBeGreaterThanOrEqual(-2);
+        expect(child.context.bounds.minY).toBeGreaterThanOrEqual(-2);
+        expect(child.context.bounds.maxX).toBeLessThanOrEqual(234);
+        expect(child.context.bounds.maxY).toBeLessThanOrEqual(126);
+      }
+      drawing.layer.destroy({ children: true }); baseline.layer.destroy({ children: true });
+    }
+  });
+
+  it("marks an actually opened doorway without adding an extra room or invented exit", () => {
+    const view: DungeonPerspectiveView = { ...room, secretPassage: { phase: "open", relative: "right", direction: "east", destinationCellId: "known-east" },
+      exits: [{ direction: "east", relative: "right", destinationCellId: "known-east", visited: true, available: true, gate: "none", trap: null, sightedKey: false }] };
+    const drawing = drawDungeonPerspective(view), ordinary = drawDungeonPerspective({ ...view, secretPassage: null });
+    expect(drawing.labels.map(label => label.text)).toEqual(["E", "↑ N"]);
+    expect(drawing.layer.children.length).toBe(ordinary.layer.children.length);
+    drawing.layer.destroy({ children: true }); ordinary.layer.destroy({ children: true });
   });
 });

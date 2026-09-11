@@ -78,7 +78,8 @@ export function drawDungeonPerspective(view: DungeonPerspectiveView): DungeonPer
       const y = exit.relative === "front" ? 59 : 71;
       // A flat, dark doorway discloses no neighboring room's onward geometry.
       layer.addChild(new Graphics().poly([...points]).fill(exit.gate === "locked" ? 0x403e35 : 0x081117)
-        .poly([...points]).stroke({ color: exit.gate === "open" ? 0x97cfa9 : exit.available ? 0x9a927c : 0x657377, width: 2.2 }));
+        .poly([...points]).stroke({ color: view.secretPassage?.phase === "open" && view.secretPassage.direction === exit.direction
+          ? 0xa3d7df : exit.gate === "open" ? 0x97cfa9 : exit.available ? 0x9a927c : 0x657377, width: 2.2 }));
       if (exit.gate === "locked") {
         const grille = new Graphics();
         for (const dx of [-10, 0, 10]) grille.moveTo(x + dx, y - 17).lineTo(x + dx, y + 16);
@@ -92,6 +93,18 @@ export function drawDungeonPerspective(view: DungeonPerspectiveView): DungeonPer
       label(exit.direction[0]!.toUpperCase(), x, exit.relative === "front" ? 28 : 34);
     };
     for (const exit of view.exits) door(exit);
+    const passage = view.secretPassage;
+    if (passage?.phase === "draught") {
+      // Air against intact stone, not a premature dark doorway or a revealed destination.
+      const x = passage.relative === "front" ? 116 : passage.relative === "left" ? 30 : passage.relative === "right" ? 202 : 184;
+      const y = passage.relative === "front" ? 58 : passage.relative === "back" ? 110 : 69;
+      const air = new Graphics();
+      for (const offset of [-5, 0, 5]) air.moveTo(x - 9, y + offset)
+        .bezierCurveTo(x - 3, y + offset - 3, x + 2, y + offset + 3, x + 9, y + offset);
+      air.stroke({ color: 0xbce5e8, width: 1.5, alpha: 0.95 });
+      layer.addChild(air);
+      if (passage.relative !== "back") label(passage.direction[0]!.toUpperCase(), x, passage.relative === "front" ? 28 : 34, 0xbce5e8);
+    }
     if (view.landmark?.here) {
       const color = view.landmark.status === "awakened" ? 0x9ce2df : 0x7d9997;
       layer.addChild(new Graphics().poly([71, 88, 78, 70, 85, 88]).fill(0x354f50)
@@ -109,9 +122,10 @@ export function drawDungeonPerspective(view: DungeonPerspectiveView): DungeonPer
         view.currentTrap.status === "armed" ? 0xffd166 : 0xb8d6c6);
     }
     const back = view.exits.find(exit => exit.relative === "back");
-    const compass = `↑ ${view.facing[0]!.toUpperCase()}${back === undefined ? "" : ` · ↓ ${back.direction[0]!.toUpperCase()}${back.gate === "locked" ? " ×" : ""}`}`;
+    const rearDirection = back?.direction ?? (passage?.relative === "back" ? passage.direction : undefined);
+    const compass = `↑ ${view.facing[0]!.toUpperCase()}${rearDirection === undefined ? "" : ` · ↓ ${rearDirection[0]!.toUpperCase()}${back?.gate === "locked" ? " ×" : ""}`}`;
     layer.addChild(new Graphics().roundRect(67, 105, 98, 19, 3).fill({ color: 0x111a21, alpha: 0.94 }));
-    label(compass, 116, 114);
+    label(compass, 116, 114, passage?.relative === "back" ? 0xbce5e8 : 0xe9dfc9);
     if (back?.trap !== null && back?.trap !== undefined) layer.addChild(trapGlyph(back.trap, 176, 114, 5));
     if (view.keyStatus === "carried") layer.addChild(keyGlyph(55, 104));
     // First-person hands use the existing hero's identity, not an invented actor or item.

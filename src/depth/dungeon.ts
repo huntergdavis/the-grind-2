@@ -8,6 +8,8 @@ import type {
   DungeonSearchExitV1,
   DungeonSearchReceiptV1,
   DungeonSearchStateV1,
+  DungeonSecretPassageClue,
+  DungeonSecretPassageState,
   DungeonShrineUse,
   DungeonState,
   DungeonTrapKind,
@@ -342,7 +344,7 @@ function discoveredAround(state: DungeonState, cellId: string): readonly string[
   const byId = new Map(state.cells.map((candidate) => [candidate.id, candidate]));
   const discovered = new Set(state.discoveredCellIds);
   discovered.add(cell.id);
-  for (const direction of cell.exits) {
+  for (const direction of dungeonEffectiveExits(state, cell.id)) {
     const neighbor = effectiveNeighbor(state, byId, cell, direction);
     if (neighbor !== null) discovered.add(neighbor.id);
   }
@@ -502,11 +504,27 @@ function isDungeonGateEdge(state: DungeonState, fromCellId: string, toCellId: st
   );
 }
 
+/** Physical doorways, including the one committed extra edge; never a hidden latch. */
+export function dungeonEffectiveExits(state: DungeonState, cellId: string): readonly MazeDirection[] {
+  const cell = state.cells.find((entry) => entry.id === cellId);
+  if (cell === undefined) return [];
+  const passage = state.secretPassage, clue = passage?.clue;
+  if (passage?.opened == null || clue == null) return orderedExits(cell);
+  const extra = cell.id === clue.fromCellId ? clue.direction : cell.id === clue.toCellId ? opposite[clue.direction] : null;
+  return directions.filter((direction) => cell.exits.includes(direction) || direction === extra);
+}
+
+function physicalNeighbor(state: DungeonState, byId: ReadonlyMap<string, MazeCell>, cell: MazeCell, direction: MazeDirection): MazeCell | null {
+  const neighbor = byId.get(destinationId(state, cell, direction));
+  return neighbor !== undefined && dungeonEffectiveExits(state, neighbor.id).includes(opposite[direction]) ? neighbor : null;
+}
+
 export function isDungeonPassageOpen(state: DungeonState, fromCellId: string, toCellId: string): boolean {
   const from = state.cells.find((cell) => cell.id === fromCellId);
   const to = state.cells.find((cell) => cell.id === toCellId);
   const direction = from === undefined || to === undefined ? null : directionBetween(from, to);
-  if (from === undefined || to === undefined || direction === null || !from.exits.includes(direction) || !to.exits.includes(opposite[direction])) {
+  if (from === undefined || to === undefined || direction === null || !dungeonEffectiveExits(state, from.id).includes(direction)
+    || !dungeonEffectiveExits(state, to.id).includes(opposite[direction])) {
     return false;
   }
   return !isDungeonGateEdge(state, fromCellId, toCellId) || state.keyGate?.phase === "open";
@@ -518,12 +536,113 @@ function effectiveNeighbor(
   cell: MazeCell,
   direction: MazeDirection,
 ): MazeCell | null {
-  const neighbor = legalNeighbor(state, byId, cell, direction);
+  const neighbor = physicalNeighbor(state, byId, cell, direction);
   return neighbor !== null && isDungeonPassageOpen(state, cell.id, neighbor.id) ? neighbor : null;
 }
 
 export function createDungeonSearchState(): DungeonSearchStateV1 {
   return Object.freeze({ schemaVersion: 1, searchedCellIds: Object.freeze([]), latestReceipt: null });
+}
+
+export function dungeonSecretPassageCommandId(tick: number, dungeonId: string, fromCellId: string, toCellId: string): string {
+  return `depth:${tick}:dungeon:${dungeonId}:passage:${fromCellId}:${toCellId}`;
+}
+
+export function createDungeonSecretPassageState(): DungeonSecretPassageState {
+  return { schemaVersion: 1, rulesVersion: "draught-v1", clue: null, opened: null };
+}
+
+/** Validate this extra edge separately: the original maze and key gate stay intact. */
+export function isValidDungeonSecretPassage(state: DungeonState, currentTick = Number.MAX_SAFE_INTEGER): boolean {
+  try {
+    if (!Object.hasOwn(state, "secretPassage")) return true;
+    const record: unknown = state.secretPassage;
+    if (!isRecord(record) || !searchExactKeys(record, ["schemaVersion", "rulesVersion", "clue", "opened"])
+      || record.schemaVersion !== 1 || record.rulesVersion !== "draught-v1" || !searchInteger(currentTick)) return false;
+    if (record.clue === null) return record.opened === null;
+    const clue = record.clue;
+    if (!isRecord(clue) || !searchExactKeys(clue, ["dungeonId", "fromCellId", "toCellId", "direction", "revealedTick", "revealSourceCommandId", "revealedTurn", "knownRouteCellIds"])
+      || clue.dungeonId !== state.id || !directions.includes(clue.direction as MazeDirection)
+      || !searchInteger(clue.revealedTick, 1, currentTick) || !searchInteger(clue.revealedTurn, 0, state.turns)
+      || typeof clue.revealSourceCommandId !== "string" || ![...directions,
+        ...["disarm", "unlock", "search"].map((action) => `${action}:${clue.fromCellId}`)]
+        .some((suffix) => clue.revealSourceCommandId === `depth:${clue.revealedTick}:dungeon:${state.id}:${suffix}`)
+      || !Array.isArray(clue.knownRouteCellIds) || clue.knownRouteCellIds.length < 4 || clue.knownRouteCellIds.length > state.cells.length
+      || new Set(clue.knownRouteCellIds).size !== clue.knownRouteCellIds.length
+      || clue.knownRouteCellIds[0] !== clue.fromCellId || clue.knownRouteCellIds.at(-1) !== clue.toCellId
+      || clue.knownRouteCellIds.some((id) => typeof id !== "string" || !state.visitedCellIds.includes(id))
+      || (state.keyGate !== null && (state.keyGate.phase !== "open" || !state.visitedCellIds.includes(state.keyGate.shortcutCellId)))) return false;
+    const from = state.cells.find((cell) => cell.id === clue.fromCellId), to = state.cells.find((cell) => cell.id === clue.toCellId);
+    if (from === undefined || to === undefined || directionBetween(from, to) !== clue.direction
+      || from.exits.includes(clue.direction as MazeDirection) || to.exits.includes(opposite[clue.direction as MazeDirection])) return false;
+    const byId = new Map(state.cells.map((cell) => [cell.id, cell]));
+    for (let index = 1; index < clue.knownRouteCellIds.length; index++) {
+      const a = byId.get(clue.knownRouteCellIds[index - 1]), b = byId.get(clue.knownRouteCellIds[index]);
+      const direction = a === undefined || b === undefined ? null : directionBetween(a, b);
+      if (a === undefined || b === undefined || direction === null || !a.exits.includes(direction)
+        || !b.exits.includes(opposite[direction])) return false;
+    }
+    if (clue.revealedTick === currentTick && (state.currentCellId !== clue.fromCellId || state.turns !== clue.revealedTurn)) return false;
+    if (record.opened === null) return true;
+    const opened = record.opened;
+    return isRecord(opened) && searchExactKeys(opened, ["tick", "sourceCommandId", "turn"])
+      && searchInteger(opened.tick, clue.revealedTick + 1, currentTick)
+      && searchInteger(opened.turn, clue.revealedTurn + 1, state.turns)
+      && opened.sourceCommandId === dungeonSecretPassageCommandId(opened.tick, state.id, from.id, to.id)
+      && (opened.tick !== currentTick || state.currentCellId === from.id && state.turns === opened.turn);
+  } catch { return false; }
+}
+
+/** Only current, already known geometry can select a clue. No hidden features are read. */
+export function revealDungeonSecretPassage(state: DungeonState, source: { tick: number; sourceCommandId: string }): DungeonState {
+  if (state.secretPassage === undefined) return state;
+  if (!isValidDungeonSecretPassage(state, source.tick)) throw new Error("Dungeon secret passage state is malformed");
+  if (state.secretPassage.clue !== null || state.completed || dungeonTrapAt(state, state.currentCellId)?.phase === "detected"
+    || (state.keyGate !== null && (state.keyGate.phase !== "open" || !state.visitedCellIds.includes(state.keyGate.shortcutCellId)))) return state;
+  const before = projectDungeonWayfinding(state);
+  if (before.mode !== "retrace" || before.roomsToFrontier < 2) return state;
+  const byId = new Map(state.cells.map((cell) => [cell.id, cell])), current = byId.get(state.currentCellId)!;
+  let selected: { clue: DungeonSecretPassageClue; saving: number } | null = null;
+  for (const direction of directions) {
+    if (current.exits.includes(direction)) continue;
+    const target = byId.get(destinationId(state, current, direction));
+    if (target === undefined || !state.visitedCellIds.includes(target.id) || target.exits.includes(opposite[direction])) continue;
+    const knownRouteCellIds = routeToKnownCell(state, byId, target.id);
+    if (knownRouteCellIds === null || knownRouteCellIds.length < 4) continue;
+    const clue: DungeonSecretPassageClue = { dungeonId: state.id, fromCellId: current.id, toCellId: target.id, direction,
+      revealedTick: source.tick, revealSourceCommandId: source.sourceCommandId, revealedTurn: state.turns, knownRouteCellIds };
+    const preview: DungeonState = { ...state, secretPassage: { ...state.secretPassage, clue,
+      opened: { tick: source.tick + 1, turn: state.turns + 1, sourceCommandId: dungeonSecretPassageCommandId(source.tick + 1, state.id, current.id, target.id) } } };
+    const after = projectDungeonWayfinding(preview), saving = before.roomsToFrontier - after.roomsToFrontier;
+    if (after.mode === "retrace" && after.nextDirection === direction && saving > 0 && (selected === null || saving > selected.saving)) selected = { clue, saving };
+  }
+  if (selected === null) return state;
+  const revealed = { ...state, secretPassage: { ...state.secretPassage, clue: selected.clue } };
+  if (!isValidDungeonSecretPassage(revealed, source.tick)) throw new Error("Dungeon draught lacks a valid committed source");
+  return revealed;
+}
+
+export function selectDungeonSecretPassage(state: DungeonState): DungeonSecretPassageClue | null {
+  const passage = state.secretPassage;
+  return passage?.clue == null || passage.opened !== null || state.completed || passage.clue.fromCellId !== state.currentCellId
+    || dungeonTrapAt(state, state.currentCellId)?.phase === "detected" || !isValidDungeonSecretPassage(state) ? null : passage.clue;
+}
+
+/** The public cue deliberately omits the destination, even though it is a visited room. */
+export function projectDungeonSecretPassageCue(state: DungeonState): { direction: MazeDirection; text: string } | null {
+  const clue = selectDungeonSecretPassage(state);
+  return clue === null ? null : { direction: clue.direction, text: `A draught brushes the ${clue.direction} wall. For a wall, it has a suspicious amount of weather.` };
+}
+
+export function openDungeonSecretPassage(state: DungeonState, command: { dungeonId: string; fromCellId: string; toCellId: string }, tick: number): DungeonState {
+  const clue = selectDungeonSecretPassage(state);
+  if (clue === null || command.dungeonId !== state.id || command.fromCellId !== clue.fromCellId || command.toCellId !== clue.toCellId
+    || !searchInteger(tick, clue.revealedTick + 1) || !searchInteger(state.turns, 0, Number.MAX_SAFE_INTEGER - 1)) throw new Error("No matching disclosed dungeon draught is available");
+  const opened = { ...state, turns: state.turns + 1, secretPassage: { ...state.secretPassage!,
+    opened: { tick, turn: state.turns + 1, sourceCommandId: dungeonSecretPassageCommandId(tick, state.id, clue.fromCellId, clue.toCellId) } },
+    traversalLog: [...state.traversalLog.slice(-63), `A latch yields in the ${clue.direction} wall. The draught becomes a doorway to a room already visited.`] };
+  if (!isValidDungeonSecretPassage(opened, tick)) throw new Error("Dungeon passage opening lost its source");
+  return opened;
 }
 
 /** Only public geometry: never inspect a frontier room's feature or hidden trap to admit a search. */
@@ -533,7 +652,7 @@ export function projectDungeonSearchExits(state: DungeonState): readonly Dungeon
   const current = byId.get(state.currentCellId);
   if (current === undefined) return Object.freeze([]);
   return Object.freeze(directions.flatMap((direction) => {
-    if (!current.exits.includes(direction)) return [];
+    if (!dungeonEffectiveExits(state, current.id).includes(direction)) return [];
     const neighbor = effectiveNeighbor(state, byId, current, direction);
     return neighbor === null || state.visitedCellIds.includes(neighbor.id) || !state.discoveredCellIds.includes(neighbor.id)
       ? [] : [Object.freeze({ direction, cellId: neighbor.id })];
@@ -585,7 +704,7 @@ export function isValidDungeonSearchState(
     const direction = exit.direction as MazeDirection;
     const index = directions.indexOf(direction);
     const neighbor = effectiveNeighbor(dungeon, byId, room, direction);
-    if (index <= previousDirection || !room.exits.includes(direction) || neighbor?.id !== exit.cellId
+    if (index <= previousDirection || !dungeonEffectiveExits(dungeon, room.id).includes(direction) || neighbor?.id !== exit.cellId
       || !dungeon.discoveredCellIds.includes(exit.cellId) || exitIds.has(exit.cellId)) return false;
     previousDirection = index;
     exitIds.add(exit.cellId);
@@ -751,9 +870,11 @@ export function generateDungeon(
   includeTransientEntryHazard = false,
   layoutVersion: 2 | 3 = 2,
   trapRulesVersion: 1 | 2 = 1,
+  secretPassageRulesVersion?: 1,
 ): DungeonState {
   if (layoutVersion !== 2 && layoutVersion !== 3) throw new RangeError("Generated dungeon layout version must be 2 or 3");
   if (trapRulesVersion !== 1 && trapRulesVersion !== 2) throw new RangeError("Generated trap rules must be 1 or 2");
+  if (secretPassageRulesVersion !== undefined && secretPassageRulesVersion !== 1) throw new RangeError("Generated secret passage rules must be 1");
   const width = dimension(requestedWidth);
   const height = dimension(requestedHeight);
   const exitSets = Array.from({ length: width * height }, () => new Set<MazeDirection>());
@@ -804,6 +925,7 @@ export function generateDungeon(
     latestShrineUse: null,
     latestDisarmKitUse: null,
     latestFieldMedicineUse: null,
+    ...(secretPassageRulesVersion === 1 ? { secretPassage: createDungeonSecretPassageState() } : {}),
     search: createDungeonSearchState(),
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
@@ -843,9 +965,9 @@ export function moveDungeon(state: DungeonState, direction: MazeDirection): Dung
   if (state.completed) return state;
   const current = state.cells.find((cell) => cell.id === state.currentCellId);
   if (current === undefined) throw new Error("Current maze cell is missing");
-  if (!current.exits.includes(direction)) throw new Error(`There is no passage ${direction}`);
+  if (!dungeonEffectiveExits(state, current.id).includes(direction)) throw new Error(`There is no passage ${direction}`);
   const byId = new Map(state.cells.map((cell) => [cell.id, cell]));
-  const rawDestination = legalNeighbor(state, byId, current, direction);
+  const rawDestination = physicalNeighbor(state, byId, current, direction);
   if (rawDestination === null) throw new Error(`There is no reciprocal passage ${direction}`);
   if (!isDungeonPassageOpen(state, current.id, rawDestination.id)) {
     throw new Error("The locked dungeon gate requires its key");
@@ -948,7 +1070,7 @@ function routeToKnownCell(
     const current = byId.get(queue[cursor] ?? "");
     if (current === undefined) continue;
     if (current.id === targetCellId) break;
-    for (const direction of orderedExits(current)) {
+    for (const direction of dungeonEffectiveExits(state, current.id)) {
       const neighbor = effectiveNeighbor(state, byId, current, direction);
       if (
         neighbor === null
@@ -1053,8 +1175,8 @@ export function projectDungeonWayfinding(state: DungeonState): DungeonWayfinding
   }
   const visited = new Set(state.visitedCellIds);
   const frontierDirections = (cell: MazeCell): readonly MazeDirection[] =>
-    orderedExits(cell).filter((direction) => {
-      const rawNeighbor = legalNeighbor(state, byId, cell, direction);
+    dungeonEffectiveExits(state, cell.id).filter((direction) => {
+      const rawNeighbor = physicalNeighbor(state, byId, cell, direction);
       if (rawNeighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
       const neighbor = effectiveNeighbor(state, byId, cell, direction);
       if (neighbor === null) return false;
@@ -1104,8 +1226,8 @@ export function projectDungeonWayfinding(state: DungeonState): DungeonWayfinding
         roomsToFrontier: routeCellIds.length - 1,
       };
     }
-    for (const direction of orderedExits(cell)) {
-      const rawNeighbor = legalNeighbor(state, byId, cell, direction);
+    for (const direction of dungeonEffectiveExits(state, cell.id)) {
+      const rawNeighbor = physicalNeighbor(state, byId, cell, direction);
       if (rawNeighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
       const neighbor = effectiveNeighbor(state, byId, cell, direction);
       if (neighbor === null) continue;
@@ -1157,6 +1279,7 @@ export function isValidDungeonTrapRules(value: unknown): boolean {
 
 export function isValidDungeonState(value: unknown): value is DungeonState {
   if (!isRecord(value) || !isValidDungeonTrapRules(value)) return false;
+  if (!isValidDungeonSecretPassage(value as unknown as DungeonState)) return false;
   if (Object.hasOwn(value, "latestFieldMedicineUse")
     && !isValidDungeonFieldMedicineUse(value.latestFieldMedicineUse, value as unknown as DungeonState)) return false;
   if (value.search !== undefined && !isValidDungeonSearchState(value.search, value as unknown as DungeonState)) return false;

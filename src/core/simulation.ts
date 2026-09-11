@@ -2,6 +2,7 @@ import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCall } from "..
 import { isValidCampaignRoomChallenge } from "../depth/room-challenge";
 import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
 import { isValidCampaignDungeonFieldMedicine } from "../depth/dungeon-field-medicine";
+import { isValidDungeonSecretPassage } from "../depth/dungeon";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -385,6 +386,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "invoke-dungeon-shrine":
     case "move-dungeon":
     case "search-dungeon":
+    case "open-dungeon-passage":
     case "disarm-dungeon-trap":
     case "unlock-dungeon-gate":
       return "dungeon";
@@ -409,6 +411,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
   switch (command.type) {
     case "share-companion-credit":
     case "use-dungeon-tonic":
+    case "open-dungeon-passage":
     case "reunite-companion":
     case "start-room-challenge":
     case "answer-room-challenge":
@@ -509,6 +512,14 @@ function describeBeat(
       goal: "Whose story is this victory?", headline: "Share the credit",
       action: `${state.hero.name}: “${exchange.heroLine}” ${credit.companionName}: “${exchange.companionLine}”`,
       consequence: `Authored preference: fair credit. ${credit.companionName} → ${state.hero.name}: regard ${exchange.regardDelta > 0 ? "+" : ""}${exchange.regardDelta}. Bond, battle rewards and resources unchanged.`,
+      sensoryIntensity: 0 };
+  }
+  if (choice.command.type === "open-dungeon-passage" && depth.dungeon?.secretPassage?.opened?.tick === depth.tick) {
+    const passage = depth.dungeon.secretPassage, clue = passage.clue!;
+    return { mode: "dungeon", location: depth.dungeon.name,
+      goal: "Follow the draught without leaving the room", headline: "A draught in the wall",
+      action: `${state.hero.name} finds a latch and eases the ${clue.direction} wall aside.`,
+      consequence: "For a wall, it had a suspicious amount of weather. A real shortcut is open; no movement, XP or resources changed.",
       sensoryIntensity: 0 };
   }
   if (choice.command.type === "use-dungeon-tonic" && depth.dungeon?.latestFieldMedicineUse?.tick === depth.tick) {
@@ -1568,6 +1579,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
+    (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||

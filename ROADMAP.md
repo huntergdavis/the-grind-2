@@ -5,10 +5,12 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: D4 — A draught in the wall.** A disclosed clue admits one stationary
+1. **In progress: D4 — A draught in the wall (v0.5.170).** A disclosed clue admits one stationary
    investigation that opens a real shortcut between already visited rooms.
    Show the doorway in 2D/first-person, then use ordinary movement through it.
-   Proposed, not implemented; reachability is not yet measured.
+   Actual T121 clue → T122 opening → T123 traversal and exact reloads pass;
+   the known route shortens from six moves to four. Production browser acceptance
+   passes in both views, mobile and Focus; release CI/public verification pending.
    [Council scope](docs/design/ADVENTURE_FORMS.md#d4-proposed-next-slice--a-draught-in-the-wall).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
@@ -45,7 +47,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D4 — A draught in the wall** | Investigate a disclosed clue, open a real secret passage, then traverse the shortcut | Scoped proposal; no implementation or reachability claim yet |
+| **D4 — A draught in the wall** | Investigate a disclosed clue, open a real secret passage, then traverse the shortcut | In progress for v0.5.170; acceptance and release pending |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

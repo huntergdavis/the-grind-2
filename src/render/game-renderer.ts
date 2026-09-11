@@ -5,7 +5,7 @@ import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import { projectCombatRoster, type CombatRosterProjection } from "../depth/combat-roster";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
-import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
+import { describeDungeonShrineUse, dungeonEffectiveExits, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
 import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
 import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
@@ -108,6 +108,7 @@ import { projectDisarmingKitPurchaseScene } from "./disarming-kit-purchase";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "../ui/dungeon-perspective-view";
 import { projectDungeonFieldMedicineScene } from "../ui/dungeon-field-medicine-view";
+import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } from "../ui/dungeon-secret-passage-view";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
@@ -678,6 +679,7 @@ export class GameRenderer {
       this.host.dataset.dungeonPerspectiveCommand = view.sourceCommandId ?? "initial-room";
       this.host.dataset.dungeonPerspectiveExits = JSON.stringify(view.exits);
       this.host.dataset.dungeonPerspectiveCurrentTrap = JSON.stringify(view.currentTrap);
+      this.host.dataset.dungeonPerspectivePassage = JSON.stringify(view.secretPassage);
       this.host.dataset.dungeonPerspectiveViewport = [drawing.viewport.x, drawing.viewport.y, drawing.viewport.width, drawing.viewport.height].join(",");
       this.host.dataset.dungeonFraming = "first-person-room";
       this.host.dataset.dungeonFrameRooms = "1";
@@ -1269,6 +1271,9 @@ export class GameRenderer {
     for (const key of ["dungeonMedicineCommand", "dungeonMedicineDungeon", "dungeonMedicineCell", "dungeonMedicineItem",
       "dungeonMedicineHealth", "dungeonMedicineQuantity", "dungeonMedicineCuePosition", "dungeonMedicineCueScale",
       "dungeonMedicinePerspective", "dungeonMedicineVisual"]) delete this.host.dataset[key];
+    for (const key of ["dungeonPassagePhase", "dungeonPassageCommand", "dungeonPassageDirection", "dungeonPassageCell",
+      "dungeonPassageFrom", "dungeonPassageTo", "dungeonPassageOpeningSource", "dungeonPassageCuePosition",
+      "dungeonPassageVisual", "dungeonPerspectivePassage"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonFraming;
     delete this.host.dataset.dungeonFrameCellSize;
     delete this.host.dataset.dungeonFrameOffset;
@@ -5921,21 +5926,28 @@ export class GameRenderer {
     const traps = projectDungeonTraps(dungeon);
     const search = projectDungeonSearchView(state);
     const medicine = projectDungeonFieldMedicineScene(state);
+    const passage = projectDungeonSecretPassageScene(state);
+    const publicPassage = projectCurrentDungeonSecretPassage(dungeon);
+    const stationaryPassage = passage !== null && passage.phase !== "crossed";
+    const quietPassageOpening = passage?.phase === "opened";
+    const showRoute = search === null && medicine === null && !stationaryPassage;
     const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
     const currentKnownTrap = traps.find((trap) => trap.current);
-    const triggeredTrap = medicine === null && currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
-    const detectedTrap = medicine === null && currentKnownTrap?.status === "armed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
-    const disarmedTrap = medicine === null && currentKnownTrap?.status === "disarmed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
+    const triggeredTrap = medicine === null && !quietPassageOpening && currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
+    const detectedTrap = medicine === null && !quietPassageOpening && currentKnownTrap?.status === "armed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
+    const disarmedTrap = medicine === null && !quietPassageOpening && currentKnownTrap?.status === "disarmed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
     const hazardBeat = triggeredTrap ?? detectedTrap ?? disarmedTrap;
     const wayfinding = projectDungeonWayfinding(dungeon);
     const keyGate = projectDungeonKeyGate(dungeon);
     const landmark = projectDungeonLandmark(dungeon);
-    const sightedKeyMove = search === null && medicine === null ? projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey) : undefined;
+    const sightedKeyMove = showRoute ? projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey) : undefined;
     const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
     const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
     const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
     const mechanismBeat = medicine !== null
       ? { title: medicine.headline, detail: medicine.detail, compact: medicine.compactDetail, color: 0x563c27 }
+      : passage !== null
+      ? { title: passage.headline, detail: passage.detail, compact: passage.compactDetail, color: 0x31545d }
       : search !== null
       ? { title: search.headline, detail: search.detail,
         compact: search.discoveries.length === 0 ? "PASSAGES UNVERIFIED" : `${search.discoveries.length} MARKED · STILL ARMED`, color: 0x5b4820 }
@@ -5954,9 +5966,22 @@ export class GameRenderer {
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
     this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status !== "armed").length);
-    this.host.dataset.dungeonTraversalMode = medicine !== null ? "field-medicine" : search === null ? wayfinding.mode : "search";
-    this.host.dataset.dungeonBreadcrumbLength = search === null && medicine === null ? String(Math.max(0, wayfinding.routeCellIds.length - 1)) : "0";
-    this.host.dataset.dungeonNextDirections = search === null && medicine === null ? wayfinding.nextPassageDirections.join(",") : "";
+    this.host.dataset.dungeonTraversalMode = medicine !== null ? "field-medicine" : stationaryPassage ? "secret-passage" : search === null ? wayfinding.mode : "search";
+    this.host.dataset.dungeonBreadcrumbLength = showRoute ? String(Math.max(0, wayfinding.routeCellIds.length - 1)) : "0";
+    this.host.dataset.dungeonNextDirections = showRoute ? wayfinding.nextPassageDirections.join(",") : "";
+    if (passage !== null) {
+      this.host.dataset.dungeonPassagePhase = passage.phase;
+      this.host.dataset.dungeonPassageCommand = passage.commandId;
+      this.host.dataset.dungeonPassageDirection = passage.direction;
+      this.host.dataset.dungeonPassageCell = passage.cellId;
+      this.host.dataset.dungeonPassageVisual = passage.phase === "draught" ? "solid-wall|cool-draught"
+        : passage.phase === "opened" ? "stationary-hero|opened-doorway" : "actual-step|opened-doorway";
+      if (passage.connection !== null) {
+        this.host.dataset.dungeonPassageFrom = passage.connection.fromCellId;
+        this.host.dataset.dungeonPassageTo = passage.connection.toCellId;
+        this.host.dataset.dungeonPassageOpeningSource = passage.connection.openingSourceCommandId;
+      }
+    }
     if (medicine !== null) {
       this.host.dataset.dungeonMedicineCommand = medicine.commandId;
       this.host.dataset.dungeonMedicineDungeon = medicine.dungeonId;
@@ -6015,7 +6040,7 @@ export class GameRenderer {
       this.host.dataset.dungeonShrineHealth = `${shrineUse.healthBefore}/${shrineUse.healthRestored}/${shrineUse.healthAfter}`;
       this.host.dataset.dungeonShrineMana = `${shrineUse.manaBefore}/${shrineUse.manaRestored}/${shrineUse.manaAfter}`;
     }
-    if (search === null && medicine === null && wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
+    if (showRoute && wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
       ? currentKnownTrap !== undefined
         ? currentKnownTrap.status
@@ -6038,7 +6063,7 @@ export class GameRenderer {
         );
       }
 
-      const routeCells = (search === null && medicine === null ? wayfinding.routeCellIds : []).flatMap((cellId) => {
+      const routeCells = (showRoute ? wayfinding.routeCellIds : []).flatMap((cellId) => {
         const cell = cellsById.get(cellId);
         return cell === undefined ? [] : [{ x: offsetX + (cell.x + 0.5) * cellSize, y: offsetY + (cell.y + 0.5) * cellSize }];
       });
@@ -6207,10 +6232,11 @@ export class GameRenderer {
               : 0x765083;
           this.worldLayer.addChild(circle(x + cellSize / 2, y + cellSize / 2, Math.max(1.2, cellSize * 0.12), featureColor));
         }
-        if (!cell.exits.includes("north")) maze.moveTo(x, y).lineTo(x + cellSize, y);
-        if (!cell.exits.includes("west")) maze.moveTo(x, y).lineTo(x, y + cellSize);
-        if (!cell.exits.includes("east")) maze.moveTo(x + cellSize, y).lineTo(x + cellSize, y + cellSize);
-        if (!cell.exits.includes("south")) maze.moveTo(x, y + cellSize).lineTo(x + cellSize, y + cellSize);
+        const physicalExits = dungeonEffectiveExits(dungeon, cell.id);
+        if (!physicalExits.includes("north")) maze.moveTo(x, y).lineTo(x + cellSize, y);
+        if (!physicalExits.includes("west")) maze.moveTo(x, y).lineTo(x, y + cellSize);
+        if (!physicalExits.includes("east")) maze.moveTo(x + cellSize, y).lineTo(x + cellSize, y + cellSize);
+        if (!physicalExits.includes("south")) maze.moveTo(x, y + cellSize).lineTo(x + cellSize, y + cellSize);
       }
       maze.stroke({ color: palette[1], width: Math.max(1, cellSize * 0.12) });
       this.worldLayer.addChild(maze);
@@ -6285,7 +6311,7 @@ export class GameRenderer {
 
       const passageAnchorId = wayfinding.mode === "explore" ? wayfinding.frontierCellId : dungeon.currentCellId;
       const passageAnchor = passageAnchorId === null ? undefined : cellsById.get(passageAnchorId);
-      const passageDirections = search === null && medicine === null ? wayfinding.nextPassageDirections : [];
+      const passageDirections = showRoute ? wayfinding.nextPassageDirections : [];
       if (passageAnchor !== undefined && passageDirections.length > 0) {
         const arrows = new Graphics();
         const centerX = offsetX + (passageAnchor.x + 0.5) * cellSize;
@@ -6313,10 +6339,32 @@ export class GameRenderer {
         this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
         this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
         const heroScale = Math.max(0.08, Math.min(0.8, cellSize / 48));
-        this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale, state.hero.id, medicine === null);
+        this.drawHero(state, x, y + cellSize * 0.05, palette, heroScale, state.hero.id, medicine === null && !stationaryPassage);
         this.host.dataset.dungeonHeroCell = current.id;
         this.host.dataset.dungeonHeroScale = String(heroScale);
         if (medicine !== null) this.drawDungeonMedicineCue(x + Math.max(2.5, cellSize * 0.22), y - Math.max(2.5, cellSize * 0.18), Math.max(0.45, Math.min(0.9, heroScale)), "map");
+        if (publicPassage !== null) {
+          const vector = mazeDirectionVector[publicPassage.direction], px = -vector[1], py = vector[0];
+          const wallX = x + vector[0] * cellSize * 0.5, wallY = y + vector[1] * cellSize * 0.5;
+          const mark = new Graphics(), unit = Math.max(1, cellSize * 0.11);
+          if (publicPassage.phase === "draught") {
+            // Three tiny currents run along the known wall; no target room or opening is drawn.
+            for (const offset of [-1, 0, 1]) {
+              const ax = wallX + vector[0] * offset * unit, ay = wallY + vector[1] * offset * unit;
+              mark.moveTo(ax - px * unit * 1.8, ay - py * unit * 1.8)
+                .bezierCurveTo(ax - px * unit + vector[0] * unit * 0.4, ay - py * unit + vector[1] * unit * 0.4,
+                  ax + px * unit - vector[0] * unit * 0.4, ay + py * unit - vector[1] * unit * 0.4,
+                  ax + px * unit * 1.8, ay + py * unit * 1.8);
+            }
+          } else {
+            // Two short jambs bracket the real gap; they never bridge it with a false wall.
+            for (const side of [-1, 1]) mark.moveTo(wallX + px * cellSize * 0.32 * side - vector[0] * unit, wallY + py * cellSize * 0.32 * side - vector[1] * unit)
+              .lineTo(wallX + px * cellSize * 0.32 * side + vector[0] * unit, wallY + py * cellSize * 0.32 * side + vector[1] * unit);
+          }
+          mark.stroke({ color: 0xbce5e8, width: Math.max(0.8, cellSize * 0.055), alpha: 0.98 });
+          this.worldLayer.addChild(mark);
+          this.host.dataset.dungeonPassageCuePosition = `${wallX},${wallY}`;
+        }
         if (search !== null) {
           // These marks inspect already-public exits, never an unrevealed hazard.
           // They remain complete and stationary under reduced motion.

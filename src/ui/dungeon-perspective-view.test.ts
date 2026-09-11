@@ -54,7 +54,7 @@ describe("the optional one-room dungeon perspective packet", () => {
     expect(packet).not.toBeNull();
     expect(Object.keys(packet).sort()).toEqual([
       "schemaVersion", "campaignId", "dungeonId", "tick", "sourceCommandId", "currentCellId", "heroId", "heroName",
-      "facing", "completed", "exits", "currentTrap", "keyStatus", "landmark", "search",
+      "facing", "completed", "exits", "currentTrap", "keyStatus", "landmark", "search", "secretPassage",
     ].sort());
     expect(packet.exits.length).toBeLessThanOrEqual(4);
     expect(JSON.stringify(packet)).not.toMatch(/"(?:seed|cells|width|height|x|y|feature|detectDifficulty|disarmDifficulty|routeCellIds|traversalLog)"/u);

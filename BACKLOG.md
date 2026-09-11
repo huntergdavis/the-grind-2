@@ -15,8 +15,9 @@ without forcing every character to choose the winning answer. R1, a genuine
 former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
 field medicine is live in v0.5.168 with natural-use, browser, CI and public-source
 verification passed. R2 — Share the credit is live in v0.5.169 with browser,
-CI and public-source verification passed. D4 — A draught in the wall is the
-next scoped proposal, not yet implemented. Further playable features follow
+CI and public-source verification passed. D4 — A draught in the wall is in
+progress for v0.5.170: its actual clue/open/traverse journey, exact reloads and
+production browser acceptance pass; release CI/deployment remain pending. Further playable features follow
 one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.

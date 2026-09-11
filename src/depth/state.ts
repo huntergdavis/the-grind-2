@@ -34,15 +34,20 @@ import {
   describeDungeonShrineUse,
   dungeonMoveOptions,
   dungeonKeyName,
+  dungeonSecretPassageCommandId,
   dungeonTrapAt,
   dungeonTrapKindLabel,
   generateDungeon,
   isValidDungeonTrapRules,
   isValidDungeonSearchState,
+  isValidDungeonSecretPassage,
   migrateDungeonFarStairShrine,
   migrateDungeonSearch,
   migrateDungeonTraps,
   moveDungeon,
+  openDungeonSecretPassage,
+  revealDungeonSecretPassage,
+  selectDungeonSecretPassage,
   projectDungeonTraversal,
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
@@ -952,6 +957,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
       !isValidCampaignCompanionCredit(state) ||
+      (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1542,6 +1548,14 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "open-dungeon-passage": {
+      const clue = selectAvailableDungeonSecretPassage(input);
+      if (clue === null || command.dungeonId !== clue.dungeonId || command.fromCellId !== clue.fromCellId
+        || command.toCellId !== clue.toCellId) throw new Error("No matching disclosed dungeon passage is available");
+      const dungeon = openDungeonSecretPassage(input.dungeon!, command, state.tick);
+      return appendLog({ ...state, dungeon }, "dungeon",
+        `${state.hero.name} investigates the draught and opens the ${clue.direction} wall. For a wall, it had a suspicious amount of weather. One real shortcut; no movement, XP or resources changed.`);
+    }
     case "share-companion-credit": {
       const companionCredit = stepCompanionCredit(input, command), exchange = companionCredit.exchange!;
       return appendLog({ ...state, companionCredit }, "world",
@@ -1746,7 +1760,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         plan === null || command.dungeonId !== plan.dungeonId ||
         command.width !== plan.width || command.height !== plan.height
       ) throw new Error("Dungeon entry does not match the canonical expedition plan");
-      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion, 2);
+      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion, 2, 1);
       const entry = dungeon.cells.find((cell) => cell.id === dungeon.entryCellId);
       const entryTrap = dungeonTrapAt(dungeon, dungeon.entryCellId);
       let hero = state.hero;
@@ -2512,10 +2526,23 @@ function isValidDisarmingKitState(state: DepthState): boolean {
   } catch { return false; }
 }
 
+/** The same public clue and safety priorities govern direct and autonomous opening. */
+export function selectAvailableDungeonSecretPassage(state: DepthState) {
+  const dungeon = state.dungeon;
+  if (dungeon === null || dungeon.completed || state.hero.resources.health <= 0
+    || state.companions.active.length !== 0 || state.combat !== null || state.counterDuel !== null
+    || state.quest.status !== "active" || state.pendingQuestReward !== null
+    || selectDungeonFieldMedicine(state) !== null
+    || dungeonTrapAt(dungeon, dungeon.currentCellId)?.phase === "detected"
+    || canUnlockDungeonGate(dungeon) || !isValidDungeonSecretPassage(dungeon, state.tick)) return null;
+  return selectDungeonSecretPassage(dungeon);
+}
+
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
     !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) || !isValidCampaignDungeonFieldMedicine(input) || !isValidCampaignCompanionCredit(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
+    (input.dungeon !== null && !isValidDungeonSecretPassage(input.dungeon, input.tick)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
     (input.dungeon?.search !== undefined && !isValidDungeonSearchState(input.dungeon.search, input.dungeon, input.tick)) ||
@@ -2524,10 +2551,27 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
-  const output = reduceDepth(input, command);
+  let output = reduceDepth(input, command);
+  // A clue belongs to an actual completed dungeon action, not a renderer query
+  // or save migration. Old expeditions without the opt-in remain untouched.
+  const dungeon = output.dungeon;
+  if (dungeon !== null && dungeon.secretPassage !== undefined && output.hero.resources.health > 0
+    && output.companions.active.length === 0 && output.combat === null && output.counterDuel === null) {
+    const sourceSuffix = command.type === "move-dungeon" ? command.direction
+      : command.type === "disarm-dungeon-trap" ? `disarm:${dungeon.currentCellId}`
+      : command.type === "unlock-dungeon-gate" ? `unlock:${dungeon.currentCellId}`
+      : command.type === "search-dungeon" ? `search:${dungeon.currentCellId}` : null;
+    if (sourceSuffix !== null) {
+      const revealed = revealDungeonSecretPassage(dungeon, {
+        tick: output.tick, sourceCommandId: `depth:${output.tick}:dungeon:${dungeon.id}:${sourceSuffix}`,
+      });
+      if (revealed !== dungeon) output = { ...output, dungeon: revealed };
+    }
+  }
   if (
     !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) || !isValidCampaignCompanionReunion(output) || !isValidCampaignDungeonFieldMedicine(output) || !isValidCampaignCompanionCredit(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
+    (output.dungeon !== null && !isValidDungeonSecretPassage(output.dungeon, output.tick)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
     (output.dungeon?.search !== undefined && !isValidDungeonSearchState(output.dungeon.search, output.dungeon, output.tick)) ||
@@ -2888,6 +2932,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         { type: "unlock-dungeon-gate" },
       )];
     }
+    const passage = selectAvailableDungeonSecretPassage(state);
+    if (passage !== null) return [{
+      id: dungeonSecretPassageCommandId(state.tick + 1, passage.dungeonId, passage.fromCellId, passage.toCellId),
+      deciderId: state.hero.id, label: `investigate the draught in the ${passage.direction} wall`,
+      command: { type: "open-dungeon-passage", dungeonId: passage.dungeonId, fromCellId: passage.fromCellId, toCellId: passage.toCellId },
+    }];
     if (shouldSearchDungeon(state)) {
       return [commandCandidate(state, `dungeon:${state.dungeon.id}:search:${state.dungeon.currentCellId}`,
         "search the unexplored passages before moving",

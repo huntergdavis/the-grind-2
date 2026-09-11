@@ -8,6 +8,8 @@ import {
   selectTonicRestock,
   selectPaidInnRest,
   selectBellDeliveryMemory,
+  selectAvailableDungeonSecretPassage,
+  dungeonSecretPassageCommandId,
 } from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { legalMillraceReversal } from "../depth/shared-opening";
@@ -436,6 +438,15 @@ function scoreCandidate(
             : feature === "trap"
               ? "the trapped passage is accepted only if other routes are worse"
               : "the passage advances the maze without inventing unknown facts";
+  } else if (command.type === "open-dungeon-passage") {
+    const clue = selectAvailableDungeonSecretPassage(state.depth);
+    if (clue === null || command.dungeonId !== clue.dungeonId || command.fromCellId !== clue.fromCellId
+      || command.toCellId !== clue.toCellId || candidate.deciderId !== state.hero.id
+      || candidate.id !== dungeonSecretPassageCommandId(state.tick + 1, command.dungeonId, command.fromCellId, command.toCellId)) {
+      throw new Error("Actor Policy cannot invent a dungeon passage or its clue");
+    }
+    score = 80;
+    reason = "a draught in this room reveals a useful shortcut through already visited rooms; investigate the latch without moving or bypassing the key gate";
   } else if (command.type === "search-dungeon") {
     score = 70;
     reason = "health at or below half calls for one careful look before entering an unexplored passage";
@@ -670,6 +681,7 @@ function presentationLabels(
     case "disarm-dungeon-trap": return { actionLabel: selectDisarmingKit(state.depth.hero) === null
       ? "attempts to disarm" : "uses a Disarming Kit (+2)", targetLabel: "the detected mechanism" };
     case "search-dungeon": return { actionLabel: "searches from this room", targetLabel: "the unexplored passages" };
+    case "open-dungeon-passage": return { actionLabel: "investigates the draught", targetLabel: "the current room's hidden latch" };
     case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
