@@ -675,7 +675,7 @@ compact desktop/mobile/Focus browser scenario is sufficient for presentation.
 Admission frequency across devices/campaigns remains unmeasured. This was the
 next proposal at T2 delivery, not a combined release gate.
 
-### W1 implementation checkpoint — v0.5.172
+### W1 delivered — v0.5.172
 
 The unchanged v171 `shared-road-playful:7` journey reaches the actual visited
 Wheel Smithy at T1 in 318 ms, after buying its disarming kit. Its resident is
@@ -695,7 +695,11 @@ Native admitted workshop staging uses the real hero/host, one-shot hammer
 motion and the exact nail shape. The existing caption, MP portrait and Status
 carry the facts. Only smithy commands queue for foreground presentation;
 startup preserves unfinished work and the exact final result before catch-up.
-Browser and public deployment verification are pending at this checkpoint.
+The final 2.0-minute browser scenario passes; native desktop/320px/Focus captures
+are inspected. All 3,699 CI tests pass, including canonical and forward-motion
+checks, with unchanged limits. Public assets and nine emitted runtime sources
+are verified at 2026-09-11 08:23:11 PDT. W1 is complete; initial CI
+fixture drift and exact test-only repairs remain in [the council record](../../COUNCIL_REVIEW.md).
 
 ## B1 proposed next slice — The Cup Is Exaggerating
 

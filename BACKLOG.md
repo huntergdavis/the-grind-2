@@ -20,9 +20,9 @@ v0.5.170 with actual clue/open/traverse, exact reload, browser, CI and public-so
 verification passed. T2 — The Pennywise Gate is live in v0.5.171, with actual
 road progress, two-gold versus two-action choices, exact reloads, native browser
 acceptance, CI and public-source verification passed. W1's small smithy job is
-implemented for v0.5.172: actual admission, exact MP/wages, all four legal stroke
-sequences and source-preserving saves pass. Browser/deployment verification
-is in progress. T1's ferry
+live in v0.5.172: actual admission, exact MP/wages, all four legal stroke
+sequences, source-preserving saves, native browser, CI and public verification
+pass. B1's short inn bluff is proposed next; admission is unproven. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -37,7 +37,18 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Current release checkpoint — Surely I Can Make One Nail (v0.5.172)
+## Latest delivery — Surely I Can Make One Nail (v0.5.172)
+
+Publicly source-verified 2026-09-11 08:23:11 PDT. Feature `21462a0` and
+test-only correction `6285e2d` are pushed to `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34615244337):
+269 files and 3,699 tests pass; two long audits remain opt-in. Canonical:
+four tests, 14.693s; forward motion: eight tests, 5.692s. Main suite: 228.79s;
+deployment job: 4m37s. The final browser scenario passes in 2.0 minutes and
+all three desktop/320px/Focus captures are inspected. Three public assets and
+nine emitted runtime sources match the pushed release. The initial CI failure,
+exact historical-save repairs and still-slow local soak are preserved below
+in the council record, not presented as clean local runs.
 
 A real visited smithy and its actual resident host a two-stroke job. Gentle
 taps cost no MP; focused drives spend one owned MP. Three shaping points make

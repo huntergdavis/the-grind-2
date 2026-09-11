@@ -5,36 +5,29 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Release verification: W1 — Surely I Can Make One Nail (v0.5.172).** One actual smithy job,
-   two autonomous hammer strokes, real MP and a once-only two-gold wage.
-   A straight nail succeeds; unfinished and bent results receive different
-   truthful comic endings. Use the existing town stage and Status history.
-   Ordinary admission and all four legal stroke sequences pass; production
-   browser/deployment verification is in progress. No crafting framework or LLM.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#w1-proposed-next-slice--surely-i-can-make-one-nail).
-2. **Next proposed: B1 — The Cup Is Exaggerating.** A real inn resident offers
+1. **Next proposed: B1 — The Cup Is Exaggerating.** A real inn resident offers
    one short covered-die bluff. Challenge for a one-gold stake or decline;
    reveal the committed truth and its exact consequence. One table, two actors,
    one caption. Ordinary admission remains unproven.
    [Council scope](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**T2 — The Pennywise Gate is live in v0.5.171**, publicly source-verified
-2026-09-11 07:22:21 PDT. At a real road barrier, spend two gold for quick passage
-or lift it by hand and pass in two actions. Natural paid and explicitly legal
-free branches use the same actual road distance. Native desktop/320px/Focus
-scenes, exact reloads, once-only payment and existing Status history pass.
-No extra Watch panel, model, HP/MP/XP reward or invented water.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34609161464)
-passed 3,681 tests; two long audits stay opt-in. Three public assets and nine
-runtime source-map entries match the corrected release. Source-fixture drift
-and exact test-only corrections remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+**W1 — Surely I Can Make One Nail is live in v0.5.172**, publicly source-verified
+2026-09-11 08:23:11 PDT. A real smithy job has two autonomous strokes:
+tap for free or drive for one owned MP. A straight nail earns two gold once;
+unfinished and bent work get different honest, unpaid endings. Native
+desktop/320px/Focus scenes, exact saves, foreground resume and Status sources
+pass. No extra Watch panel, crafting framework, XP or model.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34615244337)
+passed 3,699 tests; two long audits stay opt-in. Three public assets and nine
+runtime source-map entries match the release. Older fixture repairs and a local
+soak timing failure (passing in clean CI) remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 T1's ferry is deferred: the bounded known journey and all 14 roads on its map
 have no recorded river crossings. That negative evidence is preserved.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4 and T2 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2 and W1 are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -54,7 +47,6 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **W1 — Surely I Can Make One Nail** | Two smithy strokes produce a real wage or a comic, unpaid result | Implemented; release verification in progress |
 | **B1 — The Cup Is Exaggerating** | Challenge a resident's covered-die claim or decline; reveal the actual result | Proposed; ordinary admission not yet demonstrated |
 
 This is a proposed delivery sequence, not a combined release gate. Each

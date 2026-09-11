@@ -2,6 +2,35 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Surely I Can Make One Nail — v0.5.172 final delivery
+
+**Live and publicly source-verified 2026-09-11 08:23:11 PDT.** Feature
+`21462a09d7d1d3b1ecadadcbb8ed232cbf9846f6` and test-only correction
+`6285e2d236e5c5c2946f8d97106b9030e1dfd7a7` are pushed to `origin/main`.
+[Pages run 34615244337](https://github.com/huntergdavis/the-grind-2/actions/runs/34615244337)
+passes all 269 release files and 3,699 tests; two long audits remain opt-in.
+Canonical: four tests, 14.693s. Forward motion: eight tests, 5.692s, including
+the same unchanged-limit soak that remains slow locally. Main suite: 228.79s;
+deployment job: 4m37s. The initial failed run and both local timing failures
+remain below; no timeout, search cap or seed set was expanded.
+
+The real admitted hero/host, two autonomous hammer strokes, all three truthful
+shapes and exact MP/wages are complete. Natural straight and separately legal
+bent/unfinished outcomes preserve source history and once-only payment. The
+final production browser scenario passes in 2.0 minutes; all three native
+desktop/320px/Focus captures are inspected. Exact reloads, final-result resume,
+ordinary onward play and Status sources pass. No extra panel, external/model
+request, browser error, XP, inventory filler or relationship reward is added.
+
+Public `index-BSiv3ghP.js`, CSS `index-B9m_5Qf5.css` and simulation worker
+`simulation.worker-Dt0hwNl9.js` match the local production build byte-for-byte.
+Nine emitted runtime source-map entries match the corrected commit; protected
+ledger sources are absent. LLM workers, CSS and optional dungeon chunks remain
+unchanged. Owned test/build/browser processes are closed. W1 is complete;
+B1's short inn bluff is separately proposed, with admission still unproven.
+T1's ferry remains deferred. The larger gameplay backlog continues; LLM work
+and protected user changes remain untouched.
+
 ## Surely I Can Make One Nail — initial release check and test-only repairs
 
 Feature `21462a09d7d1d3b1ecadadcbb8ed232cbf9846f6` is pushed to `origin/main`.
@@ -63,6 +92,14 @@ forward-motion soak exceeding the unchanged local 40-second limit (72.530s
 under concurrent load). An isolated retry follows, not a raised limit. Final
 TypeScript and the final lifecycle-only assertion pass after all edits. The
 production runtime and browser-verified build remain identical to `21462a0`.
+
+Test-only correction `6285e2d236e5c5c2946f8d97106b9030e1dfd7a7` is pushed.
+The isolated local forward-motion retry passes seven tests but still times out
+on the same soak (57.626s against 40s); this is not reported as a local pass or
+hidden by increasing its limit. The clean initial CI had completed all eight
+forward-motion cases in 5.292s with only the two now-repaired setup assertions
+failing. [Corrected Pages run 34615244337](https://github.com/huntergdavis/the-grind-2/actions/runs/34615244337)
+is the pending clean release verdict. All owned local test processes are closed.
 
 ## Surely I Can Make One Nail — v0.5.172 implementation checkpoint
 
