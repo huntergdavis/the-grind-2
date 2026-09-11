@@ -438,6 +438,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "read-book",
   "start-repartee",
   "repartee-action",
+  "recall-repartee",
   "admit-deferred-secret",
   "train-ability",
   "progress-objective",

@@ -5,8 +5,9 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: F2b — Recall it at a later safe rest.** Let the same present companion recall the actual witnessed exchange once, with retained-source and presence checks. F2a's encore and recorded judgment are delivered; the later callback is new work.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **In acceptance: F2b — The witness remembers (v0.5.161).** One later quiet rest at the actually reached oath destination lets the same healthy companion recall the exact witnessed reply before farewell. Saved source, renewed presence and once-only checks are implemented; deployment is pending.
+2. **Next: D1 — The Borrowed Bell.** Scope the first original board expedition from [Adventure forms](docs/design/ADVENTURE_FORMS.md), then deliver one playable route/event/consequence loop. Optional first-person rendering remains separate.
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
@@ -34,7 +35,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F2b — The witness remembers** | The same present companion recalls the actual exchange once at a later eligible safe rest | Next; requires retained source and renewed presence |
+| **F2b — The witness remembers** | The same present companion recalls the actual exchange once at the reached oath destination | Implemented; acceptance and deployment pending |
 | **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Research/design; not a reskin of movement |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
 

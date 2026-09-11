@@ -249,6 +249,10 @@ function scoreCandidate(
     } else {
       reason = `the known answer is judged against the public claim: ${response.explanation}`;
     }
+  } else if (command.type === "recall-repartee") {
+    const witness = state.depth.companions.active.find((entry) => entry.identity.residentId === command.witnessId);
+    score = 30;
+    reason = `${witness?.identity.name ?? "the present witness"} has reached the promised destination; one quiet rest recalls an actual spoken exchange before farewell, without another reward`;
   } else if (command.type === "read-book") {
     const building = state.depth.towns[command.locationId]?.buildings.find((entry) => entry.id === command.buildingId);
     score = 30;
@@ -469,6 +473,10 @@ function presentationLabels(
 ): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
+    case "recall-repartee": return {
+      actionLabel: "shares a memory before parting",
+      targetLabel: state.depth.companions.active.find((entry) => entry.identity.residentId === command.witnessId)?.identity.name ?? command.witnessId,
+    };
     case "read-book": return { actionLabel: "reads a public copy", targetLabel: reparteeBook.title };
     case "start-repartee": return {
       actionLabel: "accepts a flyting contest",

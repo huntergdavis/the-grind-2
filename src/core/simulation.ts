@@ -24,6 +24,7 @@ import {
   isValidDepthEncounterThreatState,
   isValidSecretDiscoveryGraph,
   isValidCampaignRepartee,
+  isValidCampaignReparteeCallback,
   isCanonicalQuestDefinition,
   isValidQuestState,
   isValidQuestCompletionState,
@@ -339,6 +340,7 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "recall-repartee":
     case "read-book":
     case "start-repartee":
     case "repartee-action":
@@ -384,6 +386,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "recall-repartee":
     case "read-book":
     case "start-repartee":
     case "repartee-action":
@@ -433,6 +436,18 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  if (choice.command.type === "recall-repartee" && depth.reparteeCallback !== null) {
+    const memory = depth.reparteeCallback;
+    const location = depth.atlas.locations.find((entry) => entry.id === memory.restLocationId);
+    return {
+      mode: "chronicle", location: location?.name ?? opportunity.location,
+      goal: "A shared memory before parting",
+      headline: `A quiet rest at ${location?.name ?? "the destination"}`,
+      action: `${memory.witnessName}: “${memory.line}”`,
+      consequence: "The exchange is remembered, not rewarded again. Regard, bond and resources unchanged.",
+      sensoryIntensity: 0,
+    };
+  }
   if (choice.command.type === "read-book" || choice.command.type === "start-repartee" || choice.command.type === "repartee-action") {
     const duel = depth.repartee.active ?? depth.repartee.completed;
     const round = duel?.rounds.at(-1);
@@ -1076,7 +1091,7 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
     !isValidSecretDiscoveryGraph(state.depth) ||
-    !isValidCampaignRepartee(state.depth)
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -1447,8 +1462,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 29 ||
-    !isValidCampaignRepartee(state.depth) ||
+    state.depth.schemaVersion !== 30 ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

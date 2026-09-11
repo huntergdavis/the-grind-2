@@ -1134,7 +1134,8 @@ export class GameRenderer {
     delete this.host.dataset.disarmingKitPurchaseVisual;
     for (const key of ["reparteePhase", "reparteeCommand", "reparteeBook", "reparteeRound", "reparteeMomentum",
       "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
-      "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
+      "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
+      "reparteeHeroPosition", "reparteeWitnessPosition"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -4697,6 +4698,30 @@ export class GameRenderer {
     this.host.dataset.reparteeWitnessPose = scene.witness?.reaction?.pose ?? (scene.witness === null ? "none" : "watching");
     this.host.dataset.reparteeRegard = scene.witness?.reaction === null || scene.witness === null
       ? "unestablished" : String(scene.witness.reaction.regardAfter);
+    if (scene.phase === "memory") {
+      this.host.dataset.reparteeOutcome = "not-a-contest";
+      this.host.dataset.reparteeWitnessPose = scene.memory.pose;
+      this.host.dataset.reparteeRegard = String(scene.memory.regard);
+      this.host.dataset.reparteeMemorySource = scene.memory.sourceReactionCommandId;
+      this.host.dataset.reparteeMemoryLocation = scene.memory.locationId;
+      this.host.dataset.reparteeHeroPosition = "102,144";
+      this.host.dataset.reparteeWitnessPosition = "222,144";
+      this.host.dataset.reparteeVisual = "actual-hero|actual-companion|oath-destination|shared-rest|remembered-words|no-rival|no-score|no-new-reward";
+      this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172331), rect(0, 138, 320, 42, 0x343d39));
+      // The destination's public threshold, not an invented inn or another duel.
+      this.worldLayer.addChild(new Graphics().roundRect(246, 24, 52, 114, 20).fill(0x42515a)
+        .roundRect(254, 34, 36, 104, 16).fill(0x101b28));
+      this.worldLayer.addChild(rect(14, 42, 232, 96, 0x293944), rect(0, 136, 320, 4, 0x65706a));
+      this.lightLayer.addChild(circle(162, 139, 39, 0xefb772, 0.11));
+      this.worldLayer.addChild(new Graphics().moveTo(150, 148).lineTo(174, 150).moveTo(150, 151).lineTo(174, 147)
+        .stroke({ color: 0x76513a, width: 4 }).poly([153, 146, 161, 126, 171, 146]).fill(0xeeb36c)
+        .poly([158, 146, 164, 135, 168, 146]).fill(0xffe2a0));
+      this.drawHero(state, 102, 144, palette, 1.7, scene.heroId, false);
+      const witness = this.drawCompanion(state, scene.witness.id, scene.witness.role, 222, 144, palette, 1.7);
+      witness.scale.x = -1.7;
+      witness.rotation = scene.memory.pose === "nod" ? 0.04 : scene.memory.pose === "frown" ? -0.04 : scene.memory.pose === "laugh" ? -0.06 : 0;
+      return;
+    }
     this.host.dataset.reparteeVisual = scene.phase === "reading"
       ? "actual-hero|public-copy|reading-desk|no-resource-damage"
       : scene.witness !== null ? "actual-hero|actual-resident|actual-companion|witnessed-encore|three-marks|no-resource-damage|bond-unchanged"

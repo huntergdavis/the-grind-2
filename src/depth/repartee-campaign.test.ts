@@ -159,7 +159,7 @@ describe("the first useful book in the actual campaign reducer", () => {
     const before = fixture(), { repartee: _repartee, ...legacy } = before;
     const old = { ...legacy, schemaVersion: 27 };
     const loaded = upgradeDepthState(old, before.seed, before.hero.id, before.hero.name);
-    expect(loaded.schemaVersion).toBe(29);
+    expect(loaded.schemaVersion).toBe(30);
     expect(loaded.repartee).toEqual({ schemaVersion: 1, reading: null, active: null, completed: null });
     expect(loaded.hero).toEqual(before.hero);
     expect(loaded.towns).toEqual(before.towns);

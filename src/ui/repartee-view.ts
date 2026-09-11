@@ -4,8 +4,9 @@ import {
   declareReparteeWitnessPreference, isValidReparteeWitnessPreference, isValidReparteeWitnessReaction,
   reparteeWitnessPreference,
 } from "../depth/repartee-witness";
+import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 
-export interface ReparteeSceneView {
+export interface ReparteeContestSceneView {
   readonly phase: "reading" | "challenge" | "round" | "result";
   readonly commandId: string;
   readonly tick: number;
@@ -26,6 +27,26 @@ export interface ReparteeSceneView {
   readonly witness: ReparteeWitnessView | null;
   readonly encore: boolean;
 }
+
+export interface ReparteeMemorySceneView extends Omit<ReparteeContestSceneView, "phase" | "buildingId" | "buildingName"> {
+  readonly phase: "memory";
+  readonly buildingId: null;
+  readonly buildingName: null;
+  readonly residentId: null;
+  readonly residentName: null;
+  readonly witness: ReparteeWitnessView;
+  readonly memory: {
+    readonly locationId: string;
+    readonly locationName: string;
+    readonly pose: "nod" | "frown" | "laugh" | "quiet";
+    readonly sourceReactionCommandId: string;
+    readonly evidenceSourceCommandId: string;
+    readonly rememberedReply: string;
+    readonly regard: number;
+  };
+}
+
+export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView;
 
 export interface ReparteeWitnessView {
   readonly id: string;
@@ -84,8 +105,43 @@ export function signedReparteeMomentum(value: number): string {
   return value > 0 ? `+${value}` : String(value);
 }
 
+/** Only this arrival command can stage a memory; historical Journal receipts do not summon actors. */
+export function projectReparteeMemory(state: WorldState): ReparteeMemorySceneView | null {
+  const callback = state.depth.reparteeCallback;
+  const source = state.chronicle.at(-1);
+  if (callback === null || !isValidCampaignReparteeCallback(state.depth)
+    || source?.commandType !== "recall-repartee" || source.commandId !== `${state.campaignId}:${callback.sourceCommandId}`
+    || source.tick !== state.tick || callback.tick !== state.tick || source.mode !== "chronicle" || state.scene.mode !== "chronicle"
+    || callback.heroId !== state.depth.hero.id || callback.restLocationId !== state.depth.atlas.currentLocationId) return null;
+  const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === callback.witnessId
+    && entry.joinedTick === callback.joinedTick && entry.identity.name === callback.witnessName
+    && entry.phase === "arrived" && entry.destination.locationId === callback.restLocationId
+    && entry.injury === "none" && entry.resources.health > 0);
+  const location = state.depth.atlas.locations.find((entry) => entry.id === callback.restLocationId && entry.kind === "town");
+  const preference = state.depth.reparteeWitness.preference;
+  const reaction = state.depth.reparteeWitness.reaction;
+  if (companion === undefined || location === undefined
+    || preference === null || reaction === null) return null;
+  const locationName = location.name;
+  const definition = reparteeWitnessPreference(preference.preferenceId);
+  return Object.freeze({
+    phase: "memory", commandId: source.commandId, tick: source.tick,
+    heroId: state.depth.hero.id, heroName: state.hero.name, residentId: null, residentName: null,
+    buildingId: null, buildingName: null, bookId: reparteeBook.id,
+    title: `After the road · ${locationName}`, call: callback.line, reply: null,
+    marks: Object.freeze([]), momentum: 0, outcome: null, encore: false,
+    consequence: "A shared memory. Regard and bond unchanged; no healing or new reward.",
+    witness: Object.freeze({ id: companion.identity.residentId, name: companion.identity.name, role: companion.identity.role,
+      preferenceId: preference.preferenceId, preferenceLabel: definition.label, preferenceDescription: definition.description, reaction: null }),
+    memory: Object.freeze({ locationId: callback.restLocationId, locationName, pose: callback.pose,
+      sourceReactionCommandId: callback.sourceReactionCommandId, evidenceSourceCommandId: callback.evidenceSourceCommandId,
+      rememberedReply: callback.rememberedReply, regard: reaction.regardAfter }),
+  });
+}
+
 /** The current command must own the receipt; revisiting town cannot replay a duel. */
 export function projectReparteeScene(state: WorldState): ReparteeSceneView | null {
+  if (state.chronicle.at(-1)?.commandType === "recall-repartee") return projectReparteeMemory(state);
   const source = state.chronicle.at(-1);
   const progress = state.depth.repartee;
   if (!isValidReparteeProgress(progress)) return null;
@@ -200,7 +256,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     }
     if (scene === null) {
       caption.replaceChildren();
-      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
+      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation"]) delete caption.dataset[key];
       return;
     }
     caption.dataset.phase = scene.phase;
@@ -216,8 +272,20 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     caption.dataset.regard = scene.witness?.reaction === null || scene.witness === null
       ? "unestablished" : String(scene.witness.reaction.regardAfter);
     caption.dataset.encore = String(scene.encore);
+    delete caption.dataset.memorySource;
+    delete caption.dataset.memoryLocation;
     const title = doc.createElement("h2");
     title.textContent = scene.title;
+    if (scene.phase === "memory") {
+      caption.dataset.reaction = "remembered";
+      caption.dataset.regard = String(scene.memory.regard);
+      caption.dataset.outcome = "not-a-contest";
+      caption.dataset.memorySource = scene.memory.sourceReactionCommandId;
+      caption.dataset.memoryLocation = scene.memory.locationId;
+      caption.replaceChildren(title, dialogue(scene.witness.name, scene.call, "repartee-witness"),
+        paragraph(scene.consequence, "repartee-note"));
+      return;
+    }
     const call = scene.phase === "reading"
       ? paragraph(`“${scene.call}”`, "repartee-call")
       : scene.outcome === "retreat" ? paragraph(scene.call, "repartee-call")
@@ -237,7 +305,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     if (latest === null) return;
     const state = latest;
     const progress = state.depth.repartee;
-    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}`;
+    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}`;
     if (key === shownKey || (!force && journal.open && shownCampaign === state.campaignId)) return;
     shownKey = key;
     shownCampaign = state.campaignId;
@@ -346,6 +414,21 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
           "journal-repartee-source",
         ));
       } else nodes.push(paragraph("No regard has been established from this encore yet; the witness is still listening."));
+    }
+    const callback = state.depth.reparteeCallback;
+    if (callback !== null && isValidCampaignReparteeCallback(state.depth)) {
+      const restLocation = state.depth.atlas.locations.find((entry) => entry.id === callback.restLocationId);
+      const line = dialogue(callback.witnessName, callback.line, "repartee-witness");
+      line.dataset.witnessMemory = callback.sourceReactionId;
+      line.dataset.command = callback.sourceCommandId;
+      line.dataset.witness = callback.witnessId;
+      line.dataset.memorySource = callback.sourceReactionCommandId;
+      line.dataset.evidence = callback.evidenceSourceCommandId;
+      line.dataset.location = callback.restLocationId;
+      nodes.push(heading(`Remembered at ${restLocation?.name ?? callback.restLocationId}`), line,
+        paragraph("One shared-road arrival memory. Regard, bond and resources were not changed; the earlier reaction was not awarded again."),
+        paragraph(`Rest T${callback.tick} · Command ${callback.sourceCommandId}. Witness ${callback.witnessId}, joined T${callback.joinedTick}. Encounter ${callback.encounterId}.`, "journal-repartee-source"),
+        paragraph(`Original reaction ${callback.sourceReactionId}: ${callback.sourceReactionCommandId}, T${callback.sourceReactionTick}. Remembered round ${callback.evidenceRoundIndex + 1}: ${callback.evidenceSourceCommandId}. Reading source: ${progress.reading?.sourceCommandId ?? "unavailable"}.`, "journal-repartee-source"));
     }
     content.replaceChildren(...nodes);
   }

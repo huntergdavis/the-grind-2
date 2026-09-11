@@ -9,6 +9,7 @@ import {
 import type { EquipmentSlot, QuestObjective } from "../depth/types";
 import { reparteeBook } from "../depth/repartee";
 import { isValidReparteeWitnessReaction, reparteeWitnessPreference } from "../depth/repartee-witness";
+import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 
 export const maximumSpectatorMoments = 8;
 export const maximumSpectatorDetails = 8;
@@ -402,6 +403,18 @@ function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleE
   const current = after.depth.repartee;
   const reading = current.reading;
   if (source.tick !== after.tick) return null;
+  const memory = after.depth.reparteeCallback;
+  if (source.commandType === "recall-repartee" && before.depth.reparteeCallback === null && memory !== null
+    && memory.tick === source.tick && `${after.campaignId}:${memory.sourceCommandId}` === source.commandId
+    && isValidCampaignReparteeCallback(after.depth)) return {
+    episodeId: null, title: "A shared memory before parting", kind: "discovery", status: "resolved",
+    details: [
+      `${memory.witnessName}: ${memory.line}`,
+      `Remembered reply · ${memory.rememberedReply}`,
+      `Source · ${memory.encounterId} · round ${memory.evidenceRoundIndex + 1} · ${memory.evidenceSourceCommandId}`,
+      "Regard, bond and resources unchanged; recalled once",
+    ],
+  };
   if (source.commandType === "read-book" && previous.reading === null && reading !== null
     && reading.tick === source.tick && `${after.campaignId}:${reading.sourceCommandId}` === source.commandId) {
     return {

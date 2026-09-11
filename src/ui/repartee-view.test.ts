@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorld, eventPolicyForMode } from "../core/simulation";
+import { advanceWorld, campaignDirector, createWorld, eventPolicyForMode } from "../core/simulation";
 import type { ChronicleEntry, RecordedDepthCommandType, WorldState } from "../core/types";
 import {
   createReparteeProgress, readReparteeBook, reparteeBook, reparteeChallenges,
@@ -8,7 +8,9 @@ import {
 import { selectSharedRoadCompanion } from "../depth/companion";
 import { createReparteeWitnessReaction, declareReparteeWitnessPreference } from "../depth/repartee-witness";
 import { generateTown, visitTown } from "../depth/towns";
-import { projectReparteeScene, projectReparteeWitness, reparteeRoundMarks, signedReparteeMomentum } from "./repartee-view";
+import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
+import { naturalReparteeMemoryFixture } from "../../tests/repartee-memory-fixtures";
+import { projectReparteeMemory, projectReparteeScene, projectReparteeWitness, reparteeRoundMarks, signedReparteeMomentum } from "./repartee-view";
 
 function fixture() {
   const world = createWorld("repartee-presentation", "campaign:repartee-presentation");
@@ -251,5 +253,98 @@ describe("Witnessed encore presentation", () => {
     }
     expect(projectReparteeScene({ ...state, tick: state.tick + 1 })).toBeNull();
     expect(projectReparteeScene({ ...state, chronicle: [{ ...state.chronicle[0]!, commandId: "other-campaign:depth:11:repartee-action" }] })).toBeNull();
+  });
+});
+
+let rememberedWorlds: { before: WorldState; after: WorldState } | undefined;
+function memoryFixture() {
+  if (rememberedWorlds !== undefined) return rememberedWorlds;
+  // Same short natural journey as browser acceptance: actual book, contests,
+  // companion, road battle and healthy arrival, with no invented source facts.
+  const before = naturalReparteeMemoryFixture();
+  expect(campaignDirector(before).candidates[0]!.command.type).toBe("recall-repartee");
+  const after = advanceWorld(before);
+  expect(after.chronicle.at(-1)!.commandType).toBe("recall-repartee");
+  rememberedWorlds = { before, after };
+  return rememberedWorlds;
+}
+
+describe("Shared-road memory presentation", () => {
+  it("shows only the actual arrived pair, exact saved line and real destination, without a rival or another contest", () => {
+    const { before, after } = memoryFixture();
+    const callback = after.depth.reparteeCallback!;
+    const companion = after.depth.companions.active[0]!;
+    const scene = projectReparteeMemory(after)!;
+    expect(scene.phase).toBe("memory");
+    expect(scene.commandId).toBe(after.chronicle.at(-1)!.commandId);
+    expect(scene.commandId).toBe(`${after.campaignId}:${callback.sourceCommandId}`);
+    expect(scene.witness).toMatchObject({ id: companion.identity.residentId, name: companion.identity.name, role: companion.identity.role });
+    expect(scene.call).toBe(callback.line);
+    expect(scene.reply).toBeNull();
+    expect(scene.residentId).toBeNull();
+    expect(scene.residentName).toBeNull();
+    expect(scene.buildingId).toBeNull();
+    expect(scene.buildingName).toBeNull();
+    expect(scene.marks).toEqual([]);
+    expect(scene.outcome).toBeNull();
+    expect(scene.memory).toMatchObject({ locationId: companion.destination.locationId,
+      sourceReactionCommandId: callback.sourceReactionCommandId, evidenceSourceCommandId: callback.evidenceSourceCommandId,
+      rememberedReply: callback.rememberedReply, pose: callback.pose });
+    expect(scene.consequence).toContain("Regard and bond unchanged");
+    expect(after.depth.hero).toEqual(before.depth.hero);
+    expect(after.depth.companions).toEqual(before.depth.companions);
+    expect(after.depth.reparteeWitness).toEqual(before.depth.reparteeWitness);
+    expect(projectReparteeScene(after)).toEqual(scene);
+    expect(projectReparteeScene(JSON.parse(JSON.stringify(after)))).toEqual(scene);
+  });
+
+  it("uses the discovered destination name even before the first formal town visit", () => {
+    const { after } = memoryFixture();
+    const destination = after.depth.reparteeCallback!.restLocationId;
+    const beforeVisit: WorldState = { ...after, depth: { ...after.depth,
+      towns: Object.fromEntries(Object.entries(after.depth.towns).filter(([id]) => id !== destination)) } };
+    const location = beforeVisit.depth.atlas.locations.find((entry) => entry.id === destination)!;
+    expect(beforeVisit.depth.atlas.discoveredLocationIds).toContain(destination);
+    expect(projectReparteeMemory(beforeVisit)?.memory.locationName).toBe(location.name);
+    expect(projectReparteeMemory(beforeVisit)?.buildingId).toBeNull();
+  });
+
+  it("keeps the oath's public atlas destination name when the stored town has a different name", () => {
+    const { after } = memoryFixture();
+    const destination = after.depth.reparteeCallback!.restLocationId;
+    const location = after.depth.atlas.locations.find((entry) => entry.id === destination)!;
+    const town = after.depth.towns[destination] ?? generateTown(after.seed, destination);
+    const conflictingName = "A different stored town name";
+    const state: WorldState = { ...after, depth: { ...after.depth,
+      towns: { ...after.depth.towns, [destination]: { ...town, name: conflictingName } } } };
+    const scene = projectReparteeMemory(state)!;
+    expect(state.depth.towns[destination]!.name).not.toBe(location.name);
+    expect(scene.memory.locationName).toBe(location.name);
+    expect(scene.title).toBe(`After the road · ${location.name}`);
+    expect(scene.title).not.toContain(conflictingName);
+  });
+
+  it("rejects stale or invented memories and keeps the historical receipt after an actual farewell", () => {
+    const { before, after } = memoryFixture();
+    const callback = after.depth.reparteeCallback!, source = after.chronicle.at(-1)!;
+    const witness = after.depth.companions.active[0]!;
+    const variants: WorldState[] = [
+      before, { ...after, tick: after.tick + 1 },
+      { ...after, scene: { ...after.scene, mode: "camp" } },
+      { ...after, chronicle: [{ ...source, commandType: "wait" }] },
+      { ...after, chronicle: [{ ...source, commandId: callback.sourceCommandId }] },
+      { ...after, chronicle: [{ ...source, commandId: `foreign:${callback.sourceCommandId}` }] },
+      { ...after, depth: { ...after.depth, reparteeCallback: { ...callback, line: "An invented reconciliation." } } },
+      { ...after, depth: { ...after.depth, companions: { ...after.depth.companions, active: [] } } },
+      { ...after, depth: { ...after.depth, companions: { ...after.depth.companions, active: [{ ...witness, phase: "travelling" }] } } },
+      { ...after, depth: { ...after.depth, companions: { ...after.depth.companions, active: [{ ...witness, joinedTick: witness.joinedTick + 1 }] } } },
+    ];
+    for (const variant of variants) expect(projectReparteeMemory(variant)).toBeNull();
+    const departed = advanceWorld(after);
+    expect(departed.chronicle.at(-1)!.commandType).toBe("farewell-companion");
+    expect(departed.depth.companions.active).toEqual([]);
+    expect(departed.depth.reparteeCallback).toEqual(callback);
+    expect(isValidCampaignReparteeCallback(departed.depth)).toBe(true);
+    expect(projectReparteeScene(departed)).toBeNull();
   });
 });

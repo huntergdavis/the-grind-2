@@ -9,6 +9,7 @@ export * from "./counter-duel";
 export * from "./repartee";
 export * from "./repartee-campaign";
 export * from "./repartee-witness";
+export * from "./repartee-memory";
 export * from "./dungeon";
 export * from "./quest-lead";
 export * from "./rpg";

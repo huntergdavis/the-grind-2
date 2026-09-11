@@ -42,6 +42,8 @@ const sourcePaths = Object.freeze([
   "src/core/canonical.ts",
   "src/core/rng.ts",
   "src/core/types.ts",
+  "src/depth/repartee-campaign.ts",
+  "src/depth/repartee-memory.ts",
   "src/depth/repartee-witness.ts",
   "src/depth/repartee.ts",
   "src/depth/types.ts",

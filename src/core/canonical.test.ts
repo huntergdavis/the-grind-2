@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v160 records Depth 29, retained solo/encore transcripts and actual witness judgments.
+      // v161 records Depth 30 and the once-only source-bound arrival memory.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "d1d0957adedd7910",
-      "12fb1bf83ea7b30d",
-      "d3f73c1a802242b6",
-      "6936ec0521bc8dfa",
-      "5052d77e4f12f095",
-      "868d8d314e0cb386",
-      "047b3c5b41af0a02",
-      "b3e9ac6fa59e20f5",
-      "7b289ec0184072d9",
-      "3c2eca9efd3626f0",
+      "b7c93653c8c0dfbb",
+      "ca04198368b02f2e",
+      "0ab6cf4a8a202c46",
+      "b63edae9cfe78ba8",
+      "01d74af530b5814f",
+      "fb78ef9d54b7e815",
+      "eaf43c3fb9532bdc",
+      "4c829448338a0623",
+      "627e24a86b13a03a",
+      "b46b65a83a1c6a31",
     ]);
   }, 80_000);
 });

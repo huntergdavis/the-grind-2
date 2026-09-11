@@ -2,6 +2,50 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## The witness remembers — v0.5.161 implementation checkpoint
+
+F2b is implemented; public deployment is still pending. Three independent
+owners handled source-bound rules, native presentation and acceptance, with
+root integrating command scheduling, save migration, policy and inbox.
+Recovery reused the committed [lifetime-story scope](docs/design/LIFETIME_STORIES.md)
+and current rest/companion reducers. Root's first `deja "repartee witness safe rest callback"`
+returned no matches; reviewers found prior Codex 06 scope notes, not an existing
+callback implementation. Source-inventory recall also preserved the existing
+transitive-closure guard rather than weakening it for a newly reachable module.
+
+The existing paid inn excludes companions. The old natural Iona Glass journey
+had only a defeated/fallen-witness recovery and a later solo roadside camp;
+neither is eligible memory evidence. F2b therefore deliberately adds one quiet
+arrival rest before farewell at the actual discovered destination town gates.
+It adds no invented inn, healing, XP, bond or repeat regard. Former/fallen
+witnesses and an encore without a spoken reply cannot produce the scene.
+
+Natural positive: `shared-road-playful:7`, campaign `campaign:browser-repartee-memory`.
+Real reading T17, recruitment of Fara Ash T22, witnessed result T26, healthy
+arrival at Elderwatch T38 and callback candidate T39. The culinary answer lost
+the round but amused this witness; one shared road victory and bond 12 were
+earned before the rest and must not be credited to the memory.
+Version/boundary/type checks and the production build pass. Focused checks:
+six rules tests, nine natural-journey campaign tests, fifteen presentation
+tests and 69 existing flyting/policy/inbox regressions pass. The campaign checks
+cover unchanged rewards, once-only farewell, exact reloads, retained historical
+presence, empty migration, foreign-source inbox rejection and foreground catch-up.
+The integrated rules review found no blocking issues. The initial natural browser
+run passed in 55.6 seconds: actual arrival T38, memory T39 and farewell T40,
+exact reloads, readable 1280/320 normal/Focus captures, and no page errors,
+model activity or external requests. Direct visual review found one coherent-name
+correction: use the promised atlas destination Elderwatch in this scene, not
+the generated town record's different Starharbor label. The final corrected
+browser run, clean CI and public-source verification remain pending.
+
+The initial local canonical run generated all ten new full-state Depth 30
+anchors in 76.40 seconds. Its separate save/replay check hit the existing
+20-second limit at 25.03 seconds during other focused work; that timeout is not
+reported as a pass and the limit is unchanged. The single-test retry also timed
+out locally (43.75 seconds); it is not a pass. Clean CI must run the unchanged
+replay checks before publication. No long journey matrix or LLM evaluation
+was added to this gameplay feature's checks.
+
 ## A companion judges the encore — v0.5.160 final delivery
 
 **Live and publicly verified 2026-09-10 at 20:14:43 PDT.** Feature

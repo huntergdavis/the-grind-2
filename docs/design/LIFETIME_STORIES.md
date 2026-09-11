@@ -1,7 +1,34 @@
 # Lifetime stories: regard, humor and consequences
 
-Status: F2a shipped in v0.5.160, publicly verified 2026-09-10 at 20:14 PDT. Broader systems below remain proposals unless included in the scope note.
+Status: F2a shipped in v0.5.160; F2b implemented for v0.5.161, acceptance and public deployment pending. Broader systems below remain proposals unless included in a scope note.
 Owner: gameplay/story roadmap. LLM work remains paused.
+
+## F2b implemented scope — a shared memory before parting
+
+One actual `recall-repartee` command creates a quiet rest at the reached oath
+destination's gates, before the ordinary farewell. It is not a paid inn stay:
+no building, visit, healing or resource reward is invented. The same healthy,
+living companion must have actually arrived, with the route cleared and no
+active encounter, dungeon or quest settlement. Recovery and settlement keep
+priority. The one eligible pause is an intentional bounded addition to arrival;
+the next ordinary command closes the oath. No detour or repeat-rest loop exists.
+
+The saved receipt retains the exact encounter, original reaction and spoken
+round, both participants and oath identity, destination and new command/tick.
+The line quotes an exact first sentence of the original reply and preserves
+the cause-bound judgment: amusement after a losing joke stays amusement, not a
+new win. Regard, combat bond, HP, MP, XP, gold and inventory do not change.
+A roundless retreat supplies no remembered answer. Departed or fallen witnesses
+cannot appear; an already recorded callback remains history after farewell.
+Depth 30 migrates older saves to an empty callback slot, not a retrospective rest.
+
+The existing eight-second visible-time spoken-scene path shows the actual hero
+and companion at the town threshold. No absent rival, score markers or new
+permanent panel appears. Journal → Adventure → Books & Flyting keeps the rest
+and original sources; the activity inbox records one separate memory moment.
+Foreground catch-up queues this command rather than silently consuming it.
+General lifetime memory, new relationship dimensions and LLM changes remain
+outside this finite callback slice.
 
 ## F2a shipped scope — a companion judges the encore
 
