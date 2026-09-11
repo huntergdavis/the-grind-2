@@ -12,9 +12,9 @@ F3a's second book and constructive practice exchange shipped in v0.5.165.
 The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
 F3b's later scored public challenge shipped in v0.5.166, using the learned frame
 without forcing every character to choose the winning answer. R1, a genuine
-former-companion reunion on a later return, is implemented for v0.5.167 with
-passing natural-journey/browser checks; public deployment is pending. Further
-playable features follow one at a time.
+former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
+field medicine is the next scoped proposal. Further playable features follow
+one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -26,7 +26,29 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Let the room answer (v0.5.166)
+## Latest delivery — A familiar face (v0.5.167)
+
+Publicly verified 2026-09-11 at 03:14:19 PDT. One ordinary return to a healthy
+fulfilled former companion's farewell town produces a brief two-person greeting.
+The original oath and shared victories ground the dialogue; exact travel,
+speakers and words remain in Journal → Company. No re-recruitment, extra reward,
+invented trip home or new Watch panel. The natural Fara journey returns T154,
+speaks T155 and continues to a smith purchase without altered prior history.
+
+Feature `590c86fdd9bde4fff1b27ab122deb4ea88092c9d` and route-reason correction
+`234ea590c0718651dcbc2589bb9a6aff35e13797` are on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34587682185):
+254 release files and 3,613 tests passed, two long audits opt-in/skipped;
+canonical replay passed in 17.696 seconds, and all eight forward-motion tests
+passed in 5.550 seconds. Main suite 269.84 seconds; deployment job 5 minutes
+23 seconds. The corrected browser interaction sequence passed in 54.6 seconds
+(1.3-minute runner), with three final-build desktop/mobile/Focus captures
+inspected. Three public assets and ten runtime source-map entries match the
+corrected commit. [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md) retains the initial
+anti-reversal failure and narrow source-bound fix. R1 is complete; D3 is scoped,
+not implemented. LLM work remains paused.
+
+## Prior delivery — Let the room answer (v0.5.166)
 
 Publicly verified 2026-09-11 at 02:02:19 PDT. One actual resident's post-Bell
 challenge tests the book-learned reply about listening and leadership. Two

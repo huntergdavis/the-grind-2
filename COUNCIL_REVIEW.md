@@ -2,7 +2,34 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## A familiar face — v0.5.167 implementation checkpoint
+## A familiar face — v0.5.167 final delivery
+
+**Live and publicly source-verified 2026-09-11 at 03:14:19 PDT.** Feature
+`590c86fdd9bde4fff1b27ab122deb4ea88092c9d` and correction
+`234ea590c0718651dcbc2589bb9a6aff35e13797` are pushed to `origin/main`.
+[Pages run 34587682185](https://github.com/huntergdavis/the-grind-2/actions/runs/34587682185)
+passed all 254 release files and 3,613 tests, with two opt-in long audits skipped.
+All four canonical tests passed in 17.696 seconds and all eight forward-motion
+tests in 5.550 seconds, with unchanged limits. Main suite: 269.84 seconds;
+deployment job: 5 minutes 23 seconds. The initial failed run and repairs remain
+documented below rather than being relabeled as passes.
+
+The corrected browser sequence passed in 54.6 seconds (1.3-minute runner),
+proving the real saved return directive, T154 arrival, T155 reunion, exact
+reloads and normal smith continuation. All three final native desktop/320px/
+Focus captures were directly inspected. Independent final review found no
+blanket reversal permission, missing reason validator or unsupported release
+claim. The former companion and original shared history remain intact.
+
+Public v0.5.167 entry `index-B2_tVaA9.js`, unchanged CSS `index-B9m_5Qf5.css`
+and worker `simulation.worker-x1yPBaQn.js` match the corrected build byte-for-byte.
+Ten emitted runtime source-map entries match the corrected commit; protected
+ledger sources remain absent. LLM workers and optional dungeon-view chunks are
+unchanged. R1 is complete. The council's next scoped proposal is dungeon field
+medicine; Echo Cache still needs real retreat/resume and retained-expedition
+mechanics. Neither proposal is claimed as shipped here.
+
+## A familiar face — v0.5.167 historical implementation checkpoint
 
 Reusing the committed R1 scope and the actual Fara Ash oath/farewell journey.
 The new-turn `deja "companion reunion familiar face"` query found no recovered

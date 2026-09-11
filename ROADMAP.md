@@ -5,13 +5,11 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: R1 — A familiar face (v0.5.167).** A genuine return to a former
-   companion's farewell town can lead to one source-backed reunion, without
-   recruiting them again or resetting their history. No flyting/Bell prerequisite.
-   [Council scope](docs/design/LIFETIME_STORIES.md#r1-proposed-next-slice--a-familiar-face);
-   the unchanged v0.5.166 journey did not return by T320. One explicit ordinary
-   return route is now scoped after existing obligations, before generic onward
-   travel. The new journey and release are not yet verified.
+1. **Next proposal: D3 — Dungeon field medicine.** A living, wounded solo hero
+   uses an actually owned Ember Tonic between dungeon actions, with its existing
+   quarter-max-HP effect and real stack depletion. Reuse the portrait/status log.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#d3-proposed-next-slice--dungeon-field-medicine).
+   A natural eligible opportunity is not yet verified; not part of v0.5.167.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -22,19 +20,20 @@ The existing search/entry/disarm, exact save/reload and caption checks passed
 in 66.8 seconds against the released v0.5.164 build; four captures were inspected.
 This is test-only maintenance, not a new dungeon mechanic or runtime release.
 
-**F3b — Let the room answer is live in v0.5.166**, publicly verified on
-2026-09-11 at 02:02:19 PDT. A later resident challenge tests the book-learned
-frame with one scored reply. Character values can prefer a draw or losing joke;
-only victory grants +1 town reputation, capped at 100, once. Native dialogue
-and the existing Journal retain exact words/sources, without another panel.
-The natural challenge browser journey passed in 52.4 seconds; the explicitly
-staged-HP rest regression passed in 39.4 seconds. Six desktop/mobile/Focus
-captures were inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34581567602)
-passed 3,598 tests and canonical replay, with two long audits explicitly opt-in.
-Three public assets and eight source-map entries match the committed release.
+**R1 — A familiar face is live in v0.5.167**, publicly verified on
+2026-09-11 at 03:14:19 PDT. One ordinary return trip leads to a greeting with
+a healthy fulfilled former companion at the actual farewell town. Exact shared
+history, dialogue and arrival sources stay in Journal → Company; no new oath,
+reward or extra panel. The natural journey returns at T154 and greets Fara at
+T155. The final browser sequence passed, with three desktop/mobile/Focus captures
+inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34587682185)
+passed 3,613 tests, canonical replay and the repaired anti-backtracking checks;
+two long audits remain opt-in. Three public assets and ten runtime source-map
+entries match the corrected release. Initial CI failure and its source-bound
+return-reason repair are preserved in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson and F3b's scored use are shipped.
-Wider 3D remains a separate proposal; a former-companion reunion is next.
+optional first-person preview, F3a's lesson, F3b's scored use and R1 are shipped.
+Wider 3D remains a separate proposal; dungeon field medicine is next.
 Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
@@ -52,7 +51,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **R1 — A familiar face** | Reunite with a former companion and recall an actual shared experience | In progress for v0.5.167; one ordinary return trip, no re-recruitment or extra relationship meters |
+| **D3 — Dungeon field medicine** | Use an owned tonic between dungeon actions; show the real HP and supply change | Scoped proposal; natural eligible opportunity not yet verified |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -145,7 +144,7 @@ general framework. All remain client-side and work without an LLM.
 ## 5. Companions and character relationships
 
 - A second simultaneous companion.
-- Actual reunions with former companions.
+- Broader reunion situations and specific shared-event callbacks beyond R1's fulfilled-oath greeting.
 - Relationship branches: disagreement, duty, reconciliation and departure.
 - Companion equipment, inventories, leveling and dungeon participation.
 - Expanded treatment, injury and death policies.

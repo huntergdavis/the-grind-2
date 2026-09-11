@@ -474,6 +474,38 @@ versus movement, preference reload, pause/reduced motion and failure fallback.
 This review reused the existing projections and public-only framing contract;
 recall found no reusable natural-fixture result. It is planning, not shipped D2.
 
+## D3 proposed next slice — Dungeon field medicine
+
+Read-only council scope, 2026-09-11; not implemented by v0.5.167. This takes
+the existing backlog's out-of-combat item use into one active solo dungeon.
+A living, badly wounded hero can use an actually owned Ember Tonic before
+continuing. Reuse `restorativeHealthAmount` in `src/depth/rpg.ts`: restore
+`ceil(maxHP / 4)`, clamped to missing health, and remove exactly one item from
+the actual stack. No invented supplies, free refill, revival or new XP.
+
+Give consumption its own committed command between dungeon actions. Keep
+active combat, defeat recovery and owed settlement ahead of it. No movement,
+search, trap roll, MP, quest progress, or equipment change is bundled with the
+drink. Preserve the current room and all earlier expedition facts. Reuse the
+portrait's HP bar and existing status history with one brief character action;
+do not add another panel or require viewer input or an LLM.
+
+Before implementation, inspect one known earned dungeon journey for a damaged
+hero with an owned tonic. No natural medicine opportunity is verified yet.
+Acceptance should cover one real consumption, exact item/HP changes, save and
+reload, normal next dungeon action, and rejection of empty/forged stacks, full
+health, death and active combat. Clearly label any isolated resource boundary;
+do not manufacture a natural-use claim or widen a journey to find one.
+
+**Why not Echo Cache first?** The council's source inspection finds no voluntary
+retreat/resume producer. Defeat recovery in `src/depth/state.ts` relocates the
+still-active dungeon to its entrance; it is not a supply deposit. Depth retains
+one dungeon and a new entry replaces it. An honest cache therefore needs an
+explicit retained expedition, deposit, return and retrieval with actual stack
+transfers. Keep that larger proposal in the roadmap; do not disguise it as a
+cosmetic chest. This smaller medicine slice reuses the established item effect
+and creates a useful choice without those additional systems.
+
 ## Make the adventures accumulate into a life
 
 Each authored adventure should leave at most a small number of useful facts:

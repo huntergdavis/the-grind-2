@@ -63,7 +63,9 @@ and a general relationship system are not implemented by this slice.
 
 ## R1 proposed next slice — A familiar face
 
-Council scope, 2026-09-11; implementation in progress for v0.5.167, not yet live.
+Council scope, 2026-09-11; implemented and publicly verified in v0.5.167.
+The retained scope below describes the shipped boundary; the optional witnessed
+quotation remains later work. Delivery evidence is in [ROADMAP.md](../../ROADMAP.md).
 This picks up the larger backlog's actual former-companion reunions; it does
 not require F3a, F3b or the Borrowed Bell. Existing code forbids re-recruiting a
 former companion. A short reunion must not bypass that rule or reset the oath.
@@ -94,10 +96,10 @@ records unchanged. Migration supplies no invented reunion or past arrival.
 Reuse the named companion drawing at the town threshold, two speakers and the
 existing foreground caption/hold. Keep the exact history in a collapsed entry
 under Journal → Company (`#journal-companion-former`), not another Watch panel.
-The known Fara Ash journey reaches arrival T38, memory T39 and farewell T40;
-a later autonomous return has not been verified. Inspect that continuation once.
-If routing never returns naturally, scope an explicit optional return opportunity
-before implementation rather than teleport either character or scan many seeds.
+The known Fara Ash journey reaches arrival T38, memory T39 and farewell T40.
+The approved ordinary return now produces actual arrival T154 and reunion T155,
+verified through the browser and exact reload/continuation. Its earlier negative
+baseline and the resulting explicit return scope are preserved below.
 
 Recovery: the council's `deja`/`rg` review found older recurring-companion
 proposals, not an existing reunion command. This scope is grounded in current
