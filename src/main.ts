@@ -31,6 +31,7 @@ import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-vi
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { projectSmithyJobScene } from "./ui/smithy-job-view";
+import { projectInnBluffScene } from "./ui/inn-bluff-view";
 import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectRecordedFarewell } from "./ui/recorded-farewell";
@@ -4186,6 +4187,8 @@ async function catchUp(world: WorldState): Promise<WorldState> {
     || selectCompanionCredit(world.depth) !== null
     || world.depth.smithyJob != null && world.depth.smithyJob.completion === null
     || projectSmithyJobScene(world) !== null
+    || world.depth.innBluff != null && world.depth.innBluff.resolution === null
+    || projectInnBluffScene(world) !== null
     || world.depth.bellExpedition !== null && world.depth.bellExpedition.completion === null
     || projectBorrowedBellScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));
@@ -4478,6 +4481,7 @@ function present(): void {
   const dungeonPassage = projectDungeonSecretPassageScene(state);
   const pennywiseGate = projectPennywiseGateScene(state);
   const smithyJob = projectSmithyJobScene(state);
+  const innBluff = projectInnBluffScene(state);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -4787,7 +4791,14 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (smithyJob !== null) {
+  if (innBluff !== null) {
+    elements.traversalDirective.textContent = `${innBluff.headline} · ${innBluff.detail}`;
+    elements.traversalDirective.title = `${innBluff.innName}, ${innBluff.locationName} · ${innBluff.residentName}. ${innBluff.claim} ${innBluff.tellText} ${state.scene.consequence}`;
+    elements.traversalDirective.dataset.reason = `inn-bluff-${innBluff.phase}`;
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = "";
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (smithyJob !== null) {
     elements.traversalDirective.textContent = `${smithyJob.headline} · ${smithyJob.detail}`;
     elements.traversalDirective.title = `${smithyJob.smithName}, ${smithyJob.locationName} · ${smithyJob.residentName}. ${state.scene.consequence}`;
     elements.traversalDirective.dataset.reason = `smithy-job-${smithyJob.phase}`;

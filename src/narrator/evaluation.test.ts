@@ -103,10 +103,10 @@ describe("narrator evaluation corpus", () => {
     }
     expect(prompts).toHaveLength(20);
     expect(prompts.every(isNarratorPromptV1)).toBe(true);
-    // v172's real smithy admission and strokes now occupy the early town scenes.
-    // Reviewed packets expose only scene/place/energy, never job rules or wages.
+    // v173 adds actual inn admissions at T5 in production seeds 1 and 2.
+    // Reviewed packets expose only scene/place/energy, never die faces or wagers.
     // The independent sealed evaluation corpus fingerprint above is unchanged.
-    expect(canonicalHash(prompts)).toBe("78c6964c1a05a366");
+    expect(canonicalHash(prompts)).toBe("084f88cba6c5180e");
     expect(JSON.stringify(prompts)).not.toMatch(/reward|objective|consequence|decision|gold|experience/iu);
   });
 

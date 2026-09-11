@@ -23,10 +23,14 @@ describe("the Pennywise Gate on the actual first solo road", () => {
   it("stops real ordinary travel at the barrier without reaching the far side", () => {
     expect(ready.tick).toBe(before.tick + 1);
     expect(Object.hasOwn(before.depth, "pennywiseGate")).toBe(false);
-    expect(campaignDirector(before).candidates[0]?.command).toEqual({ type: "travel", distance: 8 });
+    const approachDistance = 8 - before.depth.atlas.route!.legProgress;
+    expect(approachDistance).toBeGreaterThan(0);
+    expect(campaignDirector(before).candidates[0]?.command).toEqual({ type: "travel", distance: approachDistance });
     expect(advanceWorld(before)).toEqual(ready);
     const gate = ready.depth.pennywiseGate!;
-    expect(gate.arrival).toMatchObject({ tick: ready.tick, distance: 8, sourceCommandId: `depth:${ready.tick}:travel:8` });
+    expect(gate.arrival).toMatchObject({ tick: ready.tick, distance: approachDistance,
+      sourceCommandId: `depth:${ready.tick}:travel:${approachDistance}` });
+    expect(ready.depth.atlas.route!.distanceTravelled - before.depth.atlas.route!.distanceTravelled).toBe(approachDistance);
     expect(gate.site).toMatchObject({ nearPointIndex: 313, farPointIndex: 312, nearProgress: 8, farProgress: 15 });
     expect(ready.depth.atlas.route!.legProgress).toBe(8);
     expect(ready.depth.atlas.currentLocationId).toBe(before.depth.atlas.currentLocationId);

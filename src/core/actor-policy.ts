@@ -22,6 +22,7 @@ import { isValidCampaignRoomChallenge, roomChallengeCommandId, roomChallengeResp
 import { companionCreditChoices, companionCreditCommandId, selectCompanionCredit } from "../depth/companion-credit";
 import { pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate } from "../depth/pennywise-gate";
 import { selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions } from "../depth/smithy-job";
+import { innBluffCommandId, projectInnBluffDecision, selectInnBluffVenue } from "../depth/inn-bluff";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -390,6 +391,36 @@ function scoreCandidate(
     const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === command.residentId);
     score = 100;
     reason = `${companion?.destination.name ?? "the promised town"} has been reached and the oath deserves its farewell`;
+  } else if (command.type === "start-inn-bluff") {
+    const venue = selectInnBluffVenue(state.depth);
+    if (venue === null || venue.bluffId !== command.bluffId || venue.locationId !== command.locationId
+      || venue.innId !== command.innId || venue.residentId !== command.residentId
+      || candidate.deciderId !== state.hero.id || candidate.id !== innBluffCommandId(state.tick + 1, command)) {
+      throw new Error("Actor Policy cannot invent an inn wager or its host");
+    }
+    score = 80; reason = `${venue.residentName} offers a short covered-cup claim; hear the public tell before deciding whether to stake one gold`;
+  } else if (command.type === "resolve-inn-bluff") {
+    // This copied public packet has no covered face, outcome, seed, or raw receipt.
+    const decision = projectInnBluffDecision(state.depth);
+    if (decision === null || decision.bluffId !== command.bluffId
+      || !decision.choices.some(option => option.choice === command.choice)
+      || candidate.deciderId !== state.hero.id || candidate.id !== innBluffCommandId(state.tick + 1, command)) {
+      throw new Error("Actor Policy cannot invent an inn-bluff choice");
+    }
+    const challenge = command.choice === "challenge", suspicious = decision.tell === "fidgeting";
+    score = challenge ? suspicious ? 70 : 30 : suspicious ? 40 : 60;
+    reason = challenge ? suspicious
+      ? "the fidgeting hand suggests a bluff, not proof; risk one gold on a tell that is right only two times in three"
+      : "a steady hand weakens the case for a bluff; challenging still risks one owned gold"
+      : suspicious ? "even a suspicious gesture can mislead; decline the wager and retain every coin"
+        : "the steady hand gives little reason to challenge; decline without spending gold";
+    if (challenge && (state.hero.values.includes("curiosity") || state.hero.values.includes("courage"))) {
+      score += (state.hero.values.includes("curiosity") ? 20 : 0) + (state.hero.values.includes("courage") ? 20 : 0);
+      reason += "; curiosity or courage accepts the uncertainty, without knowing the covered number";
+    }
+    if (decision.gold <= 2 && !challenge) {
+      score = 100; reason = "preserve the last coins for the road; a fallible tell is not worth the one-gold stake";
+    }
   } else if (command.type === "start-smithy-job") {
     const venue = selectSmithyJobVenue(state.depth);
     if (venue === null || venue.jobId !== command.jobId || venue.locationId !== command.locationId
@@ -705,6 +736,8 @@ function presentationLabels(
     case "plan-route": return { actionLabel: "plots a route", targetLabel: state.depth.atlas.locations.find((entry) => entry.id === command.destinationId)?.name ?? command.destinationId };
     case "travel": return { actionLabel: `advances ${command.distance} ${command.distance === 1 ? "mile" : "miles"}`, targetLabel: state.scene.location };
     case "start-smithy-job": return { actionLabel: "takes a two-stroke nail-making job", targetLabel: selectSmithyJobVenue(state.depth)?.smithName ?? "the smithy" };
+    case "start-inn-bluff": return { actionLabel: "hears a covered-cup claim", targetLabel: selectInnBluffVenue(state.depth)?.residentName ?? "the admitted resident" };
+    case "resolve-inn-bluff": return { actionLabel: command.choice === "challenge" ? "stakes one gold on a challenge" : "declines and keeps every coin", targetLabel: projectInnBluffDecision(state.depth)?.residentName ?? "the admitted resident" };
     case "smithy-stroke": return { actionLabel: command.stroke === "drive" ? "drives the hammer with focus" : "gives the nail a gentle tap", targetLabel: "one hopefully straight nail" };
     case "choose-pennywise-gate": return { actionLabel: command.choice === "pay" ? "pays two gold and passes" : "lifts the barrier by hand", targetLabel: "the Pennywise Gate" };
     case "pass-pennywise-gate": return { actionLabel: "walks through the lifted barrier", targetLabel: "the Pennywise Gate" };

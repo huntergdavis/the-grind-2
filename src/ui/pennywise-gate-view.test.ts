@@ -27,7 +27,8 @@ describe("Pennywise Gate's source-bound road presentation", () => {
     expect(projectPennywiseGateScene(arrived)).toMatchObject({ phase: "approach", heroId: arrived.hero.id,
       commandId: arrived.chronicle.at(-1)!.commandId, edgeId: "location:0~location:8",
       nearPointIndex: 313, farPointIndex: 312, nearProgress: 8, farProgress: 15,
-      distanceBefore: 0, distanceAfter: 8, goldBefore: arrived.depth.hero.gold, goldSpent: 0, goldAfter: arrived.depth.hero.gold,
+      distanceBefore: before.depth.atlas.route!.distanceTravelled, distanceAfter: 8,
+      goldBefore: arrived.depth.hero.gold, goldSpent: 0, goldAfter: arrived.depth.hero.gold,
       headline: "PENNYWISE GATE", detail: "2 GOLD, OR LIFT THE BAR" });
     expect(arrived.depth.atlas.route!.legProgress).toBe(8);
     expect(arrived.depth.atlas.currentLocationId).toBe(before.depth.atlas.currentLocationId);

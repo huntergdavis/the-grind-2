@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceWorld, campaignDirector } from "../core/simulation";
+import { actorPolicy, advanceWorld, campaignDirector } from "../core/simulation";
 import { randomInt } from "../core/rng";
 import type { WorldState } from "../core/types";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
@@ -29,15 +29,17 @@ function boardScene(state: WorldState): BorrowedBellBoardSceneView {
 /** Explicit service-boundary scenario, not a claimed natural autonomous rest.
  * The hero, visited inn, completed board and delivery receipts are actual. Only
  * the quiet low-mana/route-null boundary is staged after the actual challenge
- * and next ordinary route command; the paid wait and memory are real commands.
+ * and next ordinary command; the paid wait and memory are real commands.
  */
 function innMemoryScenario(locationId?: string): { before: WorldState; after: WorldState } {
   const started = advanceWorld(journey().at(-1)!);
   expect(started.chronicle.at(-1)?.commandType).toBe("start-room-challenge");
   const answered = advanceWorld(started);
   expect(answered.chronicle.at(-1)?.commandType).toBe("answer-room-challenge");
+  const ordinary = actorPolicy(answered, campaignDirector(answered));
+  expect(["plan-route", "train-ability"]).toContain(ordinary.command.type);
   const next = advanceWorld(answered);
-  expect(next.chronicle.at(-1)?.commandType).toBe("plan-route");
+  expect(next.chronicle.at(-1)).toMatchObject({ commandType: ordinary.command.type, commandId: ordinary.commandId });
   expect(next.depth.roomChallenge).toEqual(answered.depth.roomChallenge);
   const before: WorldState = { ...next, depth: { ...next.depth,
     atlas: { ...next.depth.atlas, currentLocationId: locationId ?? next.depth.atlas.currentLocationId, route: null },
@@ -242,15 +244,20 @@ describe("Borrowed Bell presentation", () => {
     expect(after.depth.bellExpedition).toEqual(before.depth.bellExpedition);
     expect(projectBorrowedBellScene(JSON.parse(JSON.stringify(after)))).toEqual(scene);
     expect(projectBorrowedBellScene({ ...after, depth: { ...after.depth, atlas: { ...after.depth.atlas, route: null } } })).toBeNull();
-    expect(randomInt(4, after.seed, "depth-director", rest.encounterId, 0, "encounter-engine")).toBe(0);
-    expect(campaignDirector(after).candidates.map(candidate => candidate.command)).toEqual([
-      { type: "start-counter-duel", encounterId: rest.encounterId },
-    ]);
+    const counter = randomInt(4, after.seed, "depth-director", rest.encounterId, 0, "encounter-engine") === 0;
+    const expectedCommand = counter ? { type: "start-counter-duel", encounterId: rest.encounterId }
+      : { type: "start-combat", encounterId: rest.encounterId,
+        enemyCount: 1 + randomInt(2, after.seed, "depth-director", rest.encounterId, 0, "enemy-count") };
+    const opportunity = campaignDirector(after);
+    expect(opportunity.candidates.map(candidate => candidate.command)).toEqual([expectedCommand]);
     const continued = advanceWorld(after);
-    expect(continued.chronicle.at(-1)!.commandType).toBe("start-counter-duel");
-    expect(continued.depth.counterDuel?.id).toBe(rest.encounterId);
+    expect(continued.chronicle.at(-1)).toMatchObject({ commandType: expectedCommand.type,
+      commandId: `${after.campaignId}:${opportunity.candidates[0]!.id}` });
+    expect((counter ? continued.depth.counterDuel : continued.depth.combat)?.id).toBe(rest.encounterId);
+    expect(counter ? continued.depth.combat : continued.depth.counterDuel).toBeNull();
     expect(continued.depth.hero.resources).toEqual(after.depth.hero.resources);
     expect(continued.depth.hero.gold).toBe(after.depth.hero.gold);
+    expect(continued.depth.hero.experience).toBe(after.depth.hero.experience + (counter ? 0 : 8));
     expect(projectBorrowedBellScene(continued)).toBeNull();
     expect(continued.depth.bellMemory).toEqual(memory);
   });

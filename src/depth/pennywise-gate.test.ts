@@ -29,21 +29,25 @@ describe("one source-bound Pennywise Gate on a real road", () => {
 
   it("establishes the new gate only after ordinary travel reaches real interior terrain points", () => {
     const snapshot = JSON.stringify(before), approach = selectPennywiseGateApproach(before)!;
+    const approachDistance = 8 - before.atlas.route!.legProgress;
+    expect(approachDistance).toBeGreaterThan(0);
     expect(before).not.toHaveProperty("pennywiseGate");
-    expect(approach).toMatchObject({ approachDistance: 8, site: { nearProgress: 8, farProgress: 15 } });
+    expect(approach).toMatchObject({ approachDistance, site: { nearProgress: 8, farProgress: 15 } });
     expect(ready.tick).toBe(before.tick + 1);
     expect(ready.atlas.currentLocationId).toBe(before.atlas.currentLocationId);
     expect(ready.atlas.route!.legIndex).toBe(before.atlas.route!.legIndex);
     expect(ready.pennywiseGate).toMatchObject({ schemaVersion: 1, rulesVersion: "pennywise-gate-v1", heroId: before.hero.id,
-      arrival: { tick: ready.tick, sourceCommandId: `depth:${ready.tick}:travel:8`, distance: 8, routeBefore: before.atlas.route, routeAtGate: ready.atlas.route },
+      arrival: { tick: ready.tick, sourceCommandId: `depth:${ready.tick}:travel:${approachDistance}`,
+        distance: approachDistance, routeBefore: before.atlas.route, routeAtGate: ready.atlas.route },
       choice: null, completion: null });
     expect(ready.atlas.edges).toEqual(before.atlas.edges);
     // Reaching the gate is ordinary travel and keeps its existing one XP.
     // Only the new payment/lifting/passage commands promise zero added XP.
     expect(ready.hero).toEqual({ ...before.hero, experience: before.hero.experience + 1 });
-    expect(capturePennywiseGateArrival(before, ready, { type: "travel", distance: 8 })).toEqual(ready.pennywiseGate);
+    expect(ready.atlas.route!.distanceTravelled - before.atlas.route!.distanceTravelled).toBe(approachDistance);
+    expect(capturePennywiseGateArrival(before, ready, { type: "travel", distance: approachDistance })).toEqual(ready.pennywiseGate);
     expect(capturePennywiseGateArrival(before, ready, { type: "travel", distance: 12 })).toBeNull();
-    expect(capturePennywiseGateArrival(before, { ...ready, tick: ready.tick + 1 }, { type: "travel", distance: 8 })).toBeNull();
+    expect(capturePennywiseGateArrival(before, { ...ready, tick: ready.tick + 1 }, { type: "travel", distance: approachDistance })).toBeNull();
     expect(selectPennywiseGateApproach(ready)).toBeNull();
     expect(JSON.stringify(before)).toBe(snapshot);
   });

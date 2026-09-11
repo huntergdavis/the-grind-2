@@ -5,16 +5,26 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposed: B1 — The Cup Is Exaggerating.** A real inn resident offers
-   one short covered-die bluff. Challenge for a one-gold stake or decline;
-   reveal the committed truth and its exact consequence. One table, two actors,
-   one caption. Ordinary admission remains unproven.
+1. **In progress: B1 — The Cup Is Exaggerating (v0.5.173).** A real inn resident
+   offers one short covered-die bluff. Challenge for a one-gold stake or decline;
+   reveal the committed truth and its exact consequence. Ordinary admission,
+   real source-bound resolution, focused checks, production build and browser
+   acceptance pass. CI and public deployment remain pending. One table,
+   two actors and the existing caption/Status history; no model or new panel.
    [Council scope](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**W1 — Surely I Can Make One Nail is live in v0.5.172**, publicly source-verified
+The unchanged B1 baseline finds an eligible Candle Inn boundary at T4 in 456 ms, after the
+actual smithy job. Integrated play seats Aster with Cato Ash, an actual scholar,
+at T5; a steady tell leads to a natural T6 decline of the committed five, keeping
+nine gold. A separately authored legal challenge of that same five loses one
+gold. Ordinary route planning to Glimmerwood resumes at T7. The tell agrees
+with the hidden claim two times in three, not always; private truth never enters
+the pre-reveal decision or drawing packet. [Current evidence](COUNCIL_REVIEW.md).
+
+**Latest live: W1 — Surely I Can Make One Nail, v0.5.172**, publicly source-verified
 2026-09-11 08:23:11 PDT. A real smithy job has two autonomous strokes:
 tap for free or drive for one owned MP. A straight nail earns two gold once;
 unfinished and bent work get different honest, unpaid endings. Native
@@ -47,9 +57,9 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **B1 — The Cup Is Exaggerating** | Challenge a resident's covered-die claim or decline; reveal the actual result | Proposed; ordinary admission not yet demonstrated |
+| **B1 — The Cup Is Exaggerating** | Challenge a resident's covered-die claim or decline; reveal the actual result | Build, focused and browser checks pass; CI/public pending |
 
-This is a proposed delivery sequence, not a combined release gate. Each
+This is an individual delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
 and other adventure forms can grow through later individual releases.
 

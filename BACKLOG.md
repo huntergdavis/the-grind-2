@@ -22,7 +22,9 @@ road progress, two-gold versus two-action choices, exact reloads, native browser
 acceptance, CI and public-source verification passed. W1's small smithy job is
 live in v0.5.172: actual admission, exact MP/wages, all four legal stroke
 sequences, source-preserving saves, native browser, CI and public verification
-pass. B1's short inn bluff is proposed next; admission is unproven. T1's ferry
+pass. B1's short inn bluff is now in progress for v0.5.173: actual admission,
+source-bound resolution and focused checks pass; build, browser, CI and public
+deployment remain pending. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -33,6 +35,40 @@ The historical specifications and release receipts below are preserved in full
 for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
+
+## In progress — The Cup Is Exaggerating (v0.5.173)
+
+Reuses the council's 2026-09-11 07:56:32 PDT B1 scope, recovered with
+`deja "The Cup Is Exaggerating B1 inn"` and retained in
+[Adventure forms](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
+One actual inn encounter commits a private d6 and a fallible public tell,
+then resolves an autonomous challenge or free decline. Challenge costs one
+owned gold and returns two only when the claim is false; decline costs zero.
+An independent three-way draw makes the tell agree two times in three and
+mislead one time in three. No model, extra Watch panel, HP/MP/XP change,
+inventory reward or automatic regard is added.
+
+The unchanged v172 `shared-road-playful:7` baseline finds an eligible Candle Inn
+boundary at T4 in 456 ms, canonical hash `63f2927459e83ca1`, after the actual smithy job.
+The 1.464-second integrated proof seats Aster with Cato Ash, whose actual role
+is scholar, at T5. A steady tell accompanies a committed five. Natural T6
+decline keeps nine gold; a separately authored legal challenge of the same five
+loses one gold, leaving eight. No die, host, resource, profession or history was
+staged. Natural T7 plans the ordinary route to Glimmerwood. Exact sources,
+canonical reloads and previous histories are preserved; admission establishes
+the pair's presence rather than pretending home association proves it.
+
+Focused groups pass: pure rules 8, core 6, and UI/render/XP 36; final TypeScript,
+version/boundary checks and production build pass. The single 150-second browser
+scenario passes (2.3-minute runner), covering the actual natural decline and
+separate legal challenge, pre-reveal omission, Status sources, exact reloads,
+synthetic resume debt and desktop/320px/Focus geometry. All three captures are
+inspected; no external/model requests or browser errors occur. Three local
+assets and ten emitted runtime sources match the frozen working tree.
+CI and public-source verification remain **pending**, not delivered evidence.
+The challenge-win outcome is covered by explicitly separate literal unit
+fixtures, not represented as another natural outcome of this same cup.
+W1 remains the latest live release; historical delivery receipts stay below.
 
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
@@ -58,8 +94,8 @@ The actual hero and host share a native workshop with one-shot hammer motion,
 one caption, portrait resources and existing Status history. No extra panel,
 inventory filler, XP, relationship reward, general crafting engine or model.
 
-The unchanged v171 journey proves admission at T1 in 318 ms. Current ordinary
-play then admits at T2, drives at T3, taps/pays at T4 and returns to travel at T5.
+The unchanged v171 journey proves admission at T1 in 318 ms. At the v172 release,
+ordinary play then admits at T2, drives at T3, taps/pays at T4 and returns to travel at T5.
 Rules, source/receipt validation, all four legal sequences, 0-MP fallback,
 once-only payment and save/catch-up boundaries are covered. Older gate and
 memory tests now read their actual source facts. D4 retains an exact released

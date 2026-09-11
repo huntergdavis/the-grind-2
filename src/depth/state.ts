@@ -142,6 +142,7 @@ import { isValidCampaignDungeonFieldMedicine, selectDungeonFieldMedicine, stepDu
 import { captureCompanionCredit, captureCompanionCreditFarewell, companionCreditChoices, companionCreditCommandId, isValidCampaignCompanionCredit, selectCompanionCredit, stepCompanionCredit } from "./companion-credit";
 import { capturePennywiseGateArrival, isValidCampaignPennywiseGate, pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate, selectPennywiseGateApproach, stepPennywiseGate } from "./pennywise-gate";
 import { isValidCampaignSmithyJob, selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions, stepSmithyJob } from "./smithy-job";
+import { innBluffClaim, innBluffCommandId, innBluffTellText, isValidCampaignInnBluff, projectInnBluffDecision, selectInnBluffVenue, stepInnBluff } from "./inn-bluff";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -958,7 +959,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -1527,6 +1528,7 @@ export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
 }
 
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (input.innBluff?.resolution === null && command.type !== "resolve-inn-bluff") throw new Error("Resolve the covered-cup encounter before another command");
   if (input.smithyJob?.completion === null && command.type !== "smithy-stroke") throw new Error("Finish the active smithy job before another command");
   if (input.pennywiseGate?.completion === null && command.type !== "choose-pennywise-gate"
     && command.type !== "pass-pennywise-gate") throw new Error("Finish the active Pennywise Gate before another command");
@@ -1553,6 +1555,13 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "start-inn-bluff":
+    case "resolve-inn-bluff": {
+      const next = stepInnBluff(input, command), bluff = next.innBluff, result = bluff.resolution;
+      return appendLog({ ...state, innBluff: bluff, hero: { ...state.hero, gold: next.gold } }, "town", result === null
+        ? `${input.hero.name} sits down with ${bluff.residentName} at ${bluff.innName}. “${innBluffClaim}” ${innBluffTellText(bluff.admission.tell)} Challenge for one gold or decline; a tell is not proof.`
+        : `${input.hero.name} ${result.choice === "challenge" ? "challenges the claim" : "declines the wager"}. The cup reveals ${result.revealedFace}. “${result.line}” Gold ${result.goldBefore}→${result.goldAfter} (${result.goldSpent} staked, ${result.goldReturned} returned). No HP, MP or XP change.`);
+    }
     case "start-smithy-job":
     case "smithy-stroke": {
       const next = stepSmithyJob(input, command), job = next.smithyJob, stroke = job.strokes.at(-1), completed = job.completion;
@@ -2570,6 +2579,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (!isValidCampaignInnBluff(input)) throw new TypeError("Campaign state violates inn-bluff invariants");
   if (!isValidCampaignSmithyJob(input)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(input)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
   if (
@@ -2585,6 +2595,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     throw new TypeError("Campaign state violates schema invariants");
   }
   let output = reduceDepth(input, command);
+  if (!isValidCampaignInnBluff(output)) throw new TypeError("Campaign state violates inn-bluff invariants");
   if (!isValidCampaignSmithyJob(output)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(output)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
   // A clue belongs to an actual completed dungeon action, not a renderer query
@@ -2805,6 +2816,11 @@ function selectedEmergencyRestorative(state: DepthState) {
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  const innDecision = projectInnBluffDecision(state);
+  if (innDecision !== null) return innDecision.choices.map(option => {
+    const command = { type: "resolve-inn-bluff", bluffId: innDecision.bluffId, choice: option.choice } as const;
+    return { id: innBluffCommandId(state.tick + 1, command), deciderId: state.hero.id, label: option.label, command };
+  });
   const smithyJob = selectSmithyJob(state);
   if (smithyJob !== null) {
     return smithyStrokeOptions(state).map(option => {
@@ -3177,6 +3193,13 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       smithId: smithyVenue.smithId, residentId: smithyVenue.residentId } as const;
     return [{ id: smithyJobCommandId(state.tick + 1, command), deciderId: state.hero.id,
       label: `make one nail for ${smithyVenue.residentName} at ${smithyVenue.smithName}`, command }];
+  }
+  const innVenue = selectInnBluffVenue(state);
+  if (innVenue !== null) {
+    const command = { type: "start-inn-bluff", bluffId: innVenue.bluffId, locationId: innVenue.locationId,
+      innId: innVenue.innId, residentId: innVenue.residentId } as const;
+    return [{ id: innBluffCommandId(state.tick + 1, command), deciderId: state.hero.id,
+      label: `hear ${innVenue.residentName}'s covered-cup claim at ${innVenue.innName}`, command }];
   }
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);
   if (neighbors.length === 0) return [commandCandidate(state, "wait", "watch and recover", { type: "wait" })];

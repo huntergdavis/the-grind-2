@@ -86,6 +86,7 @@ function quietTown(state: DepthState): boolean {
     && (state.companionReunion === null || state.companionReunion.completed !== null)
     && (state.companionCredit == null || state.companionCredit.exchange !== null)
     && (state.pennywiseGate == null || state.pennywiseGate.completion !== null)
+    && (state.innBluff == null || state.innBluff.resolution !== null)
     && state.quest.status === "active" && state.pendingQuestReward === null;
 }
 function localResident(state: DepthState, residentId: string): boolean {

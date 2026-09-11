@@ -113,6 +113,8 @@ import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennyw
 import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
 import { projectSmithyJobScene, type SmithyJobScene } from "../ui/smithy-job-view";
 import { drawSmithyJob, projectSmithyHammerPose, smithyJobTableau } from "./smithy-job";
+import { projectInnBluffScene, type InnBluffScene } from "../ui/inn-bluff-view";
+import { drawInnBluff, innBluffDrawingView, innBluffTableau, projectInnBluffReveal } from "./inn-bluff";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
@@ -476,6 +478,9 @@ export class GameRenderer {
   private smithyBinding: { hammer: Container; arm: Container | null } | null = null;
   private smithyStrokeCommand: string | null = null;
   private smithyStrokeStartedAt = 0;
+  private innBluffBinding: { cup: Container; arm: Container | null } | null = null;
+  private innBluffRevealCommand: string | null = null;
+  private innBluffRevealStartedAt = 0;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
@@ -523,6 +528,7 @@ export class GameRenderer {
     this.updateCounterDuelAnimation();
     this.updateTravelRoadAnimation();
     this.updateSmithyAnimation();
+    this.updateInnBluffAnimation();
     if (event.matches && this.activeCutawayRecipeKey !== null) this.settleCutaway();
   };
   private readonly handleTick = (ticker: Ticker): void => {
@@ -533,6 +539,7 @@ export class GameRenderer {
     this.updateTravelRoadAnimation();
     this.updateHeroRigs();
     this.updateSmithyAnimation();
+    this.updateInnBluffAnimation();
     this.updateTrapCutawayAnimation();
     this.updateFarewellCutawayAnimation();
     this.updateHeroLevelUpCutawayAnimation();
@@ -1212,6 +1219,7 @@ export class GameRenderer {
     this.counterDuelBinding = null;
     this.travelRoadBinding = null;
     this.smithyBinding = null;
+    this.innBluffBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonPerspectiveLabels = [];
@@ -1251,6 +1259,9 @@ export class GameRenderer {
     for (const key of ["smithyPhase", "smithyCommand", "smithyJob", "smithyHero", "smithyResident", "smithyBuilding",
       "smithyStroke", "smithyShape", "smithyMana", "smithyGold", "smithyHeroPosition", "smithyResidentPosition",
       "smithyAnvilPosition", "smithyVisual", "smithyHammerAngle"]) delete this.host.dataset[key];
+    for (const key of ["bluffPhase", "bluffCommand", "bluffEncounter", "bluffHero", "bluffResident", "bluffInn", "bluffTell",
+      "bluffGold", "bluffHeroPosition", "bluffResidentPosition", "bluffCupPosition", "bluffVisual", "bluffFace",
+      "bluffOutcome", "bluffRevealProgress"]) delete this.host.dataset[key];
     for (const key of ["reparteePhase", "reparteeCommand", "reparteeBook", "reparteeRound", "reparteeMomentum",
       "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
       "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
@@ -1520,6 +1531,7 @@ export class GameRenderer {
     if (layer === this.worldLayer) {
       this.dungeonCaption = null;
       this.smithyBinding = null;
+      this.innBluffBinding = null;
       for (const key of ["dungeonCaptionLayout", "dungeonCaptionTitle", "dungeonCaptionDetail",
         "dungeonCaptionTitleSize", "dungeonCaptionDetailSize", "dungeonCaptionBounds", "dungeonCaptionRail"]) {
         delete this.host.dataset[key];
@@ -5155,6 +5167,11 @@ export class GameRenderer {
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
+    const innBluff = projectInnBluffScene(state);
+    if (innBluff !== null) {
+      this.drawInnBluffScene(state, innBluff, palette);
+      return;
+    }
     const smithyJob = projectSmithyJobScene(state);
     if (smithyJob !== null) {
       this.drawSmithyJobScene(state, smithyJob, palette);
@@ -5833,6 +5850,64 @@ export class GameRenderer {
     sceneLabel.position.set(9, 9);
     this.worldLayer.addChild(rect(6, 6, sceneLabel.width + 8, 12, 0x17212e, 0.68));
     this.worldLayer.addChild(sceneLabel);
+  }
+
+  private drawInnBluffScene(state: WorldState, scene: InnBluffScene, palette: readonly [number, number, number]): void {
+    const pose = innBluffTableau;
+    this.host.dataset.bluffPhase = scene.phase;
+    this.host.dataset.bluffCommand = scene.commandId;
+    this.host.dataset.bluffEncounter = scene.bluffId;
+    this.host.dataset.bluffHero = scene.heroId;
+    this.host.dataset.bluffResident = scene.residentId;
+    this.host.dataset.bluffInn = scene.innId;
+    this.host.dataset.bluffTell = scene.tell;
+    this.host.dataset.bluffGold = `${scene.goldBefore}/${scene.goldSpent}/${scene.goldReturned}/${scene.goldAfter}`;
+    this.host.dataset.bluffHeroPosition = `${pose.heroX},${pose.heroY}`;
+    this.host.dataset.bluffResidentPosition = `${pose.residentX},${pose.residentY}`;
+    this.host.dataset.bluffCupPosition = `${pose.cupX},${pose.cupY}`;
+    this.host.dataset.bluffVisual = "native-admitted-cup-v1";
+    const drawing = drawInnBluff(innBluffDrawingView(scene));
+    this.worldLayer.addChild(drawing.layer);
+    this.drawHero(state, pose.heroX, pose.heroY, palette, 1.5, scene.heroId, false);
+    const heroRig = this.heroRigs.pop();
+    if (heroRig !== undefined) {
+      heroRig.puppet.y = 0; heroRig.puppet.rotation = 0;
+      heroRig.frontArm.rotation = -0.35; heroRig.rearArm.rotation = 0.12;
+      heroRig.frontLeg.rotation = -1.1; heroRig.rearLeg.rotation = -0.85;
+    }
+    const host = this.drawHero(state, pose.residentX, pose.residentY, palette, 1.5, scene.residentId, false);
+    host.scale.x *= -1;
+    const hostRig = this.heroRigs.pop();
+    if (hostRig !== undefined) {
+      hostRig.puppet.y = 0; hostRig.puppet.rotation = 0;
+      hostRig.frontArm.rotation = scene.tell === "fidgeting" ? -1.2 : -0.12;
+      hostRig.frontArm.scale.y = scene.tell === "fidgeting" ? 2 : 1;
+      hostRig.rearArm.rotation = 0.12;
+      hostRig.frontLeg.rotation = -1.1; hostRig.rearLeg.rotation = -0.85;
+    }
+    if (scene.phase === "result") {
+      this.host.dataset.bluffFace = String(scene.revealedFace);
+      this.host.dataset.bluffOutcome = scene.outcome;
+      if (this.innBluffRevealCommand !== scene.commandId) {
+        this.innBluffRevealCommand = scene.commandId;
+        this.innBluffRevealStartedAt = this.elapsed - (this.paused || this.reducedMotion ? 0.55 : 0);
+      }
+      this.innBluffBinding = { cup: drawing.cup, arm: hostRig?.frontArm ?? null };
+      this.updateInnBluffAnimation();
+    }
+    this.drawDungeonCaption(scene.headline, scene.detail, scene.compactDetail, 0x694a3d);
+  }
+
+  private updateInnBluffAnimation(): void {
+    if (this.innBluffBinding === null) return;
+    if (this.reducedMotion) this.innBluffRevealStartedAt = Math.min(this.innBluffRevealStartedAt, this.elapsed - 0.55);
+    const pose = projectInnBluffReveal(this.elapsed - this.innBluffRevealStartedAt, this.reducedMotion);
+    this.innBluffBinding.cup.position.set(pose.cupX, pose.cupY);
+    if (this.innBluffBinding.arm !== null) {
+      this.innBluffBinding.arm.rotation = -1.2 + pose.progress * 0.65;
+      this.innBluffBinding.arm.scale.y = 2 - pose.progress;
+    }
+    this.host.dataset.bluffRevealProgress = pose.progress.toFixed(3);
   }
 
   private drawSmithyJobScene(state: WorldState, scene: SmithyJobScene, palette: readonly [number, number, number]): void {

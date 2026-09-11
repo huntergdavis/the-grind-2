@@ -2,6 +2,82 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## The Cup Is Exaggerating — v0.5.173 implementation checkpoint
+
+**In progress; build and browser pass, CI and public-source verification
+remain pending.** Reuse: `deja "The Cup Is Exaggerating B1 inn"` recovered the
+2026-09-11 07:56:32 PDT council proposal (Codex 2026-09-10T1), retained in
+[Adventure forms](docs/design/ADVENTURE_FORMS.md#b1-proposed-next-slice--the-cup-is-exaggerating).
+That earlier recommendation was not implementation or admission evidence.
+Separate rules, presentation and acceptance owners now implement the bounded
+encounter; root owns integration and release. LLM and protected ledger work
+remain untouched. No next proposal is added at this checkpoint.
+
+The single unchanged v172 `shared-road-playful:7` / `campaign:browser-repartee-memory`
+baseline stops at T4 in 456 ms, inside its original 64-command/10-second
+post-import bound. Its full checkpoint hash is `63f2927459e83ca1`. An actual
+kit purchase and the completed two-stroke smithy job precede the opportunity;
+all next candidates were ordinary neighboring routes. Living solo Aster Rook
+has HP42/42, MP23/24, gold9 and XP0, without owed recovery, story or settlement.
+The real Candle Inn is in atlas town Elderwatch; its actual resident Cato Ash
+is a scholar, not a fabricated innkeeper. District/building membership and
+home association match. Admission explicitly seats the pair; home association
+alone does not prove prior physical presence.
+
+The integrated source proof passes in 1.464 seconds, with the unchanged
+baseline hash. Actual T5 admission commits a five and a steady tell. Natural
+T6 declines, keeps all nine gold and reveals the five once. The public decision
+contains only the claim, fallible tell, choices and owned gold; the admission
+drawing packet has no face, outcome or private receipt, and its native cup
+contains no die object. An independent three-way draw makes the tell agree
+with the claim's truth two times in three and mislead one time in three.
+Policy acts on that public packet, not the covered number.
+
+A separately authored legal challenge uses that exact same committed five:
+one gold staked, zero returned, gold9→8, honest-claim outcome. This is not
+Aster's natural choice, and no seed, die, personality or resource is rewritten.
+The winning challenge is tested with separate literal unit identities, not
+claimed as another natural outcome of the same admission. Natural T7 resumes
+ordinary route planning to Glimmerwood. Exact source IDs, canonical reloads,
+once-only settlement, HP/MP/XP, inventory and all retained prior story records
+are preserved. No bond/regard reward or new Watch panel is introduced.
+
+Final focused groups pass: eight pure rules tests, six core tests and 36
+UI/render/XP checks; final TypeScript passes. The acceptance fixture has a
+tighter pinned T12 ceiling, not an expanded journey. Its one authored
+150-second production-browser scenario includes strict pre-reveal decision,
+scene/DOM/log omissions, natural decline, separate legal challenge, exact
+Status sources, reloads, a synthetic 60-second result-resume debt, ordinary
+continuation and at most three desktop/320px/Focus captures. The scenario passes
+(2.3-minute runner); all three native captures are inspected. No external/model
+requests or browser errors occur. Version/boundary checks and the production
+build pass; three local assets and ten emitted runtime sources exactly match
+the frozen source. No test budget was raised. W1's browser onward expectation now recognizes
+the real B1 admission while retaining its wage/history and scene-teardown checks.
+
+The unchanged ten-seed, 1,000-turn canonical review completes in 202.107 seconds
+locally with no invariant failure: four natural exposed bluffs, three natural
+honest-claim losses, two declines and one campaign with no inn wager. The latter
+keeps its exact v172 hash. Nine full-state anchors change for actual new history;
+hashing and seed sets are unchanged. The actual twenty production narrator
+packets change only where two T5 routes become inn admissions; their reviewed
+fingerprint is `084f88cba6c5180e`. All eight evaluation tests pass, while the
+separate sealed 200-case corpus stays `63b3a0ee9fef092a`. No model was run.
+
+A bounded adjacent-regression review initially finds seven old assumptions
+failing among 29 passes: the real gate approach is now 6→8 miles, ordinary
+post-challenge continuation is ability training, and the later road selects
+tactical combat rather than a Pattern Duel. Test-only corrections preserve
+the actual source, exact resource rules and original limits. All 42 adjacent
+serial regression checks pass after those six test-only file corrections;
+final TypeScript and whitespace checks pass. Runtime was not changed or rebuilt.
+
+Ignored recovery artifacts: `scratch/cup-bluff-baseline-evidence.json`,
+`scratch/cup-bluff-baseline-checkpoint.json` and
+`scratch/inn-bluff-integrated-evidence.json`. They record source evidence, not
+a production deployment. W1 v0.5.172 below remains the latest publicly verified
+release until the remaining B1 gates actually pass.
+
 ## Surely I Can Make One Nail — v0.5.172 final delivery
 
 **Live and publicly source-verified 2026-09-11 08:23:11 PDT.** Feature
@@ -27,7 +103,8 @@ Public `index-BSiv3ghP.js`, CSS `index-B9m_5Qf5.css` and simulation worker
 Nine emitted runtime source-map entries match the corrected commit; protected
 ledger sources are absent. LLM workers, CSS and optional dungeon chunks remain
 unchanged. Owned test/build/browser processes are closed. W1 is complete;
-B1's short inn bluff is separately proposed, with admission still unproven.
+At that delivery checkpoint, B1's short inn bluff was separately proposed,
+with admission still unproven; the newer implementation receipt is above.
 T1's ferry remains deferred. The larger gameplay backlog continues; LLM work
 and protected user changes remain untouched.
 

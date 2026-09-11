@@ -137,7 +137,11 @@ test("a real road gate offers paid passage or a legal stationary lift, with exac
     expect(advanceWorld(before)).toEqual(ready);
     expect(before.depth).not.toHaveProperty("pennywiseGate");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(before)))).toEqual(before);
-    expect(gate.arrival).toMatchObject({ tick: ready.tick, sourceCommandId: `depth:${ready.tick}:travel:8`, distance: 8,
+    const approachDistance = 8 - before.depth.atlas.route!.legProgress;
+    expect(approachDistance).toBeGreaterThan(0);
+    expect(ready.depth.atlas.route!.distanceTravelled - before.depth.atlas.route!.distanceTravelled).toBe(approachDistance);
+    expect(gate.arrival).toMatchObject({ tick: ready.tick,
+      sourceCommandId: `depth:${ready.tick}:travel:${approachDistance}`, distance: approachDistance,
       routeBefore: before.depth.atlas.route, routeAtGate: ready.depth.atlas.route });
     expect(ready.depth.hero).toEqual({ ...before.depth.hero, experience: before.depth.hero.experience + 1 });
     const edge = edgeBetween(ready.depth.atlas, gate.site.fromLocationId, gate.site.toLocationId)!;

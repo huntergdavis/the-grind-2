@@ -5,6 +5,7 @@ import { isValidCampaignDungeonFieldMedicine } from "../depth/dungeon-field-medi
 import { isValidDungeonSecretPassage } from "../depth/dungeon";
 import { isValidCampaignPennywiseGate } from "../depth/pennywise-gate";
 import { isValidCampaignSmithyJob } from "../depth/smithy-job";
+import { innBluffClaim, innBluffTellText, isValidCampaignInnBluff } from "../depth/inn-bluff";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -239,6 +240,7 @@ export function eventPolicyForMode(mode: SceneMode, commandType?: RecordedDepthC
   // A once-only performed job uses the town stage, but should not have its
   // first showing consumed unseen. Ordinary town visits remain background-safe.
   const attention = commandType === "start-smithy-job" || commandType === "smithy-stroke"
+    || commandType === "start-inn-bluff" || commandType === "resolve-inn-bluff"
     ? attentionPolicyForMode("chronicle") : attentionPolicyForMode(mode);
   if (attention === "backgroundSafe") {
     return {
@@ -385,6 +387,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "buy-disarming-kit":
     case "start-smithy-job":
     case "smithy-stroke":
+    case "start-inn-bluff":
+    case "resolve-inn-bluff":
       return "town";
     case "visit-town":
       return projectLegacyManifestation(state, command) === null && projectLegacyMentorArcBeat(state, command) === null
@@ -418,6 +422,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "start-inn-bluff":
+    case "resolve-inn-bluff":
     case "start-smithy-job":
     case "smithy-stroke":
     case "choose-pennywise-gate":
@@ -484,6 +490,17 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  const bluff = depth.innBluff;
+  if (bluff != null && (bluff.resolution?.tick ?? bluff.admission.tick) === depth.tick) {
+    const result = bluff.resolution;
+    return { mode: "town", location: bluff.innName, goal: "Hear the claim; challenge or keep your coin",
+      headline: result === null ? "A thoroughly respectable number" : result.outcome === "exposed-bluff"
+        ? "The cup was exaggerating" : result.outcome === "honest-claim" ? "Suspicion has a price" : "The coin stays in the pocket",
+      action: result === null ? `${state.hero.name} sits down with ${bluff.residentName}. “${innBluffClaim}” ${innBluffTellText(bluff.admission.tell)}`
+        : `${state.hero.name} ${result.choice === "challenge" ? "challenges the claim" : "declines the wager"}. ${bluff.residentName} lifts the cup: ${result.revealedFace}. “${result.line}”`,
+      consequence: result === null ? "The tell is right two times in three, not a promise. Challenge stakes one gold and returns two if the claim is false; declining costs nothing."
+        : `${result.outcome}. Gold ${result.goldBefore}→${result.goldAfter}; ${result.goldSpent} staked, ${result.goldReturned} returned. No HP, MP or XP change.`, sensoryIntensity: 0 };
+  }
   const job = depth.smithyJob;
   if (job != null && (job.admission.tick === depth.tick || job.strokes.at(-1)?.tick === depth.tick)) {
     const stroke = job.strokes.at(-1), result = job.completion;
@@ -1618,7 +1635,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
-    !isValidCampaignSmithyJob(state.depth) ||
+    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) ||
     !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||

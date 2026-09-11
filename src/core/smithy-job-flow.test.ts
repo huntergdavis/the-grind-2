@@ -41,7 +41,9 @@ describe("one real two-stroke smithy job", () => {
     const next = advanceWorld(finished);
     expect(next.depth.smithyJob).toEqual(finished.depth.smithyJob);
     expect(next.depth.hero.gold).toBe(9);
-    expect(next.chronicle.at(-1)?.commandType).toBe("plan-route");
+    // The actual next town activity now belongs to Cato's separate inn claim,
+    // not a repeated nail job or wage. Its admission spends nothing.
+    expect(next.chronicle.at(-1)?.commandType).toBe("start-inn-bluff");
     expect(reload(next)).toEqual(next);
   });
 

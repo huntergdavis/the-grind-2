@@ -684,7 +684,7 @@ admits both participants at the worksite; home association alone is not proof
 of prior physical co-presence. New admission excludes active/former companions,
 requires a healthy solo hero and one MP, and gives existing obligations priority.
 
-Current natural play performs T2 admission → T3 drive → T4 tap/straight nail
+At the v172 release, natural play performs T2 admission → T3 drive → T4 tap/straight nail
 and two-gold wage → T5 ordinary route planning. All four legal stroke sequences
 pass with exact costs, outcomes, history and reloads. Conserving personalities
 may accept unfinished work; curious, courageous ones may overwork it. No outcome
@@ -706,7 +706,8 @@ fixture drift and exact test-only repairs remain in [the council record](../../C
 Read-only council recommendation, 2026-09-11 07:56:32 PDT, from the roadmap's
 original bluffing/tells/wagers lane and this document's short-contest principle.
 This is an original two-action inn encounter, not a generic card/deck economy.
-No source journey or new research has been run for B1; admission is unproven.
+At that proposal checkpoint, no B1 source journey or new research had run;
+admission was unproven. The implementation evidence is recorded below.
 
 At an actual visited inn, a real local resident covers a die and announces,
 “At least four. A thoroughly respectable number.” Admission explicitly seats
@@ -716,7 +717,7 @@ gold; an exposed bluff pays two back (net +1), while a true claim loses the
 stake (net -1). Declining costs nothing. The face is revealed once and normal
 adventure resumes. Keep private truth out of the public decision view and
 pre-reveal rendering; personality and the actual tell may guide the choice,
-not hindsight. Specify the tell distribution before implementation.
+not hindsight. The implemented tell distribution is specified below.
 
 Once per campaign, living healthy solo hero with at least one gold, a real inn
 and resident, no route/combat/dungeon, and no owed recovery/reward/conversation.
@@ -738,6 +739,42 @@ Stop if negative; no seed search or staged participants/resources. Then cover
 legal challenge win/loss/decline, hidden-information boundaries, exact sources,
 once-only money, boundary saves and ordinary onward play. One compact existing-
 style production browser scenario is enough. This proposal does not block W1.
+
+### B1 implementation checkpoint — v0.5.173
+
+The original known v172 journey proves a real eligible inn boundary at T4
+in 456 ms, canonical hash `63f2927459e83ca1`, under the unchanged 64-command /
+10-second post-import cap. No search, staged die, location, host or resource
+was needed. The actual Candle Inn and Cato Ash's scholar role are retained;
+the new admission command seats both actors rather than inferring physical
+presence from their building association. Recovery, rewards and owed work
+retain priority. W1 happens to precede this example but is not a prerequisite.
+
+The private face is committed once by the admission command. A separate
+three-way RNG draw makes the public tell agree with the hidden claim two times
+in three and mislead one time in three. A fidgeting hand suggests a bluff;
+a steady hand suggests an honest claim. Neither guarantees the result.
+Only the copied public decision packet informs the choice; pre-reveal drawing
+has no face, outcome or private receipt. The opaque cup has no die object until
+the real resolution reveals its exact pips. The existing native town stage,
+caption and Status history carry both actors and one non-looping reveal gesture.
+
+Integrated source proof passes in 1.464 seconds: T5 admission commits a five
+with a steady tell, natural T6 declines without spending any of the nine gold,
+then T7 plans the ordinary route to Glimmerwood. A separately authored legal
+challenge of the same five loses one gold (9→8); it is explicitly not the
+hero's natural choice. Both preserve exact sources, HP/MP/XP, inventory and
+prior story history. A challenge win is covered by a separate literal unit
+fixture, not a forced alternate truth for this cup. Old absent saves remain
+absent until admission; completed receipts do not reroll or repay.
+
+Eight pure rules tests, six core tests, 36 UI/render/XP checks, TypeScript,
+version/boundary checks and the production build pass. The single 150-second
+browser scenario passes (2.3-minute runner), covering the natural decline and
+legal loss, exact reloads and Status sources, simulated result-resume debt and
+three inspected desktop/320px/Focus captures. No external/model requests or
+browser errors occur. CI and public-source verification remain **pending**. No new panel,
+model, inventory filler, HP/MP/XP effect or automatic regard is included.
 
 ## Make the adventures accumulate into a life
 

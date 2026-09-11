@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v172 keeps Depth 35 and adds the earned, once-only smithy job.
+      // v173 keeps Depth 35 and adds the actual, once-only covered-cup wager.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
       "670b0592ed292750",
-      "83d3743213e8303f",
-      "35ef2ac487a0236b",
-      "69a9f4095c1837cf",
-      "724b617feb098ca6",
-      "c374b6056067ed17",
-      "6406e2d7945e2ada",
-      "3cecd0337ff656bc",
-      "d0f7fad76ce1f3cf",
-      "0b779b3bc8488499",
+      "337d5e35f94cca95",
+      "b1bfaca3cf1a65b1",
+      "c7d8fe914bf2da80",
+      "1b89e8a0f620afd8",
+      "2002a7005ecf055e",
+      "1e9588f4035e94a2",
+      "065d4287bcb1ea60",
+      "a41dfe24af79df59",
+      "1c42402612277702",
     ]);
   }, 80_000);
 });

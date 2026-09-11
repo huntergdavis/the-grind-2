@@ -1228,6 +1228,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** Absent until the actual once-per-campaign inn wager seats both actors. */
+  innBluff?: import("./inn-bluff").InnBluff | null;
   /** Established only by the actual once-per-campaign shared smithy job. */
   smithyJob?: import("./smithy-job").SmithyJob | null;
   /** Absent until an actual road approach establishes this campaign's one gate. */
@@ -1269,6 +1271,8 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "start-inn-bluff"; bluffId: string; locationId: string; innId: string; residentId: string }
+  | { type: "resolve-inn-bluff"; bluffId: string; choice: "challenge" | "decline" }
   | { type: "start-smithy-job"; jobId: string; locationId: string; smithId: string; residentId: string }
   | { type: "smithy-stroke"; jobId: string; strokeIndex: 0 | 1; stroke: "tap" | "drive" }
   | { type: "choose-pennywise-gate"; gateId: string; choice: "pay" | "lift" }

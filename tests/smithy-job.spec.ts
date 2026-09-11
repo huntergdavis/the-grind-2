@@ -190,7 +190,7 @@ test("an earned workshop job spends actual MP, resolves a straight or bent nail 
     await page.reload({ timeout: 25_000 }); expect(await pausedSave(page)).toBe(resultRaw);
     await proveSmithy(page, result);
     const next = advanceWorld(result);
-    expect(next.chronicle.at(-1)?.commandType).toBe("plan-route");
+    expect(next.chronicle.at(-1)?.commandType).toBe("start-inn-bluff");
     expect(JSON.parse(await pausedSave(page, result.tick))).toEqual(next);
     expect(next.depth.smithyJob).toEqual(result.depth.smithyJob);
     expect(next.depth.hero.gold).toBe(result.depth.hero.gold);
