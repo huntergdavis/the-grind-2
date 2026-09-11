@@ -2,6 +2,42 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Remember the delivery — v0.5.163 final delivery
+
+**Live and publicly source-verified 2026-09-10 at 23:10:08 PDT.** Feature
+`395ccf1de07a933593ab8422819feb3061a8ab07` is pushed to `origin/main`.
+[Pages run 34568327841](https://github.com/huntergdavis/the-grind-2/actions/runs/34568327841)
+passed 245 release files and 3,552 tests, with two explicitly opt-in long audits
+skipped. All four canonical tests passed in 12.502 seconds with the original
+limits. Main suite: 261.22 seconds; deployment job: 5 minutes 12 seconds.
+This clean run supplies the full release evidence; the local timeouts below
+remain failures, not retrospectively recast as passes.
+
+Final corrected-build browser acceptance passed in 38.9 seconds (52.6-second
+runner), under the unchanged 120-second cap. The natural journey reaches an
+already-required T253 roadside recovery after its real T49 delivery: HP 11→42,
+MP 28 unchanged, gold 20 unchanged, XP 486 unchanged, same route and next road
+combat. The Journal retains the exact thought, evidence, completion and rest
+sources. Exact reload, normal-speed stale-checkpoint protection, once-only
+memory and unchanged ordinary rest effects pass. No page/console errors,
+model activity or external requests occurred. All three final desktop/320px/
+Focus captures were directly inspected, including the corrected bell outline.
+Inn coverage is an explicitly staged service boundary, not a natural inn claim.
+
+The public [game](https://hunterdavis.com/the-grind-2/) returned v0.5.163 and
+matched `assets/index-DI8LzB0P.js`, `assets/index-B9m_5Qf5.css` and
+`simulation.worker-fC7YhDy5.js` byte-for-byte. Seventeen browser/worker source-map
+entries matched committed sources. Narrator worker identities remain unchanged;
+protected ledger sources are absent from both game source maps. The owned
+19883 preview is closed; the user's 4174 preview and protected edits are untouched.
+
+D1a/b are complete. A read-only council follow-up scoped D2 to a one-room
+optional 2.5D preview behind an allowlisted public-facts adapter, persisted
+menu preference and existing 2D fallback. It reused current knowledge/settings
+contracts, identified the existing dungeon fixture's staged handoff, and made
+no D2 runtime edits. That next-slice plan is retained in the adventure-form
+design. No new LLM work, broad engine or long audit matrix is part of this release.
+
 ## Remember the delivery — v0.5.163 implementation checkpoint
 
 D1b is in implementation, not yet publicly delivered. Recovery reused the

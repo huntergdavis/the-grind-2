@@ -6,9 +6,9 @@ The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
 active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
 encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
-delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection is
-in implementation for v0.5.163, followed by further playable features
-one at a time. Shipped work, held experiments and paused LLM work do
+delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
+shipped in v0.5.163. D2's optional first-person dungeon view is next, followed
+by further playable features one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
 The historical specifications and release receipts below are preserved in full
@@ -19,7 +19,29 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — The Borrowed Bell (v0.5.162)
+## Latest delivery — Remember the delivery (v0.5.163)
+
+Publicly verified 2026-09-10 at 23:10:08 PDT. An already-needed solo inn or
+roadside rest now gives the hero one private thought about the actual Borrowed
+Bell expedition. Five authored variants use the recorded choices and result;
+passing a room is not remembered as landing there. The memory and its exact
+sources stay in the existing Journal/inbox, with no extra reward or invented
+companion witness. Native inn/camp staging and a remembered-bell thought bubble
+reuse the existing caption, pause and Focus behavior without another panel.
+
+Feature `395ccf1de07a933593ab8422819feb3061a8ab07` is on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34568327841):
+245 release files, 3,552 tests passed, two long audits opt-in/skipped; all four
+canonical tests passed in 12.502 seconds with unchanged limits. Main suite
+261.22 seconds; deployment job 5 minutes 12 seconds. Final browser acceptance
+passed in 38.9 seconds, with three corrected-build native captures inspected.
+Public asset bytes and seventeen source-map entries match the feature commit.
+The natural journey supplies actual T253 roadside recovery; inn checks use an
+explicitly labelled service boundary. Earlier negative inn probes, local
+timeouts and the corrected drawing artifact remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+D1 is complete; D2 is next. LLM work remains paused.
+
+## Prior delivery — The Borrowed Bell (v0.5.162)
 
 Publicly verified 2026-09-10 at 22:12:03 PDT. An original nine-space board
 turns one solo storehouse delivery into a finite autonomous adventure: commit

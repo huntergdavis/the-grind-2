@@ -5,22 +5,22 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In implementation: D1b — Remember the delivery (v0.5.163).** One private recollection during a later, already-needed paid inn rest or solo critical roadside recovery, grounded in the hero's exact board choices and result. Preserve the ordinary rest's cost/recovery; the memory grants nothing extra and invents no companion witness. Optional first-person rendering remains a later D2 experiment.
+1. **Next: D2 — Through their eyes.** An optional first-person preview of the same known dungeon and committed actions. Start with one room and visible doorways in the existing renderer, a saved menu preference and 2D fallback. No new dungeon rules, hidden-room disclosure or camera-driven turns. The bounded first-slice design is in [Adventure forms](docs/design/ADVENTURE_FORMS.md#d2-first-playable-boundary--read-only-council-follow-up-2026-09-10).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**D1a — The Borrowed Bell is live in v0.5.162**, publicly verified
-on 2026-09-10 at 22:12 PDT. One original nine-space delivery board adds committed
-dice, two route forks, optional precision MP, landing-only rooms and a finite
-delivery/late-return story. The exact route and reward remain in Journal/inbox.
-The final 102.6-second browser journey passed, including rolled-turn and final
-receipt resume protection. Six native desktop/mobile/Focus captures were
-inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34564713752)
-passed 3,534 tests and canonical replay, with two long audits explicitly opt-in.
-Public asset bytes and fifteen source-map entries match the feature commit.
-The earlier finite Books & Flyting/witness/memory arc remains shipped; D1b's
-later delivery recollection is next, not part of this release.
+**D1b — Remember the delivery is live in v0.5.163**, publicly verified
+on 2026-09-10 at 23:10 PDT. The original board expedition now leaves one later
+private recollection during an already-needed inn or roadside rest. Actual
+choices, result and source evidence survive in Journal; the memory adds no
+reward or absent witness. Final browser acceptance passed in 38.9 seconds,
+including exact reload, normal-speed resume and the same following encounter.
+Three corrected native desktop/mobile/Focus captures were inspected.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34568327841)
+passed 3,552 tests and canonical replay, with two long audits explicitly opt-in.
+Public asset bytes and seventeen source-map entries match the feature commit.
+The finite Books & Flyting/witness/memory arc and both D1 board slices are shipped.
 Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
@@ -38,8 +38,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D1b — Remember the delivery** | One later real inn/camp recollection grounded in the completed board's actual choices and result | Implementing; no extra rest, reward or invented companion witness |
-| **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
+| **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Next; bounded one-room preview, not new dungeon rules |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

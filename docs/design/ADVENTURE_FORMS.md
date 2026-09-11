@@ -264,7 +264,7 @@ scene hold, global pause/Focus and foreground catch-up behavior. Journal keeps
 the exact transcript and the existing inbox coalesces the expedition. No new
 permanent dashboard, asset download, model or general adventure framework is added.
 
-### D1b implementation scope — v0.5.163, acceptance pending
+### Delivered D1b scope — v0.5.163
 
 Attach one private recollection to a later rest only when `selectPaidInnRest`
 already admits an inn stay, or the existing `needsCriticalRoadsideRecovery`
@@ -278,7 +278,13 @@ as an experienced event, and no absent companion becomes a witness.
 Show the hero's thought briefly and retain it under the existing board Journal.
 Only that memory-bearing rest needs a foreground presentation hold. Require
 once-only/reload protection, exact source validation and unchanged rest effects.
-Implementation is not yet a shipped claim. Do not add a generic free
+Publicly source-verified 2026-09-10 at 23:10:08 PDT: final browser acceptance
+passed in 38.9 seconds, with three corrected native desktop/mobile/Focus
+captures inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34568327841)
+passed 3,552 tests and canonical replay; public assets and seventeen source-map
+entries match the feature commit. Inn coverage uses an explicit service
+boundary; the uninterrupted natural journey below supplies roadside acceptance.
+Do not add a generic free
 `wait`: ordinary non-recovery waits currently grant one XP.
 
 The initial inn-only proposal proved too rare in two bounded known journeys:
@@ -404,6 +410,35 @@ budget violation returns to 2D/static presentation with the committed outcome
 intact. Measure actual frame, memory, and power behavior before adopting any
 3D library or publishing a performance claim. P3.4's compressed-bundle and
 named-hardware targets remain gates, not measurements supplied by this document.
+
+### D2 first playable boundary — read-only council follow-up, 2026-09-10
+
+Start with one room and its visible doorways in the existing Pixi renderer,
+not unrestricted raycasting or a new engine. A menu preference, `2D map` /
+`First-person preview`, should persist separately from campaign saves and
+default or fall back to 2D when unavailable. Reuse the storage-failure handling
+in `src/ui/adventure-speed.ts`; no campaign schema change is needed for a view.
+
+The first implementation boundary is a public-facts adapter: reuse
+`projectDungeonMoveKnowledge`, `projectDungeonTraps`, `projectDungeonKeyGate`,
+`projectDungeonLandmark` and `projectDungeonSearchView`. The optional drawing
+module must not receive raw `WorldState`, hidden features or a discovered
+neighbor's unexplored onward exits. Integrate inside the existing `drawDungeon`
+viewport and retain its caption, resources and 2D fallback.
+
+Use an actual adjacent committed move to derive facing; stationary actions
+retain it, and an explicit fixed initial facing covers the absence of a prior
+step. The prose traversal log is not structured facing evidence. Discrete views
+are sufficient for this first slice, with no head-bob, free camera or new turn.
+
+The existing `browser-dungeon-search:8` fixture in
+`tests/dungeon-search.spec.ts` supplies actual generated traps and commands,
+but its location handoff is staged, not uninterrupted natural travel. A natural
+dungeon-entry checkpoint remains unverified. Focus acceptance on identical
+campaign/choice hashes across toggles, hidden-feature noninterference, search
+versus movement, preference reload, pause/reduced motion and failure fallback.
+This review reused the existing projections and public-only framing contract;
+recall found no reusable natural-fixture result. It is planning, not shipped D2.
 
 ## Make the adventures accumulate into a life
 
