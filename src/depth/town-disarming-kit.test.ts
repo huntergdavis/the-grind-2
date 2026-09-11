@@ -5,6 +5,7 @@ import { depthCommandCandidates, selectDungeonEntryPlan, stepDepth, upgradeDepth
 import { dungeonTrapAt } from "./dungeon";
 import { emberTonicId, inventoryCapacity } from "./rpg";
 import { isValidDisarmingKitPurchaseReceipt, selectDisarmingKitPurchase } from "./town-disarming-kit";
+import type { DepthState } from "./types";
 
 const world = () => createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search");
 
@@ -91,7 +92,7 @@ describe("smith disarming-kit supplies", () => {
       discoveredLocationIds: [...new Set([...purchased.atlas.discoveredLocationIds, locationId])] } };
     const plan = selectDungeonEntryPlan(located)!;
     const entered = stepDepth(located, { type: "enter-dungeon", dungeonId: plan.dungeonId, width: plan.width, height: plan.height });
-    let state = { ...entered, hero: { ...entered.hero,
+    let state: DepthState = { ...entered, hero: { ...entered.hero,
       inventory: entered.hero.inventory.filter((item) => item.id !== emberTonicId(entered.hero.id)),
       resources: { ...entered.hero.resources,
       health: Math.floor(entered.hero.resources.maxHealth / 2) } } };

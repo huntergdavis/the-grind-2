@@ -61,7 +61,7 @@ describe("mana-siphon gameplay and saved expeditions", () => {
     const entered = enteredFixture(purchase);
     // Explicit low-HP/no-tonic boundary: test cautious search and the actual
     // disarm roll without available field medicine taking priority.
-    let state = { ...entered, hero: { ...entered.hero,
+    let state: DepthState = { ...entered, hero: { ...entered.hero,
       inventory: entered.hero.inventory.filter((item) => item.id !== emberTonicId(entered.hero.id)),
       resources: { ...entered.hero.resources, health: 22 } } };
     for (const type of ["search-dungeon", "move-dungeon", "disarm-dungeon-trap"]) {
