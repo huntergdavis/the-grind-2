@@ -6,7 +6,10 @@ and the encounter contract in V04.19. It is one engine: `repartee`, with flyting
 as its first ruleset. It does not introduce a competing battle framework.
 F1 follows the shipped v0.5.158 mana-siphon release. F2a's finite witnessed encore
 shipped in v0.5.160, publicly verified 2026-09-10 at 20:14 PDT; see [its precise scope](LIFETIME_STORIES.md) and
-[ROADMAP.md](../../ROADMAP.md). The original F1 scope below remains unchanged.
+[ROADMAP.md](../../ROADMAP.md). F2b's one later arrival-rest callback shipped in
+v0.5.161, publicly verified 2026-09-10 at 20:56 PDT; its exact source, presence
+and no-repeat-reward scope is recorded in the same lifetime-story document.
+The original F1 scope below remains unchanged.
 This proposal requires no LLM, model experiment or protected-ledger edit.
 
 ## F1 shipped scope — v0.5.159
@@ -381,7 +384,7 @@ canonical rules and attention policy.
 | --- | --- | --- |
 | **F1 — The first useful book** | One safe-town reading, persistent finite vocabulary, one autonomous three-round solo duel, genuine victory/defeat/draw/retreat, once-only town consequence and transcript. | Finish v0.5.158 first. Use existing saves, commands, policy traces and cutaway patterns. Verify one learning-causes-a-different-legal-response fixture; each outcome; unavailable evidence/unknown entries; duplicate/stale commands; reload after learning and mid-duel; save failure; old-save empty migration; one desktop/mobile browser journey and normal release checks. |
 | **F2 — The witness reacts** | One present companion's directional regard; win and approval can disagree. | F1 plus the small record in LIFETIME_STORIES. Verify absent-witness rejection, explicit preference, unknown versus measured regard, unchanged existing bond, once-only reaction, source identity, mixed outcome, reload and truthful reduced-motion scene. |
-| **F2b — The witness remembers** | One source-backed shared-rest callback to the witnessed exchange. | F2. Verify exact source/presence, one eligible rest trigger, consumed disposition, reload, and no repeated regard or other reward. This follow-up does not gate F1/F2. |
+| **F2b — The witness remembers** | Shipped v0.5.161: one source-backed arrival-rest callback to the witnessed exchange. | Exact source/presence, once-only admission, reload, unchanged regard/bond/resources and natural desktop/mobile/Focus acceptance verified; see the delivery receipt in COUNCIL_REVIEW.md. Broader relationship proposals remain separate. |
 | **F3 — A broader tongue** | A second original book, distinct useful counter family, explicit reread behavior, one formal verse variant and more opponents. | F1 supplies the learning/duel seam; F2 is not a prerequisite. Introduce the book, opponent and verse refinements separately. Audit permitted slot combinations for meaning and pronunciation; verify style cannot rescue irrelevance, registers expire, repeat admission remains bounded and no word-count power inflation occurs. |
 | **F4 — Words with obligations** | A real loan, promise, credited assist or confidence produces trust or a changed recurring-rival relationship, followed by an earned return. | Each requires its own actual producer and the existing relationship/lifetime design. Recurrent immutable history integrates with V04.3 when available; this is not a prerequisite for F1/F2. |
 

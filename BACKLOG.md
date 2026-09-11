@@ -4,9 +4,9 @@
 
 The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
 active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
-encore and directional regard shipped in v0.5.160. A later source-bound
-safe-rest callback is in acceptance for v0.5.161, followed by D1's original board
-expedition and further playable features
+encore and directional regard shipped in v0.5.160. The later source-bound
+safe-rest callback shipped in v0.5.161. Next is D1's original Borrowed Bell board
+expedition, followed by further playable features
 one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -18,7 +18,26 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — A companion judges the encore (v0.5.160)
+## Latest delivery — The witness remembers (v0.5.161)
+
+Publicly verified 2026-09-10 at 20:56:55 PDT. One later arrival rest lets the
+same healthy companion recall an exact witnessed reply before the ordinary
+farewell. A losing joke can remain funny; no second regard, bond, healing or
+reward is awarded. The two-person scene and existing Journal/inbox retain
+the actual pair, words, original judgment and new rest source. Older saves
+gain an empty callback slot, never a fabricated past rest.
+
+Feature `8f8836f3593f60a7dffcbf2c29910655cb0ddcaf` is on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34560098145):
+240 release files and 3,510 tests passed, two long audits opt-in/skipped;
+canonical replay passed in 5.626 seconds. Main suite 150.35 seconds, entire
+deployment 3 minutes 18 seconds. Final natural browser acceptance passed in
+40.4 seconds, with three inspected desktop/mobile/Focus captures and consistent
+Elderwatch naming. Public asset bytes and twelve source-map entries matched
+the commit. See [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md) for the preserved local
+timeouts and naming correction. F1/F2 is complete; D1 is next, LLM work paused.
+
+## Prior delivery — A companion judges the encore (v0.5.160)
 
 Publicly verified 2026-09-10 at 20:14 PDT. One actual companion watches a finite
 encore and records a declared-preference judgment, separate from the contest

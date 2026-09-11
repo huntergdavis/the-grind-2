@@ -1,9 +1,9 @@
 # Lifetime stories: regard, humor and consequences
 
-Status: F2a shipped in v0.5.160; F2b implemented for v0.5.161, acceptance and public deployment pending. Broader systems below remain proposals unless included in a scope note.
+Status: F2a shipped in v0.5.160; F2b shipped in v0.5.161, publicly verified 2026-09-10 at 20:56 PDT. Broader systems below remain proposals unless included in a scope note.
 Owner: gameplay/story roadmap. LLM work remains paused.
 
-## F2b implemented scope — a shared memory before parting
+## F2b shipped scope — a shared memory before parting
 
 One actual `recall-repartee` command creates a quiet rest at the reached oath
 destination's gates, before the ordinary farewell. It is not a paid inn stay:

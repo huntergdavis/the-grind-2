@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## The witness remembers — v0.5.161 final delivery
+
+**Live and publicly source-verified 2026-09-10 at 20:56:55 PDT.** Feature
+`8f8836f3593f60a7dffcbf2c29910655cb0ddcaf` is pushed to `origin/main`.
+[Pages run 34560098145](https://github.com/huntergdavis/the-grind-2/actions/runs/34560098145)
+passed 240 release files and 3,510 tests, with two explicitly opt-in long audits
+skipped. All four canonical tests passed in 5.626 seconds without changing
+their time limits. The main suite took 150.35 seconds; the complete deployment
+took 3 minutes 18 seconds. The earlier local timeouts below are not recast as
+passes; this clean GitHub run supplies the full release evidence.
+
+The final natural browser run passed in 40.4 seconds (54.0-second runner):
+healthy arrival T38 → source-bound memory T39 → ordinary farewell T40, exact
+reloads, unchanged resources/regard/bond, and correct Elderwatch naming in
+both caption and Journal. Three final native 1280/320 normal/Focus captures
+were directly inspected, with readable actors/dialogue and no overlaps.
+No page/console errors, model activity or external requests occurred.
+
+The public [game](https://hunterdavis.com/the-grind-2/) returned v0.5.161 and
+matched `assets/index-CVtj71H7.js`, `assets/index-BsBIllhf.css` and
+`simulation.worker-BezbLSo_.js` byte-for-byte. Twelve browser/worker source-map
+entries matched the committed code, including the new callback rules. Both
+narrator worker identities remain unchanged. Protected uncommitted ledger
+sources are absent from both game source maps and their diffs remain untouched.
+The owned acceptance preview at 19881 is closed; the user's 4174 preview is
+untouched. The active roadmap now begins with D1, the Borrowed Bell board
+expedition; no broader lifetime-memory or LLM feature is claimed shipped here.
+
 ## The witness remembers — v0.5.161 implementation checkpoint
 
 F2b is implemented; public deployment is still pending. Three independent

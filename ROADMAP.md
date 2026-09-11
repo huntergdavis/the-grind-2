@@ -5,20 +5,21 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In acceptance: F2b — The witness remembers (v0.5.161).** One later quiet rest at the actually reached oath destination lets the same healthy companion recall the exact witnessed reply before farewell. Saved source, renewed presence and once-only checks are implemented; deployment is pending.
-2. **Next: D1 — The Borrowed Bell.** Scope the first original board expedition from [Adventure forms](docs/design/ADVENTURE_FORMS.md), then deliver one playable route/event/consequence loop. Optional first-person rendering remains separate.
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **Next: D1 — The Borrowed Bell.** Scope the first original board expedition from [Adventure forms](docs/design/ADVENTURE_FORMS.md), then deliver one playable route/event/consequence loop. Optional first-person rendering remains separate.
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**F2a — A companion judges the encore is live in v0.5.160**, publicly verified
-on 2026-09-10 at 20:14 PDT. One later pre-departure encore gives an actual
-companion a cause-bound reaction and directional regard, preserving the original
-book and solo transcript. Winning, respect and amusement remain distinct.
-Desktop/mobile normal and Focus acceptance and exact public-source checks pass;
-[release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34557315138)
-passed 3,491 tests, with two long journey audits explicitly opt-in. This follows
-v0.5.159 Books & Flyting and the v0.5.158 mana-siphon trap. Shipped features, explicitly held work and
+**F2b — The witness remembers is live in v0.5.161**, publicly verified
+on 2026-09-10 at 20:56 PDT. One healthy companion recalls the actual witnessed
+reply at the reached oath destination before farewell. No repeated regard,
+bond, healing or reward; the exact memory remains in Journal after parting.
+The natural 40.4-second browser run and desktop/mobile normal/Focus captures
+pass, as do public asset/source checks. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34560098145)
+passed 3,510 tests, including canonical replay, with two long audits explicitly
+opt-in. This completes the finite F1/F2 arc after v0.5.159 Books & Flyting and
+v0.5.160's witnessed encore; broader lifetime relationships remain future work.
+Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
 Dependencies are not evidence of implementation. No model is required to play.
@@ -35,8 +36,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F2b — The witness remembers** | The same present companion recalls the actual exchange once at the reached oath destination | Implemented; acceptance and deployment pending |
-| **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Research/design; not a reskin of movement |
+| **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Next: The Borrowed Bell; concrete playable slice before a general engine |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
 
 This is a proposed delivery sequence, not a combined release gate. Each
