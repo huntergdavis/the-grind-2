@@ -5,27 +5,39 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Implemented; release validation pending: D5 — The Room Is Taken, v0.5.174.**
-   One actual lair entry admits one real guardian fight. Victory clears that
-   room; defeat or stalemate leaves an unbeaten memory, with no second challenge
-   or extra reward. The unchanged v173 journey proves T105 admission; the new
-   journey genuinely loses at T108 and recovers at the entrance at T109.
-   Native 2D/first-person marks, stone battle staging and 20 focused presentation
-   checks are complete. Production browser and all three inspected views pass;
-   release CI and public verification remain pending, so this is not yet shipped.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken).
-2. **Next scoping check: Road Supper**, from the everyday-adventure inventory.
-   Inspect actual owned ingredients and an existing rest opportunity before
-   proposing one consumed-supply/preparation effect. Admission, item support and
-   outcome are unproven; do not fabricate supplies or start a cooking framework.
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **Next: Road Supper**, starting with a real purchasable ration.
+   The read-only supply check found no production food item: tonics, market
+   buildings and baker descriptions are not owned ingredients. Scope one ration
+   purchase and a two-unit solo camp meal, with one explicit non-stacking benefit.
+   Existing guarding is a 50% boolean effect, not the old proposal's 25% meal
+   effect. Price, effect and actual later market-to-encounter admission remain
+   unproven; no cooking framework or starter freebies are planned.
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
 <details>
-<summary>Latest verified release: B1 — The Cup Is Exaggerating, v0.5.173</summary>
+<summary>Latest verified release: D5 — The Room Is Taken, v0.5.174</summary>
 
-**Latest live: B1 — The Cup Is Exaggerating, v0.5.173**, publicly source-verified
+Publicly source-verified **2026-09-11 10:22:06 PDT**. One actual entered lair
+admits one guardian; victory clears the room, while defeat or stalemate leaves
+an unbeaten memory without a rematch or extra reward. Native 2D/first-person
+marks and stone battle staging use the existing captions, actors and Status.
+The real acceptance journey loses, recovers at the entrance and continues.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34626245256)
+passes **3,734 tests in 276 files**; two long audits remain opt-in. Browser
+acceptance and three inspected desktop/mobile/Focus captures pass. Four public
+assets and thirteen source-map entries match the pushed release. The initial
+four outdated test assumptions and their test-only corrections remain in
+[the council record](COUNCIL_REVIEW.md); no gameplay or test limit was changed
+to force an old trajectory. LLM work remains paused.
+</details>
+
+<details>
+<summary>Previous release: B1 — The Cup Is Exaggerating, v0.5.173</summary>
+
+**B1 — The Cup Is Exaggerating, v0.5.173**, publicly source-verified
 2026-09-11 09:14:36 PDT. A real inn resident offers a short covered-die claim.
 Challenge for one gold or decline for free; reveal the committed truth once.
 Winning returns two gold, losing returns none. One table, two actual actors,
@@ -51,7 +63,7 @@ in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 T1's ferry is deferred: the bounded known journey and all 14 roads on its map
 have no recorded river crossings. That negative evidence is preserved.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2, W1 and B1 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2, W1, B1 and D5 are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -71,7 +83,6 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D5 — The Room Is Taken** | Enter a real inhabited lair, fight its guardian and resume the same dungeon | Implemented; release validation pending, not yet live |
 | **Road Supper** | Consume actual supplies for a small preparation moment at a real rest | Next read-only scope/admission check; no implementation claimed |
 
 This is an individual delivery sequence, not a combined release gate. Each
@@ -107,7 +118,7 @@ general framework. All remain client-side and work without an LLM.
 - Known-danger avoidance, map exclusions, waypoints and risk-aware routing.
 - Scouting and companion-provided dungeon knowledge.
 - Wider secret-passage networks beyond D4, one-way hazards and passages that change.
-- Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences beyond D5's implemented first occupied lair (release validation pending).
+- Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences beyond D5's shipped first occupied lair.
 - **Expedition Echo Cache:** leave actual supplies during retreat and recover them later.
 - **Last-known threat marks:** distinguish remembered monster positions from currently visible threats.
 - Durable movement trails and lifetime dungeon statistics: exploration, disarms, triggers and resource losses.

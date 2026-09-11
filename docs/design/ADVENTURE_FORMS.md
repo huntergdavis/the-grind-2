@@ -782,8 +782,8 @@ model, inventory filler, HP/MP/XP effect or automatic regard is included.
 
 ## D5 proposed next slice — The Room Is Taken
 
-**Implemented for v0.5.174; release validation pending. Not yet shipped or
-publicly verified.** The heading retains the original proposal link. This
+**Shipped in v0.5.174; publicly source-verified 2026-09-11 10:22:06 PDT.**
+The heading retains the original proposal link. This
 2026-09-11 08:55:31 PDT council recommendation comes from the roadmap's named
 room purposes, inhabitants and encounter-variety lane. Existing generated
 `lair` cells now have a narrow first-entry consequence in new expeditions,
@@ -825,10 +825,11 @@ ordinary entrance recovery at T109. No natural victory is fabricated.
 
 All 20 focused guardian/perspective presentation checks pass, including exact
 sources, public packet boundaries, reloads and existing Status records.
-Final production build/browser, CI and public verification remain pending;
-the release owner records their actual results in [the council log](../../COUNCIL_REVIEW.md).
-One bounded browser scenario is planned, not a new test matrix. B1's completed
-release remains independent. Next larger-backlog scoping action: inspect Road
+Final production build, one bounded browser scenario, CI and public-source
+verification pass; exact results and initial test-only repairs remain in
+[the council log](../../COUNCIL_REVIEW.md). CI passes 3,734 tests in 276 files.
+Three native desktop/mobile/Focus views are inspected, not a new test matrix.
+Next larger-backlog scoping action: inspect Road
 Supper's real supply/rest prerequisites before proposing a finite effect;
 no cooking runtime or natural admission is claimed.
 

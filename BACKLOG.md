@@ -24,7 +24,7 @@ live in v0.5.172: actual admission, exact MP/wages, all four legal stroke
 sequences, source-preserving saves, native browser, CI and public verification
 pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
 browser, CI and public-source verification pass. D5's inhabited dungeon lair
-is implemented for v0.5.174, with release validation pending; it is not yet live.
+is live in v0.5.174, with browser, CI and public-source verification passed.
 The next larger-backlog scoping check is Road Supper's actual supplies/rest
 boundary, not a claimed cooking implementation. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
@@ -38,10 +38,10 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Current implementation — The Room Is Taken (v0.5.174)
+## Latest delivery — The Room Is Taken (v0.5.174)
 
-**Runtime implemented; release validation pending. Not yet shipped or publicly
-verified.** One newly entered lair in a new solo expedition admits one actual
+**Live and publicly source-verified 2026-09-11 10:22:06 PDT.**
+One newly entered lair in a new solo expedition admits one actual
 guardian combat. Its recorded victory clears the room; defeat or stalemate
 retains an unbeaten memory. Later traversal skirts that encounter without a
 retry, enemy reset, new loot roll or extra room-completion payout. Old saves
@@ -58,8 +58,9 @@ Existing caption/Status, actual combat actors in a stone chamber, and public
 2D/first-person room marks carry the event; no panel, model or extra reading
 clock is added. All 20 focused guardian/perspective presentation checks pass.
 Final build and the production browser pass, with three inspected views and
-no external/model requests. CI and public-source delivery evidence remain for
-the release owner to append in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+no external/model requests. Corrected CI passes 3,734 tests in 276 files; four
+public assets and thirteen source-map entries match the pushed release.
+Initial test failures and final evidence remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 Next: scope the existing **Road Supper** inventory item against real supplies
 and an actual rest boundary before committing another playable slice.
 

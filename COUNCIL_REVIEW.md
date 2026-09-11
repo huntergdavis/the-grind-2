@@ -2,10 +2,12 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## The Room Is Taken — v0.5.174 implementation review
+## The Room Is Taken — v0.5.174 final delivery
 
-**Runtime implemented; release validation pending. Not yet shipped or publicly
-source-verified.** Reuses the original 2026-09-11 08:55:31 PDT council proposal,
+**Live and publicly source-verified 2026-09-11 10:22:06 PDT.** Feature
+`faabcfbb88df423ef46bba75f3865024a38c2316` and test-only correction
+`0c1cbb381dddd0f993edf85ebecd411c55c5fb81` are pushed to `origin/main`.
+Reuses the original 2026-09-11 08:55:31 PDT council proposal,
 recalled with `deja "The Room Is Taken"`, and the
 [bounded D5 scope](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken).
 Separate rules, presentation and acceptance owners work within the existing
@@ -59,13 +61,40 @@ model workers and CSS are unchanged. Production browser acceptance passes in
 limit. All three desktop/320px/Focus captures are inspected: one entered-room
 mark, a compact first-person caption, and real actors/HP in the stone battle.
 Exact arrival/result reloads, Status sources, ordinary recovery and no repeat
-pass, with zero external requests, model calls or runtime errors. CI and public
-source verification remain pending; local preview port 19898 is released.
+pass, with zero external requests, model calls or runtime errors. Local preview
+port 19898 is released; final CI/public results follow below.
 
-After D5 release verification, the next backlog action is a **read-only Road
-Supper scope check**: determine whether actual ingredients and an existing rest
-boundary support one finite preparation effect. It is not implemented or
-claimed naturally reachable. Larger cooking systems remain separate ideas.
+Initial [Pages run 34625198428](https://github.com/huntergdavis/the-grind-2/actions/runs/34625198428)
+fails four older regression expectations in four files, with 3,730 passing
+tests and the same two opt-in skips across 276 files. Whole-state canonical
+replay passes all four checks in 22.839s; forward motion passes eight in 8.263s.
+The main suite takes 298.81s. Failures are the new-entry dungeon opt-in shape,
+a successor-traversal whitelist missing guardian commands, a worker fixture
+assuming the first rated combat is road-bound, and a dungeon episode count
+that did not account for the real guardian/recovery interruption. Narrow
+test corrections are pushed in `0c1cbb381dddd0f993edf85ebecd411c55c5fb81`;
+all four named checks and TypeScript pass locally. The inbox still coalesces
+exactly one dungeon episode, alongside one separate guardian-battle episode;
+entry, landmark, battle and completion source assertions remain explicit.
+No production code, seed or limit changed. Corrected
+[Pages run 34626245256](https://github.com/huntergdavis/the-grind-2/actions/runs/34626245256)
+passes all **3,734 tests in 276 files**, with the same two opt-in skips.
+Canonical replay: four checks in 17.243s; forward motion: eight in 6.320s;
+main suite: 230.02s; deployment job: 4m54s. Public `index-DYqiUJJu.js`,
+`index-B9m_5Qf5.css`, `dungeon-perspective-9Z2joYuf.js` and
+`simulation.worker-DtPxcVgm.js` match the local build byte-for-byte. Thirteen
+emitted source-map entries match the corrected commit; protected ledger
+sources are absent. D5 is complete; no LLM worker or CSS change was included.
+
+Next-item read-only council review at 2026-09-11 10:02:41 PDT recovered V04.12a
+with `deja` and retained its two-owned-unit/no-extra-reward scope. Production
+items have no edible capability; starter supplies are a tonic and weapon, loot
+is equipment, and actual purchases cover tonics and disarming kits. Markets and
+baker roles do not establish owned food. Road Supper therefore needs a real
+ration purchase before one two-unit camp meal. Existing guarding is boolean 50%
+damage reduction and expires at the owner's action, so the historical 25% meal
+proposal also needs an explicit effect/expiry/non-stacking contract. No source
+journey, price or outcome is claimed proven; no cooking runtime was added.
 
 ## The Cup Is Exaggerating — v0.5.173 final delivery
 
