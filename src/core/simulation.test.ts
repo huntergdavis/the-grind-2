@@ -782,7 +782,11 @@ describe("autonomous simulation", () => {
     );
     if (source.championInduction === null) throw new Error("Forged mentor fixture needs a Champion");
     const seed = "catch-up-mentor-campaign";
-    const base = createWorld(seed, "campaign:catch-up-mentor", createCampaignLegacyState(seed, [source.championInduction]));
+    // Complete only actual first-town obligations before staging the existing
+    // visit-count boundary; an inn admission is not a mentor appearance.
+    const base = settleInitialTownWorld(
+      createWorld(seed, "campaign:catch-up-mentor", createCampaignLegacyState(seed, [source.championInduction])),
+    );
     const locationId = base.depth.atlas.currentLocationId;
     const town = base.depth.towns[locationId];
     if (town === undefined) throw new Error("Forged mentor fixture needs its origin town");
@@ -794,7 +798,10 @@ describe("autonomous simulation", () => {
         towns: { ...base.depth.towns, [locationId]: { ...town, visits: due - 1 } },
       },
     });
+    expect(campaignDirector(ready).candidates.every((candidate) => candidate.command.type === "visit-town")).toBe(true);
     const resolved = advanceWorld(ready);
+    expect(resolved.chronicle.at(-1)?.commandType).toBe("visit-town");
+    expect(upgradeWorldState(structuredClone(resolved))).toEqual(resolved);
     const originalAppearance = resolved.legacyManifestations.appearances[0];
     const originalMeeting = resolved.legacyManifestations.meetings[0];
     const originalRecognition = resolved.legacyManifestations.recognitions[0];

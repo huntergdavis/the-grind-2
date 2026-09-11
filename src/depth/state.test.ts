@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHeroGrowthState } from "../core/hero-growth";
 import { edgeBetween, findRoute, planRoute } from "./atlas";
-import { createCombat } from "./combat";
+import { chooseCombatAction, createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, isValidDungeonState, mazeCellId, projectDungeonLandmark, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { createCounterDuel, projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { addItem, describeQuestRewardReceipt, emberTonicId, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumAbilities, maximumHeroLevel } from "./rpg";
@@ -300,9 +300,17 @@ describe("composed depth state", () => {
     const fixture = routeCombatFixture(base, 1);
     const active = stepDepth(fixture.routed, fixture.command);
     let completed = active;
-    while (completed.combat !== null) completed = advanceDepth(completed);
+    // This synthesized pre-restorative stream must use only the old legal
+    // attack/ability/guard repertoire, not erase a modern tonic-use receipt.
+    for (let turn = 0; turn < 64 && completed.combat !== null; turn += 1) {
+      completed = stepDepth(completed, { type: "combat-action", action: chooseCombatAction(completed.combat) });
+    }
+    expect(completed.combat).toBeNull();
 
     for (const state of [base, active, completed]) {
+      const streams = [state.combat, ...state.completedCombats].filter((combat): combat is NonNullable<typeof combat> => combat !== null);
+      expect(streams.flatMap(combat => combat.eventStream.events.filter(event => event.kind === "restorative-used")),
+        `Schema-fifteen fixture at T${state.tick} cannot contain later restorative actions`).toEqual([]);
       const legacy = structuredClone(state) as Record<string, any>;
       legacy.schemaVersion = 15;
       for (const item of legacy.hero.inventory) delete item.restorative;

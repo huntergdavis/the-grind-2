@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { championExperienceFloorV1 } from "../core/champions";
 import { createHeroGrowthState } from "../core/hero-growth";
+import { settleInitialTownWorld } from "../../tests/initial-town-fixtures";
 import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
@@ -37,6 +38,11 @@ function earnedPacket(seed: string): HeroLevelUpPacketV2 {
     }
     expect(before.depth.repartee.completed?.rounds).toHaveLength(3);
   }
+  // Keep real zero-XP town obligations before the exact earned Hall crossing.
+  const beforeTown = before;
+  before = settleInitialTownWorld(before);
+  expect(before.hero.experience).toBe(beforeTown.hero.experience);
+  expect(before.hero.level).toBe(beforeTown.hero.level);
   const after = advanceWorld(before);
   expect(after.hero.experience).toBe(before.hero.experience + 1);
   expect(after.hero.level).toBe(1_000);
@@ -70,11 +76,14 @@ describe("Level-1000 presentation envelope", () => {
   });
 
   it("fails closed on ordinary crossings, reloads, and forged joined facts", () => {
-    const ordinaryBefore = withExperience(createWorld(
+    const ordinaryBefore = settleInitialTownWorld(withExperience(createWorld(
       "hero-level-up-v2-ordinary",
       "campaign:hero-level-up-v2-ordinary",
-    ), 11);
+    ), 11));
     const ordinaryAfter = advanceWorld(ordinaryBefore);
+    expect(ordinaryBefore.hero.experience).toBe(11);
+    expect(ordinaryAfter.hero.experience).toBe(ordinaryBefore.hero.experience + 1);
+    expect(ordinaryAfter.hero.level).toBe(2);
     const ordinarySource = ordinaryAfter.chronicle.at(-1);
     if (ordinarySource === undefined) throw new Error("Ordinary fixture produced no Chronicle entry");
     expect(projectHeroLevelUpPacketV2(ordinaryBefore, ordinaryAfter, ordinarySource)).toBeNull();
