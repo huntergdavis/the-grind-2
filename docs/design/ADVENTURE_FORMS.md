@@ -224,14 +224,20 @@ that small act if the town actually learns of it. The first-person view could
 make rising water memorable, but changing doors belongs to this future ruleset,
 not to the rendering prototype below.
 
-## Next candidate: one small Borrowed Bell board expedition
+## First delivery: one small Borrowed Bell board expedition
 
-### D1a implementation scope — v0.5.162, acceptance pending
+### Delivered D1a scope — v0.5.162
+
+Live and publicly source-verified 2026-09-10 at 22:12 PDT. The final natural
+browser journey, inspected desktop/mobile/Focus captures and
+[release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34564713752)
+pass. The broader original proposal below remains future scope where it extends
+beyond these delivered rules.
 
 The first vertical slice below is the complete nine-space delivery loop and
 its saved Journal, not the later camp callback. D1b owns that separate follow-up.
 Admission is once per campaign at a real visited, discovered town, with a fit
-level-two-or-higher solo hero after at least one completed road oath. Existing
+level-two-or-higher solo hero after at least one recorded companion departure. Existing
 recovery, supplies, first book/contest and companion journeys retain admission
 priority. The newly admitted storehouse board is its own authored expedition;
 it does not pretend an ordinary maze or unrelated quest was completed.
@@ -257,6 +263,23 @@ known room information. A compact caption uses the existing visible-time spoken
 scene hold, global pause/Focus and foreground catch-up behavior. Journal keeps
 the exact transcript and the existing inbox coalesces the expedition. No new
 permanent dashboard, asset download, model or general adventure framework is added.
+
+### Next D1b slice — remember a real delivery at a real rest
+
+Attach one private recollection to a later paid inn rest only when
+`selectPaidInnRest` already admits that rest. Preserve its ordinary five-gold
+cost and recovery exactly; the callback adds no XP, resources, bond or quest
+credit. Retain the actual board completion and chosen move sources, actual
+inn/location and new rest source. A passed-but-unlanded room cannot be recalled
+as an experienced event, and no absent companion becomes a witness.
+
+Show the hero's thought briefly and retain it under the existing board Journal.
+Only that memory-bearing rest needs a foreground presentation hold. Require
+once-only/reload protection, exact source validation and unchanged rest effects.
+This is a proposed follow-up, not shipped gameplay. Do not add a generic free
+`wait`: ordinary non-recovery waits currently grant one XP.
+
+### Original wider proposal — remaining future scope
 
 The first implementation should answer one question: does an autonomous hero's
 route and resource choice create a legible, amusing story with a later factual

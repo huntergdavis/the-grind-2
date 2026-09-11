@@ -2,6 +2,46 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## The Borrowed Bell — v0.5.162 final delivery
+
+**Live and publicly source-verified 2026-09-10 at 22:12:03 PDT.** Feature
+`5d9f3593edac102c3e92be623422eba0c08da7f3` is pushed to `origin/main`.
+[Pages run 34564713752](https://github.com/huntergdavis/the-grind-2/actions/runs/34564713752)
+passed 243 release files and 3,534 tests, with two explicitly opt-in long audits
+skipped. All four canonical tests passed in 8.465 seconds with the original
+limits. Main suite: 194.09 seconds; deployment job: 4 minutes 2 seconds.
+This clean run, not the earlier local timeouts, supplies full release evidence.
+
+Final unchanged browser acceptance passed from root's session in 102.6 seconds
+(2.0-minute runner). It proves the natural T40 farewell → T41 board → T49
+delivery → ordinary route, every committed die/path and unchanged unrelated
+state, exact Journal sources, once-only reward and full save reloads. T44's roll
+and T49's final receipt survive 60-second checkpoint debt and normal-speed
+visible resume. No page/console errors, model activity or external requests.
+All six same-build desktop/mobile/Focus captures were directly inspected:
+unobscured die/pawn/routes, hidden room effects still masked, readable captions
+and exact MP/gold consequences. The owned 19882 preview is closed; the user's
+4174 preview and protected ledger edits remain untouched.
+
+After the initial 150-second browser timeout documented below, batching the
+same DOM assertions retained all checks and the same limit. Two subsequent
+agent-owned attempts received unexplained SIGTERM before their test limit;
+neither is counted as a pass. Recall for `write_stdin SIGTERM` found no prior
+match. Root then ran the same frozen test with short session polls and obtained
+the completed pass above. The cause of those interruptions is not established.
+
+The public [game](https://hunterdavis.com/the-grind-2/) returned v0.5.162 and
+matched `assets/index-CsQWOlfI.js`, `assets/index-B9m_5Qf5.css` and
+`simulation.worker-DmhwNGG7.js` byte-for-byte. Fifteen browser/worker source-map
+entries matched the committed code. Both narrator worker identities remain
+unchanged; protected ledger sources are absent from game source maps.
+
+D1b is next: a private, source-bound recollection at an already eligible paid
+inn rest. Read-only council follow-up identified `selectPaidInnRest`, the
+existing `wait` reducer and its zero-XP paid-rest branch; root confirmed those
+sources. No new callback code is included here. Preserve the actual rest's
+cost/recovery and add no invented witness, bonus or artificial free-wait XP.
+
 ## The Borrowed Bell — v0.5.162 implementation checkpoint
 
 D1a implements one native nine-space delivery board after an actual companion

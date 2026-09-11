@@ -6,8 +6,8 @@ The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
 active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
 encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
-delivery loop is in implementation for v0.5.162; its later rest callback is
-the separate D1b follow-up, followed by further playable features
+delivery loop shipped in v0.5.162; its later rest callback is
+the next D1b follow-up, followed by further playable features
 one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -19,7 +19,26 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — The witness remembers (v0.5.161)
+## Latest delivery — The Borrowed Bell (v0.5.162)
+
+Publicly verified 2026-09-10 at 22:12:03 PDT. An original nine-space board
+turns one solo storehouse delivery into a finite autonomous adventure: commit
+the die, choose a fork and pace, resolve only the landing room, and return the
+festival bell on time or late. Precision movement spends real MP; only on-time
+delivery grants the three-gold bonus. Saved Journal/inbox retain exact turns
+and consequences. Native board/captions respect normal, Focus and resume behavior.
+
+Feature `5d9f3593edac102c3e92be623422eba0c08da7f3` is on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34564713752):
+243 release files, 3,534 tests passed, two long audits opt-in/skipped; all four
+canonical tests passed in 8.465 seconds with unchanged time limits. Main suite
+194.09 seconds; deployment job 4 minutes 2 seconds. Final full browser acceptance
+passed in 102.6 seconds, with six same-build native captures directly inspected.
+Public assets and fifteen source-map entries matched the committed code.
+Earlier local timeout/interruption evidence is preserved in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+D1b's later factual inn-rest recollection is next; LLM work remains paused.
+
+## Prior delivery — The witness remembers (v0.5.161)
 
 Publicly verified 2026-09-10 at 20:56:55 PDT. One later arrival rest lets the
 same healthy companion recall an exact witnessed reply before the ordinary
