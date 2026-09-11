@@ -8,8 +8,9 @@ encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
 delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
 shipped in v0.5.163. D2's optional first-person dungeon view shipped in v0.5.164.
-Next: refresh the stale dungeon-search browser receipt, then one new book-led
-constructive practice scene, followed by further playable features one at a time.
+The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
+Next: one new book-led constructive practice scene (F3a, implementing v0.5.165),
+followed by further playable features one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

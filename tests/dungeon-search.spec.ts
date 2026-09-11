@@ -2,10 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
-import { dungeonTrapAt, projectDungeonSearchExits, resolveDungeonTrapCheck } from "../src/depth/dungeon";
+import { dungeonTrapAt, dungeonTrapKindLabel, projectDungeonSearchExits, resolveDungeonTrapCheck } from "../src/depth/dungeon";
+import type { DungeonTrapKind } from "../src/depth/types";
 import { effectiveAttribute, heroMechanicalLevel } from "../src/depth/rpg";
 import { selectDungeonEntryPlan, stepDepth } from "../src/depth/state";
 import { dungeonFramingViewRect, projectDungeonFraming } from "../src/render/dungeon-framing";
+import { projectTrapResolution } from "../src/ui/trap-resolution";
 
 function publicFrame(world: WorldState) {
   const dungeon = world.depth.dungeon!;
@@ -27,13 +29,13 @@ function captionMetrics(stage: Record<string, string | undefined>) {
   return Object.fromEntries(Object.entries(stage).filter(([key]) => key.startsWith("dungeonCaption")));
 }
 
-function expectReadableCaption(stage: Record<string, string | undefined>, phase: "search" | "disarm"): void {
+function expectReadableCaption(stage: Record<string, string | undefined>, phase: "search" | "disarm", kind: DungeonTrapKind): void {
   expect(["wide", "compact"]).toContain(stage.dungeonCaptionLayout);
   expect(stage.dungeonCaptionTitle).toBe(phase === "search" ? "TRAP MARKED" : "TRAP SPRUNG");
   const compact = stage.dungeonCaptionLayout === "compact";
   expect(stage.dungeonCaptionDetail).toBe(phase === "search"
     ? compact ? "1 MARKED · STILL ARMED" : "1 TRAP MARKED · STILL ARMED"
-    : compact ? "ECHO RUNE · SPENT" : "ECHO RUNE · NO LONGER ARMED");
+    : `${dungeonTrapKindLabel(kind).toUpperCase()} · ${compact ? "SPENT" : "NO LONGER ARMED"}`);
   // These are actual CSS font sizes and measured Pixi text bounds, not a
   // screenshot-scale assumption or the helper's nominal line-height alone.
   expect(Number(stage.dungeonCaptionTitleSize)).toBeGreaterThanOrEqual(12 - 0.000001);
@@ -165,7 +167,11 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     const dungeon = fixture.depth.dungeon!;
     const targetId = "dungeon:location:3:cell:0,1";
     expect(projectDungeonSearchExits(dungeon)).toEqual([{ direction: "south", cellId: targetId }]);
-    expect(dungeonTrapAt(dungeon, targetId)).toMatchObject({ kind: "rune-ward", phase: "hidden", detectDifficulty: 11, disarmDifficulty: 12 });
+    // v0.5.158's rules-2 generator deliberately makes this fixed seed a mana
+    // siphon. Keep the seed/geometry/check arithmetic; do not manufacture a ward.
+    const trap = dungeonTrapAt(dungeon, targetId)!;
+    expect(dungeon.trapRulesVersion).toBe(2);
+    expect(trap).toMatchObject({ kind: "mana-siphon", phase: "hidden", detectDifficulty: 11, disarmDifficulty: 12 });
     const baseline = resolveDungeonTrapCheck(dungeon, targetId, "detect", {
       agility: effectiveAttribute(fixture.depth.hero, "agility"), intellect: effectiveAttribute(fixture.depth.hero, "intellect"),
       spirit: effectiveAttribute(fixture.depth.hero, "spirit"), level: heroMechanicalLevel(fixture.hero.level),
@@ -200,7 +206,7 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     const source = searched.chronicle.at(-1)!;
     expect(source.commandType).toBe("search-dungeon");
     expect(receipt).toMatchObject({ dungeonId: dungeon.id, cellId: dungeon.currentCellId, tick: searched.tick, bonus: 2,
-      discoveries: [{ cellId: targetId, kind: "rune-ward", skill: baseline.skill, roll: baseline.roll, total: baseline.total + 2, difficulty: baseline.difficulty }] });
+      discoveries: [{ cellId: targetId, kind: trap.kind, skill: baseline.skill, roll: baseline.roll, total: baseline.total + 2, difficulty: baseline.difficulty }] });
     expect(searched.depth.dungeon!.currentCellId).toBe(dungeon.currentCellId);
     expect(searched.depth.dungeon!.turns).toBe(dungeon.turns + 1);
     expect(searched.depth.dungeon!.visitedCellIds).toEqual(dungeon.visitedCellIds);
@@ -233,7 +239,7 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
         }));
         expect(layout.fits).toBe(true);
         expectFrame(layout.stage, world);
-        expectReadableCaption(layout.stage, phase);
+        expectReadableCaption(layout.stage, phase, trap.kind);
         if (viewport.width === 320) expect(layout.stage.dungeonCaptionLayout).toBe("compact");
         else desktop = layout.stage;
         if (phase === "search") {
@@ -277,6 +283,7 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     expect(entered.depth.dungeon!.currentCellId).toBe(targetId);
     expect(dungeonTrapAt(entered.depth.dungeon!, targetId)?.phase).toBe("detected");
     expect(entered.hero.health).toBe(searched.hero.health);
+    expect(entered.depth.hero.resources.mana).toBe(searched.depth.hero.resources.mana);
     expect(entered.depth.dungeon!.search).toEqual(searched.depth.dungeon!.search);
     const enteredView = await presentation(page, fixture.campaignId);
     expect(enteredView.stage.dungeonSearch).toBeUndefined();
@@ -293,7 +300,16 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     expect(resolved.depth.dungeon!.currentCellId).toBe(targetId);
     // This natural check fails: finding a trap is not a free disarm or immunity.
     expect(dungeonTrapAt(resolved.depth.dungeon!, targetId)?.phase).toBe("triggered");
-    expect(resolved.hero.health).toBe(entered.hero.health - 4);
+    const { mana: manaBefore, maxMana } = entered.depth.hero.resources;
+    const manaLost = Math.min(manaBefore, Math.ceil(maxMana / 4));
+    expect(resolved.hero.health).toBe(entered.hero.health);
+    expect(resolved.depth.hero.resources.health).toBe(entered.depth.hero.resources.health);
+    expect(resolved.depth.hero.resources.mana).toBe(manaBefore - manaLost);
+    expect(projectTrapResolution(entered, resolved, resolved.chronicle.at(-1)!)).toMatchObject({
+      schemaVersion: 3, trapKind: trap.kind, stage: "disarm", success: false,
+      damage: 0, healthBefore: entered.hero.health, healthAfter: entered.hero.health,
+      manaBefore, manaLost, manaAfter: manaBefore - manaLost, maxMana,
+    });
     expect(resolved.hero.experience).toBe(entered.hero.experience);
     expect(resolved.depth.dungeon!.search).toEqual(searched.depth.dungeon!.search);
     expect(upgradeWorldState(JSON.parse(JSON.stringify(resolved)))).toEqual(resolved);
@@ -318,7 +334,7 @@ test("a cautious hero searches a natural hidden trap before a separate entry and
     expect(errors).toEqual([]);
     expect(inference).toEqual([]);
     expect(external).toEqual([]);
-    milestone("separate disarm attempt resolves its own damage; archive remains exact; all assertions passed");
+    milestone("separate disarm attempt resolves its own MP loss without HP damage; archive remains exact; all assertions passed");
   } finally {
     milestone(`browser diagnostics: ${errors.length} errors, ${inference.length} inference, ${external.length} external requests`);
     await testInfo.attach("Dungeon search browser diagnostics", {

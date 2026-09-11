@@ -2,6 +2,25 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Dungeon-search browser receipt — bounded maintenance, 2026-09-11
+
+Reused `deja "dungeon-search mana-siphon"`: Codex session 10 recovered the
+prior D2 fixture audit, confirmed against v0.5.158's documented rules-2 change
+and the current trap reducer. Only stale browser expectations changed: the
+same generated seed/geometry now asserts its actual mana siphon and public
+label, unchanged HP 22/45 and exact MP 26→19, including the source-bound
+version-3 trap packet. The baseline detection roll still fails at 10 versus 11;
+one stationary search adds 2, followed by separate movement and a failed disarm.
+
+The repaired full journey passed in 66.8 seconds (1.4-minute runner), under the
+unchanged 120-second cap, against the released v0.5.164 build. Exact save/reload,
+resize metrics, Journal outcome, unchanged XP, separate armed entry and all
+caption checks passed. Four desktop/320px search/disarm captures were directly
+inspected. Zero page/console errors, model activity or external requests.
+No runtime, generator, fixture seed, timing limit or protected ledger changed.
+The initial atlas/health boundary remains explicitly staged. This maintenance
+does not claim a new deployed version or a pass of the entire browser suite.
+
 ## Through their eyes — v0.5.164 final delivery
 
 **Live and publicly source-verified 2026-09-11 at 00:02:46 PDT.** Feature

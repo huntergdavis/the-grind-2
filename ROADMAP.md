@@ -5,19 +5,20 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next, bounded maintenance: refresh dungeon-search browser receipts.** The
-   old fixture still expects a rune ward and HP loss; v0.5.158 deliberately
-   generates a mana siphon here. Update only the stale expectations, retain
-   search/entry/disarm, exact save and readability checks, and rerun that journey.
-   No new dungeon rules or broad test matrix.
-2. **Next gameplay proposal: F3a — A useful reply.** One new original public
+1. **In implementation: F3a — A useful reply (v0.5.165).** One new original public
    book teaches a constructive counter, followed by one unscored practice
    exchange with a real resident. Show learning changing what the hero can say;
    retain both sources in the existing Journal. Preserve the old scored
    transcripts. [Bounded scope](docs/design/FLYTING.md#f3a-proposed-next-slice--a-useful-reply).
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
+
+The bounded dungeon-search test refresh is complete (2026-09-11): the fixed
+rules-2 fixture now asserts its actual mana siphon, unchanged HP and MP 26→19.
+The existing search/entry/disarm, exact save/reload and caption checks passed
+in 66.8 seconds against the released v0.5.164 build; four captures were inspected.
+This is test-only maintenance, not a new dungeon mechanic or runtime release.
 
 **D2 — Through their eyes is live in v0.5.164**, publicly verified on
 2026-09-11 at 00:02:46 PDT. Menu → Dungeon view selects an optional first-person
@@ -48,7 +49,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F3a — A useful reply** | A new book opens a constructive reply in a brief resident practice scene | Scoped proposal; original content, unscored, no changes to old contest results |
+| **F3a — A useful reply** | A new book opens a constructive reply in a brief resident practice scene | Implementing v0.5.165; original content, unscored, no changes to old contest results |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
