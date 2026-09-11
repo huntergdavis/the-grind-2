@@ -6,8 +6,8 @@ is one small board expedition; the project-wide order lives in
 [ROADMAP.md](../../ROADMAP.md). The broader collection is a direction for authored
 adventures, not a request to build five engines together.
 
-Latest release: [Last exchange](#last-exchange--v05176) is live in v0.5.176,
-publicly source-verified 2026-09-11 12:58:54 PDT. Road Supper, D5 and earlier explicitly
+Latest release: [Spare change](#spare-change--v05177) is live in v0.5.177,
+publicly source-verified 2026-09-11 14:13:01 PDT. Last exchange, Road Supper, D5 and earlier explicitly
 marked deliveries are shipped; unimplemented proposals retain their separate status.
 
 The promise is a familiar hero entering an unfamiliar situation: carrying a
@@ -952,7 +952,7 @@ Plates remain future backlog items.
 
 ## Spare change — v0.5.177
 
-**In progress, not yet released.** “At last, a weapon against my luggage.”
+**Live and source-verified 2026-09-11 14:13:01 PDT.** “At last, a weapon against my luggage.”
 One real market trade turns an unused, outclassed spare weapon into one gold.
 The hero keeps the equipped weapon, its mastery and all current stats. A small
 gear silhouette and coin use the existing market staging; the item disappears
@@ -972,6 +972,17 @@ a stronger, actually used Roadworn Blade. This is a new small adaptation of the
 vendor economy / weapon removal backlog, not a claim that a full trading or
 salvage economy already exists. Mana restoratives remain deferred after their
 bounded known journey had no low-MP dungeon use.
+
+The actual T60 save advances to T61 sale (gold18→19; Ashen Spear removed) and
+T62 ordinary route planning, preserving the Blade's actual T35 mastery receipt.
+The 91.6-second sale browser passes exact saves, reload, read-only inventory/
+history and desktop/mobile/Focus layouts. A separate 82.7-second supper
+compatibility browser passes the genuine changed journey and its three HP
+saved. Six captures were inspected; no runtime errors or model/external
+requests occurred. [CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34647678382)
+passes 3,790 tests in 287 files, with two optional skips. Public assets and nine
+emitted source entries match feature `95d47dc`. Initial failures and their
+corrections remain in the council record, not relabeled as first-attempt passes.
 
 ## Make the adventures accumulate into a life
 

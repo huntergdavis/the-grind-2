@@ -29,9 +29,11 @@ Road Supper is live in v0.5.175; browser, CI and public-source verification pass
 Last exchange is live in v0.5.176: 23 focused tests, the 51.5-second production
 browser scenario, full CI and public-source verification pass. It adds a factual
 terminal recap to the existing Watch ribbon and source notes to Status; no
-canonical or LLM changes. **Spare change (v0.5.177) is in progress:** sell one
+canonical or LLM changes. **Spare change (v0.5.177) is live:** sell one
 actual unused, outclassed spare weapon at a later market for one gold, preserving
-equipped gear and earned weapon history. It adds no panel or LLM request.
+equipped gear and earned weapon history. Browser, CI and public-source checks
+pass; it adds no panel or LLM request. Next is the proposed specific shared-memory
+reunion, **That line followed you home**, subject to a real matching witness.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.
@@ -48,7 +50,24 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest verified release — Last exchange (v0.5.176)
+## Latest verified release — Spare change (v0.5.177)
+
+Publicly source-verified **2026-09-11 14:13:01 PDT**. Feature `95d47dc` sells one
+genuine unused, outclassed weapon at an actual later market for one gold. The
+equipped weapon, its earned mastery and retained combat attribution are
+protected. Exact sold/kept item snapshots and transaction sources survive
+reload without another payout. One market pose, the existing caption and
+Status history carry the scene; no extra panel or model request.
+
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34647678382):
+**3,790 passing tests / 287 files / 2 optional skips**. The corrected sale
+browser passes in 91.6s and the updated supper compatibility browser in 82.7s;
+six captures were inspected. Three public assets and nine source entries match
+the release. The mobile caption correction, old-save proof and initial local
+replay timeout are retained in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md); canonical
+CI passes under the unchanged gate. [Scope](docs/design/ADVENTURE_FORMS.md#spare-change--v05177).
+
+## Previous verified release — Last exchange (v0.5.176)
 
 Publicly source-verified **2026-09-11 12:58:54 PDT**. Feature `03f4ff6` replaces
 the ordinary terminal Watch headline with the actual closing exchange, using

@@ -5,15 +5,33 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: Spare change, v0.5.177.** Trade one genuinely unused,
-   outclassed spare weapon at a real market for one gold. Keep the equipped
-   weapon and its history; show the sale in the existing scene and Status.
+1. **Next proposal: That line followed you home.** At a genuine reunion,
+   a former companion remembers an exact flyting line they actually witnessed.
+   First establish the matching current journey; no invented affection or reward.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
 <details>
-<summary>Latest verified release: Last exchange, v0.5.176</summary>
+<summary>Latest verified release: Spare change, v0.5.177</summary>
+
+Publicly source-verified **2026-09-11 14:13:01 PDT**. One actual later-market
+sale removes an unused, outclassed spare weapon for one gold. Equipped gear,
+earned mastery, combat attribution and resources remain intact. The market
+scene shows the sold object and one coin; exact history stays in Status.
+No new panel or LLM request. This is one sale per campaign, not a full economy.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34647678382)
+passes **3,790 tests in 287 files**, with two optional skips. The corrected
+91.6-second sale browser and 82.7-second current-supper compatibility browser
+pass, with six inspected captures. Three public assets and nine source entries
+match the feature commit. Canonical replays pass without increasing their gate.
+Initial findings and preserved released-save coverage remain in
+[the council record](COUNCIL_REVIEW.md). [Scope](docs/design/ADVENTURE_FORMS.md#spare-change--v05177).
+</details>
+
+<details>
+<summary>Previous release: Last exchange, v0.5.176</summary>
 
 Publicly source-verified **2026-09-11 12:58:54 PDT**. Direct-damage battle endings
 now show their actual closing exchange in the existing Watch ribbon. A collapsed
@@ -115,7 +133,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Spare change** | One outclassed, unused spare leaves the pack for one gold; the proven weapon stays | In progress; actual T60 market and eligible Ashen Spear confirmed |
+| **That line followed you home** | A returning former companion recalls a specific answer they actually witnessed | Next proposal; current matching reunion/witness journey must first be established |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 

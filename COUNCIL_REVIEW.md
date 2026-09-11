@@ -2,7 +2,17 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Spare change — v0.5.177 in progress
+## Spare change — v0.5.177 verified release
+
+**Live and publicly source-verified 2026-09-11 14:13:01 PDT.** Feature
+`95d47dc0759084e9f1ac0052edef766aaa5b1596` is pushed to `origin/main`.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34647678382)
+passes **3,790 tests in 287 files**, with two optional audits skipped. The main
+suite takes **303.09s**, canonical replay **4/4 in 23.280s**, and forward motion
+**8/8 in 8.423s**; the deployment job completes in **5m57s**. Three public assets
+and nine emitted source-map entries match the exact feature commit. CSS and
+both LLM workers remain unchanged. This closes the local replay timeout noted
+below without extending its existing CI limit.
 
 After the negative mana-use check, the council selected one bounded adaptation
 of the existing vendor-economy and weapon-removal/history backlog: trade one
@@ -68,8 +78,31 @@ there are no page/console errors, model workers/requests or external requests.
 The production build and local asset/source verification pass. The updated
 existing supper browser is a separate bounded compatibility run: its fourteen
 intervening turns are source-executed, then the same earned T74 save is restored
-explicitly; it does not claim browser playback of those turns. Full CI and
-public-source verification remain pending.
+explicitly; it does not claim browser playback of those turns. That compatibility
+browser also passes in **82.7s**, within its unchanged 150s limit. Its market,
+camp and first-hit Focus captures were inspected **2026-09-11 14:07:38 PDT**;
+the actual 3 HP saved, victory, exact saves and ordinary continuation pass with
+no runtime errors, model or external requests. Both preview servers closed.
+The final CI and public verification results are recorded above; no browser,
+canonical, or runtime gate was enlarged to obtain them.
+
+## Next proposal — That line followed you home
+
+The read-only council review at **2026-09-11 14:07:53 PDT** selected the existing
+optional witnessed-quotation backlog in `docs/design/LIFETIME_STORIES.md`:
+at a genuine R1 reunion, the same former companion recalls an exact flyting
+answer they actually witnessed. A losing joke may remain funny; an evasive
+boast need not become praise. One short authored response uses the existing
+two-person stage and Company history, without automatic forgiveness or reward.
+
+Reuse the actual arrival/presence and command in `companion-reunion.ts`, exact
+reaction/source identity in `repartee-memory.ts`, and existing reunion view.
+Next implementation must first establish a current journey joining that former
+companion to the retained witness evidence. Older v167 Fara evidence is only a
+lead; recent new commands may change the journey. No replay, new route or
+implementation is claimed by this proposal. Earlier Elsewhere Callings ideas
+were recovered with `deja`, but require a real off-screen activity producer;
+a profession label alone cannot establish that an activity occurred.
 
 ## Mana draught — negative use-path evidence
 
