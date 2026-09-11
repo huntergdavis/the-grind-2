@@ -10,6 +10,7 @@ import {
 } from "./companion-kit";
 import { hasSharedOpeningWitness, legalMillraceReversal, millraceReversalDamageProfile } from "./shared-opening";
 import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel, restorativeHealthAmount } from "./rpg";
+import { hasReadySupper, isValidCombatSupper, resolveSupperDamage, type SupperDamageReceipt } from "./supper-preparation";
 import {
   createEncounterThreatProfile,
   createDungeonEncounterThreatProfile,
@@ -606,7 +607,8 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       weakened,
       guarding,
     );
-    const damage = damageResolution.resolvedDamage;
+    const supperReady = hasReadySupper(combat, target.id);
+    const damage = supperReady ? resolveSupperDamage(damageResolution.resolvedDamage, guarding) : damageResolution.resolvedDamage;
     const added = selected === undefined ? undefined : appliedStatus(selected);
     const previousStatus = added === undefined
       ? undefined
@@ -652,8 +654,14 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
         amount: damage,
       }),
     };
-    const appliedDamage = damageResolution.appliedDamage;
+    const appliedDamage = Math.min(target.health, damage);
     if (action.type === "joint-action") jointResolution = { armorReduction: damageResolution.armorReduction, damage: appliedDamage };
+    const supper: SupperDamageReceipt | null = supperReady ? {
+      rulesVersion: "road-supper-v1", mealSourceCommandId: combat.supper!.mealSourceCommandId,
+      turn, damageEventId: `${combat.id}:${turn}:${packet.length}`, healthBefore: target.health,
+      damageBefore: damageResolution.resolvedDamage, damageAfter: damage,
+      prevented: damageResolution.appliedDamage - appliedDamage, guarded: guarding,
+    } : null;
     const damageEvent = appendTurnEvent(packet, input.id, turn, {
       kind: "damage",
       actorId: actor.id,
@@ -664,7 +672,9 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       healthAfter: updatedTarget.health,
       guarded: guarding,
       critical: false,
+      ...(supper === null ? {} : { supper }),
     });
+    if (supper !== null) combat = { ...combat, supper: { ...combat.supper!, spent: supper } };
     if (selected === undefined && combat.weaponUse.tracking === "tracked" && actor.id === combat.weaponUse.heroId) {
       combat = {
         ...combat,
@@ -1442,5 +1452,5 @@ export function isValidCombatState(value: unknown): value is CombatState {
     if (combat.outcome === "ongoing" && lastEvent.kind === "outcome") return false;
     if (combat.outcome !== "ongoing" && lastEvent.turn === combat.turn && lastEvent.kind !== "outcome") return false;
   }
-  return true;
+  return isValidCombatSupper(combat);
 }

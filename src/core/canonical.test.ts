@@ -28,20 +28,20 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v174 keeps Depth 35 and adds one actual guardian in new dungeon expeditions.
+      // v175 keeps Depth 35 and adds one purchased road supper where actually eligible.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "14dd2d314a1020a5",
-      "7eeffa05bc6f7f2c",
-      "c61c2251629664f6",
+      "a1fcaa462f4dc726",
+      "3256bc49b3e70d86",
+      "4b03710e37a40e64",
       "7754231a8353130c",
-      "665260d842a014dd",
+      "8bac901b35842e9d",
       "29eb1a0b46b87125",
       "24c5ca86e03e5490",
-      "6ce29c8af00c01ed",
-      "0837b18bd3ca1176",
+      "0050f9912a3a7aef",
+      "73d856087780ce09",
       "3131f7ca8a1fa3b9",
     ]);
   }, 80_000);

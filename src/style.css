@@ -6084,6 +6084,12 @@ progress::-moz-progress-bar {
   color: #ffe08a;
 }
 
+/* A prepared meal is not a claim that its unresolved road encounter is safe. */
+#app:has(> #stage[data-supper-phase="prepared"][data-view-mode="live"]) .stage-focus-ribbon #stage-focus-narrator::before {
+  content: none;
+  display: none;
+}
+
 body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   min-height: 0;
 }

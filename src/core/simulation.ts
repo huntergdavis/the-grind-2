@@ -7,6 +7,7 @@ import { isValidCampaignPennywiseGate } from "../depth/pennywise-gate";
 import { isValidCampaignSmithyJob } from "../depth/smithy-job";
 import { innBluffClaim, innBluffTellText, isValidCampaignInnBluff } from "../depth/inn-bluff";
 import { isValidCampaignDungeonLair } from "../depth/dungeon-lair";
+import { isValidCampaignRoadSupper } from "../depth/road-supper";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -386,11 +387,14 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return "travel";
     case "restock-tonic":
     case "buy-disarming-kit":
+    case "buy-road-rations":
     case "start-smithy-job":
     case "smithy-stroke":
     case "start-inn-bluff":
     case "resolve-inn-bluff":
       return "town";
+    case "prepare-road-supper":
+      return "camp";
     case "visit-town":
       return projectLegacyManifestation(state, command) === null && projectLegacyMentorArcBeat(state, command) === null
         ? "town"
@@ -453,6 +457,8 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "admit-successor-quest":
     case "restock-tonic":
     case "buy-disarming-kit":
+    case "buy-road-rations":
+    case "prepare-road-supper":
     case "invoke-dungeon-shrine":
       return 0;
     case "search-dungeon":
@@ -493,6 +499,20 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  const supper = depth.roadSupper;
+  if (supper?.purchase.tick === depth.tick && choice.command.type === "buy-road-rations") {
+    const purchase = supper.purchase;
+    return { mode: "town", location: purchase.marketName, goal: "Carry real supplies for the road",
+      headline: "A small investment in supper", action: `${state.hero.name} buys two Road Rations at ${purchase.marketName}.`,
+      consequence: `Road Rations ×0→×2; gold ${purchase.goldBefore}→${purchase.goldAfter}. Nothing eaten yet; no HP, MP or XP change.`, sensoryIntensity: 0 };
+  }
+  if (supper?.meal?.tick === depth.tick && choice.command.type === "prepare-road-supper") {
+    const meal = supper.meal;
+    const place = depth.atlas.locations.find(location => location.id === meal.locationId)!.name;
+    return { mode: "camp", location: `Road camp by ${place}`, goal: "Prepare once, then face the road encounter",
+      headline: "Two rations, one pot", action: `${state.hero.name} cooks the two owned rations. “${meal.line}”`,
+      consequence: "Road Rations ×2→×0. The next direct hit in this encounter deals 25% less damage; stronger Guard takes precedence. No healing, MP, XP, gold or bond reward.", sensoryIntensity: 0 };
+  }
   const guardian = depth.dungeon?.lair?.encounter;
   if (guardian?.arrival.tick === depth.tick && choice.command.type === "move-dungeon") {
     return { mode: "dungeon", location: depth.dungeon!.name, goal: "Face the guardian of the entered lair",
@@ -1659,7 +1679,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
-    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) || !isValidCampaignDungeonLair(state.depth) ||
+    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) || !isValidCampaignDungeonLair(state.depth) || !isValidCampaignRoadSupper(state.depth) ||
     !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||

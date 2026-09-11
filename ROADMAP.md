@@ -5,14 +5,22 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: Road Supper**, starting with a real purchasable ration.
-   The read-only supply check found no production food item: tonics, market
-   buildings and baker descriptions are not owned ingredients. Scope one ration
-   purchase and a two-unit solo camp meal, with one explicit non-stacking benefit.
-   Existing guarding is a 50% boolean effect, not the old proposal's 25% meal
-   effect. Price, effect and actual later market-to-encounter admission remain
-   unproven; no cooking framework or starter freebies are planned.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **Road Supper, v0.5.175 — implemented; release validation pending.**
+   Buy two actual Road Rations for two gold at a later market, after owed
+   obligations; consume both at a real solo roadside camp. The next bound road
+   fight's first direct incoming hit receives 25% reduction before HP clamping;
+   stronger 50% Guard takes precedence, never stacks. One use, or expiry at the
+   fight's end. Existing caption, inventory, Status and combat rails tell the
+   story; no immediate healing, extra panel or LLM. The actual source journey
+   still loses: 65→48 damage against 42 HP saves **zero HP**, not 17.
+   Focused checks, build, exact local sources, canonical replay and the
+   78.7-second browser scenario pass; three captures are inspected.
+   CI and public verification remain pending.
+   [Scope and evidence](docs/design/ADVENTURE_FORMS.md#road-supper--v05175).
+2. **Next proposal: known-danger detour.** Inspect whether an actually revealed
+   armed trap has an already-known safe alternate path. No new passage, hidden
+   knowledge, free disarm or promised natural admission; scope only, not runtime.
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
@@ -83,7 +91,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Road Supper** | Consume actual supplies for a small preparation moment at a real rest | Next read-only scope/admission check; no implementation claimed |
+| **Road Supper** | Buy two rations, share one pot with nobody, then spend one first-hit preparation effect | Implemented in v0.5.175; release validation pending |
+| **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Next bounded read-only proposal; admission and implementation unproven |
 
 This is an individual delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -223,7 +232,7 @@ Each is a real ruleset with consequences—not just another battle animation.
 ## 8. Activities and everyday adventure
 
 - Autonomous fishing connected to equipment, ecology, inventory and towns.
-- **Road Supper:** consume real ingredients for one limited expedition preparation effect.
+- Further meal recipes and supply choices beyond the finite Road Supper slice above; no general cooking system yet.
 - Later activity modules: crafting, cooking, farming, jobs, tournaments and festivals.
 - Monster capture, bonding and evolution.
 - Mounts, sailing, romance, property and home activities.

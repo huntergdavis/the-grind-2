@@ -5,6 +5,7 @@ import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maxi
 import type { AbilityDiscovery, AbilityState, MonsterLoreState, SecretDiscoveryAdmission, SecretDiscoveryOutcome } from "../depth/types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 import { createDisarmingKit } from "../depth/disarming-kit";
+import { createRoadRations } from "../depth/road-rations";
 import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-reaction";
 import { projectPatternBreakSignature } from "./pattern-break-signature";
 import {
@@ -158,6 +159,21 @@ describe("view-only screen projections", () => {
 
   it("exposes a fixed extensible view order", () => {
     expect(inspectionViews).toEqual(["watch", "adventure", "map", "inventory", "journal", "codex", "spellbook", "hall"]);
+  });
+
+  it("labels only the actual hero's canonical Road Rations as meal supplies", () => {
+    const world = createWorld("screen-supper-inventory", "campaign:screen-supper-inventory");
+    const ration = createRoadRations(world.hero.id);
+    const renamed = { ...world.depth.hero.inventory.find(item => item.kind === "consumable")!, name: "Road Rations" };
+    const foreign = createRoadRations("another-hero");
+    const supplied = { ...world, depth: { ...world.depth, hero: { ...world.depth.hero,
+      inventory: [...world.depth.hero.inventory, ration, foreign, renamed] } } };
+    const before = JSON.stringify(supplied), view = projectInventoryView(supplied);
+    expect(view.items.find(item => item.id === ration.id)).toMatchObject({ quantity: 2, restorative: null,
+      food: "Two rations prepare Road Supper · next bound road battle's first direct hit: 25% less damage; stronger Guard takes precedence" });
+    expect(view.items.filter(item => item.food !== null).map(item => item.id)).toEqual([ration.id]);
+    expect(projectInventoryView(world).items.every(item => item.food === null)).toBe(true);
+    expect(JSON.stringify(supplied)).toBe(before);
   });
 
   it("projects every inventory stack and exact equipped state without mutation", () => {

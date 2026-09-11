@@ -25,8 +25,9 @@ sequences, source-preserving saves, native browser, CI and public verification
 pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
 browser, CI and public-source verification pass. D5's inhabited dungeon lair
 is live in v0.5.174, with browser, CI and public-source verification passed.
-The next larger-backlog scoping check is Road Supper's actual supplies/rest
-boundary, not a claimed cooking implementation. T1's ferry
+Road Supper is implemented for v0.5.175; release validation is pending, not
+claimed live. The next bounded proposal is known-danger detours, with actual
+safe-route admission still unproven. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -38,7 +39,47 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest delivery — The Room Is Taken (v0.5.174)
+## Current implementation — Road Supper (v0.5.175)
+
+**Implemented; release validation pending.** One later-market purchase spends
+two actual gold for two canonical Road Rations, after existing owed story and
+training lanes. A solo camp on the actual upcoming road encounter consumes
+both units, with no immediate HP, MP, XP or bond reward. One campaign receipt
+retains the exact purchase, meal, assigned combat and terminal history; no
+starter food, invented vendor or repeated preparation payout.
+
+The bound fight's first direct incoming hit receives 25% reduction, rounded
+down with minimum damage one, before HP clamping. Existing 50% Guard takes
+precedence and does not stack; the hit still consumes the preparation. Status
+damage does not consume it, and an unused preparation expires at terminal
+combat. The displayed prevention is actual HP saved, not raw damage difference.
+
+The 2,879 ms source proof preserves the unchanged T58 anchor, then records
+T59 training → T60 purchase (gold20→18, rations0→2) → T61 actual route0→5 →
+T62 meal (rations2→0) → T63 combat → T65 defeat → T66 ordinary recovery.
+The first hit is 65→48 raw damage against 42 HP: HP42→0 and **zero HP saved**.
+Native market/camp props, the actual solo hero, existing caption/Status,
+inventory capability and compact combat rails show that result without a new
+panel, model or reading clock.
+
+Focused results: presentation 27/27, producer 8/8, combat effect 5/5 and narrator
+evaluation 8/8 pass; final TypeScript passes and narrator fingerprints are
+unchanged. Build, local source verification and the original ten 1,000-command
+canonical journeys pass. Production browser, CI and public-source verification
+remain pending. Ordering and test-authoring corrections are
+recorded in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md), not hidden as successful
+first attempts. [Current design](docs/design/ADVENTURE_FORMS.md#road-supper--v05175)
+supersedes the historical `Guarding 25/1`/20–40-second proposal below.
+
+Next is a **read-only known-danger detour proposal**: establish an actual
+revealed armed trap and a genuinely known safe alternate path before choosing
+a small routing change. No admission proof, new geometry or implementation is
+claimed. Other larger gameplay ideas remain in [ROADMAP.md](ROADMAP.md).
+
+<details>
+<summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
+
+## Prior delivery — The Room Is Taken (v0.5.174)
 
 **Live and publicly source-verified 2026-09-11 10:22:06 PDT.**
 One newly entered lair in a new solo expedition admits one actual
@@ -61,11 +102,8 @@ Final build and the production browser pass, with three inspected views and
 no external/model requests. Corrected CI passes 3,734 tests in 276 files; four
 public assets and thirteen source-map entries match the pushed release.
 Initial test failures and final evidence remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
-Next: scope the existing **Road Supper** inventory item against real supplies
-and an actual rest boundary before committing another playable slice.
-
-<details>
-<summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
+At D5 delivery, the next action was to scope **Road Supper** against real
+supplies and an actual rest boundary; its later implementation is above.
 
 ## Prior delivery — The Cup Is Exaggerating (v0.5.173)
 

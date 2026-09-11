@@ -110,6 +110,8 @@ import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "../ui/d
 import { projectDungeonFieldMedicineScene } from "../ui/dungeon-field-medicine-view";
 import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } from "../ui/dungeon-secret-passage-view";
 import { projectDungeonGuardianScene, projectDungeonLairMark, type DungeonGuardianScene } from "../ui/dungeon-guardian-view";
+import { projectRoadSupperCombat, projectRoadSupperScene, type RoadSupperScene } from "../ui/road-supper-view";
+import { drawRoadSupper, projectRoadSupperSteam, roadSupperTableau } from "./road-supper";
 import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennywise-gate-view";
 import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
 import { projectSmithyJobScene, type SmithyJobScene } from "../ui/smithy-job-view";
@@ -482,6 +484,9 @@ export class GameRenderer {
   private innBluffBinding: { cup: Container; arm: Container | null } | null = null;
   private innBluffRevealCommand: string | null = null;
   private innBluffRevealStartedAt = 0;
+  private supperSteam: Container | null = null;
+  private supperSteamCommand: string | null = null;
+  private supperSteamStartedAt = 0;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
@@ -530,6 +535,7 @@ export class GameRenderer {
     this.updateTravelRoadAnimation();
     this.updateSmithyAnimation();
     this.updateInnBluffAnimation();
+    this.updateSupperAnimation();
     if (event.matches && this.activeCutawayRecipeKey !== null) this.settleCutaway();
   };
   private readonly handleTick = (ticker: Ticker): void => {
@@ -541,6 +547,7 @@ export class GameRenderer {
     this.updateHeroRigs();
     this.updateSmithyAnimation();
     this.updateInnBluffAnimation();
+    this.updateSupperAnimation();
     this.updateTrapCutawayAnimation();
     this.updateFarewellCutawayAnimation();
     this.updateHeroLevelUpCutawayAnimation();
@@ -1222,6 +1229,10 @@ export class GameRenderer {
     this.travelRoadBinding = null;
     this.smithyBinding = null;
     this.innBluffBinding = null;
+    this.supperSteam = null;
+    for (const key of ["supperPhase", "supperCommand", "supperHero", "supperLocation", "supperMarket", "supperEncounter",
+      "supperQuantity", "supperGold", "supperVisual", "supperHeroPosition", "supperBowlPosition", "supperSteamProgress",
+      "combatSupperPhase", "combatSupperSource", "combatSupperEvent", "combatSupperPrevented", "combatSupperGuarded"]) delete this.host.dataset[key];
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonPerspectiveLabels = [];
@@ -1536,6 +1547,7 @@ export class GameRenderer {
       this.dungeonCaption = null;
       this.smithyBinding = null;
       this.innBluffBinding = null;
+      this.supperSteam = null;
       for (const key of ["dungeonCaptionLayout", "dungeonCaptionTitle", "dungeonCaptionDetail",
         "dungeonCaptionTitleSize", "dungeonCaptionDetailSize", "dungeonCaptionBounds", "dungeonCaptionRail"]) {
         delete this.host.dataset[key];
@@ -4523,6 +4535,7 @@ export class GameRenderer {
       : battlePanelLayout !== null
         ? battlePanelLayout
       : this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
+          && this.host.dataset.supperPhase !== "prepared"
         ? { ...baseLayout, y: 96 }
         : baseLayout);
     if (battlePanelSafeBounds === null) {
@@ -5170,7 +5183,48 @@ export class GameRenderer {
     }
   }
 
+  private drawRoadSupperScene(state: WorldState, scene: RoadSupperScene, palette: readonly [number, number, number]): void {
+    this.worldLayer.addChild(rect(0, 145, designWidth, 35, scene.phase === "prepared" ? 0x243f3d : 0x385347));
+    const drawing = drawRoadSupper(scene.phase);
+    this.worldLayer.addChild(drawing.layer);
+    this.host.dataset.supperPhase = scene.phase;
+    this.host.dataset.supperCommand = scene.commandId;
+    this.host.dataset.supperHero = scene.heroId;
+    this.host.dataset.supperLocation = scene.locationId;
+    if (scene.marketId !== null) this.host.dataset.supperMarket = scene.marketId;
+    if (scene.encounterId !== null) this.host.dataset.supperEncounter = scene.encounterId;
+    this.host.dataset.supperQuantity = `${scene.quantityBefore}/${scene.quantityAfter}`;
+    this.host.dataset.supperGold = `${scene.goldBefore}/${scene.goldAfter}`;
+    this.host.dataset.supperVisual = scene.phase === "purchase" ? "actual-market|solo-hero|two-road-rations" : "actual-road-camp|solo-hero|bowl|two-empty-wrappers";
+    this.host.dataset.supperHeroPosition = `${roadSupperTableau.heroX},${roadSupperTableau.heroY}`;
+    if (scene.phase === "prepared") this.host.dataset.supperBowlPosition = `${roadSupperTableau.bowlX},${roadSupperTableau.bowlY}`;
+    this.drawHero(state, roadSupperTableau.heroX, roadSupperTableau.heroY, palette, 1.7, scene.heroId, false);
+    const heroRig = this.heroRigs.pop();
+    if (heroRig !== undefined && scene.phase === "prepared") {
+      heroRig.frontLeg.rotation = -0.7; heroRig.rearLeg.rotation = -0.5;
+      heroRig.frontArm.rotation = -0.7;
+    }
+    if (drawing.steam !== null) {
+      if (this.supperSteamCommand !== scene.commandId) {
+        this.supperSteamCommand = scene.commandId;
+        this.supperSteamStartedAt = this.elapsed - (this.paused || this.reducedMotion ? 0.8 : 0);
+      }
+      this.supperSteam = drawing.steam; this.updateSupperAnimation();
+    }
+    this.drawDungeonCaption(scene.headline, scene.detail, scene.compactDetail, 0x6a573b);
+  }
+
+  private updateSupperAnimation(): void {
+    if (this.supperSteam === null) return;
+    if (this.reducedMotion) this.supperSteamStartedAt = Math.min(this.supperSteamStartedAt, this.elapsed - 0.8);
+    const pose = projectRoadSupperSteam(this.elapsed - this.supperSteamStartedAt, this.reducedMotion);
+    this.supperSteam.y = pose.y; this.supperSteam.alpha = pose.alpha;
+    this.host.dataset.supperSteamProgress = pose.progress.toFixed(3);
+  }
+
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
+    const supper = projectRoadSupperScene(state);
+    if (supper !== null) { this.drawRoadSupperScene(state, supper, palette); return; }
     const innBluff = projectInnBluffScene(state);
     if (innBluff !== null) {
       this.drawInnBluffScene(state, innBluff, palette);
@@ -6700,6 +6754,14 @@ export class GameRenderer {
     this.host.dataset.combatPhase = "settled";
     this.host.dataset.encounterEngine = "rpg-combat";
     this.host.dataset.combatThreatRating = combat.threat.rating;
+    const supper = projectRoadSupperCombat(combat);
+    if (supper !== null) {
+      this.host.dataset.combatSupperPhase = supper.phase;
+      this.host.dataset.combatSupperSource = `${state.campaignId}:${supper.mealSourceCommandId}`;
+      if (supper.damageEventId !== null) this.host.dataset.combatSupperEvent = supper.damageEventId;
+      if (supper.prevented !== null) this.host.dataset.combatSupperPrevented = String(supper.prevented);
+      this.host.dataset.combatSupperGuarded = String(supper.guarded);
+    }
     const threatText = describeEncounterThreat(combat.threat);
     this.host.dataset.combatThreatEquation = threatText;
     if (combat.threat.rating === "place-bound" || combat.threat.rating === "dungeon-bound") {
@@ -6749,7 +6811,7 @@ export class GameRenderer {
     else if (band === "dire") threatMarker.poly([12, 4.3, 16, 12.1, 8, 12.1]).stroke({ color: 0xffdf8a, width: 1 });
     else if (band === "extreme") threatMarker.poly([12, 4.1, 13.2, 7.1, 16.4, 7.3, 14, 9.4, 14.8, 12.6, 12, 10.8, 9.2, 12.6, 10, 9.4, 7.6, 7.3, 10.8, 7.1]).stroke({ color: 0xffdf8a, width: 1 });
     else threatMarker.moveTo(8.5, 8.5).lineTo(15.5, 8.5).stroke({ color: 0xb6a890, width: 1 });
-    const threatLabel = this.createScaleSensitiveText(threatText.toUpperCase(), {
+    const threatLabel = this.createScaleSensitiveText(`${threatText.toUpperCase()}${supper?.label ? ` · ${supper.label}` : ""}`, {
       fontFamily: "ui-monospace, monospace", fontSize: 4.25, fill: 0xffefc2, fontWeight: "800",
     });
     threatMarker.position.y = informationRail.threat.y;
@@ -7708,6 +7770,8 @@ export class GameRenderer {
   }
 
   private drawCamp(state: WorldState, palette: readonly [number, number, number]): void {
+    const supper = projectRoadSupperScene(state);
+    if (supper !== null) { this.drawRoadSupperScene(state, supper, palette); return; }
     const shortLandscape = this.app.screen.width > 760 && this.app.screen.height <= 560;
     const groundTop = shortLandscape ? 80 : 127;
     const fireX = shortLandscape ? 132 : 160;

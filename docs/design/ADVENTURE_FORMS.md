@@ -6,6 +6,10 @@ is one small board expedition; the project-wide order lives in
 [ROADMAP.md](../../ROADMAP.md). The broader collection is a direction for authored
 adventures, not a request to build five engines together.
 
+Current slice: [Road Supper](#road-supper--v05175) is implemented for v0.5.175,
+with release validation pending. D5 and earlier explicitly marked deliveries
+are shipped; unimplemented proposals retain their separate status.
+
 The promise is a familiar hero entering an unfamiliar situation: carrying a
 ridiculous responsibility, needing someone else's expertise, making a choice
 with an understandable cost, and living with the result afterward. A different
@@ -829,9 +833,73 @@ Final production build, one bounded browser scenario, CI and public-source
 verification pass; exact results and initial test-only repairs remain in
 [the council log](../../COUNCIL_REVIEW.md). CI passes 3,734 tests in 276 files.
 Three native desktop/mobile/Focus views are inspected, not a new test matrix.
-Next larger-backlog scoping action: inspect Road
-Supper's real supply/rest prerequisites before proposing a finite effect;
-no cooking runtime or natural admission is claimed.
+At D5 delivery, Road Supper's real supply/rest prerequisites were the next
+scoping action. The subsequent finite implementation is recorded below.
+
+## Road Supper — v0.5.175
+
+**Implemented; release validation pending, not claimed live.** This is the
+finite meal premise from [V04.12a](../../BACKLOG.md#v0412a-original-road-supper-preparation-vignette-a1a2a3a4a5a6),
+which already cites the official Monster Hunter manuals as design inspiration.
+The rules, props and line here are original: “Two rations, one pot. A feast,
+provided nobody asks the pot.” No new external-mechanics claim is needed.
+
+**Earn the ingredients.** After existing owed obligations and at a genuinely
+visited later market, one `buy-road-rations` command spends two owned gold for
+two canonical Road Rations. Food capability is typed and owner-bound, not
+inferred from a name, market building or baker profession. No starter freebies
+or invented vendor. Existing inventory and Status retain exact quantities,
+gold, place, tick and source.
+
+**Make one meal for one actual encounter.** The living solo hero uses
+`prepare-road-supper` at the captured route's real upcoming tactical encounter,
+consuming both rations, 2→0. No immediate HP, MP, XP, bond or quest reward.
+One bounded campaign record retains purchase, meal, combat assignment and
+terminal history. It cannot become an unbounded recipe archive or repeatedly
+grant food, preparation or combat rewards.
+
+**Keep preparation distinct from Guard.** The bound fight's first direct
+incoming hit receives 25% damage reduction before HP clamping, rounded down
+with minimum damage one. Existing 50% Guard takes precedence, without stacking,
+and that hit still consumes the meal effect. Poison and other status damage do
+not consume it. If no direct hit uses it, it expires at terminal combat. The
+displayed prevention is actual HP saved after clamping, including zero for a
+fatal overkill; this is not the historical generic `Guarding 25/1` proposal.
+
+**One quiet native scene.** Show the actual hero and purchased bundles at the
+real market, then a bowl, empty wrappers and a brief settling steam gesture at
+the actual roadside camp. No companion, vendor or inn is invented. Reuse the
+existing caption/Status, portrait resources and compact combat rail, respecting
+pause, Focus and reduced motion. No extra panel, mandatory 20–40-second hold,
+new timer, model, external asset or narration work.
+
+**Actual source evidence.** The single 2,879 ms integrated run preserves the
+unchanged T58 anchor, then performs T59 training → T60 purchase (gold20→18,
+rations0→2) → T61 route0→5 → T62 meal (2→0) → T63 fight → T65 defeat →
+T66 ordinary recovery. Its first incoming hit is 65→48 raw damage against
+42 HP, still HP42→0 and zero actual HP saved. The earlier candidate ordering
+that would interrupt owed T28 recruitment was fixed before this proof, not
+accepted as a new story order.
+
+Presentation 27/27, producer 8/8, combat effect 5/5, narrator evaluation 8/8 and
+final TypeScript pass. Build, local source verification and the original ten
+1,000-command canonical journeys pass. The production browser passes in 78.7s
+with three inspected captures, exact saves and no errors/model/external requests.
+CI and public-source verification remain pending; final evidence belongs in
+[the council record](../../COUNCIL_REVIEW.md).
+
+### Next proposal only — Known-danger detour
+
+“I remembered the trap. An unusually inexpensive memory.” Scope one autonomous
+choice around an actually revealed armed trap using only an already-known safe
+alternate path. The same hero must walk every committed step; no free disarm,
+new passage, hidden-neighbor knowledge or avoidance reward. A short existing
+caption and factual route trace would show what the hero remembered.
+
+Admission is **unproven**. First inspect one unchanged known campaign with a
+T160/ten-second bound for both real public danger and a usable known alternative;
+retain a negative result if absent. No new seed sweep, pathfinding framework,
+runtime implementation or combined release gate is authorized by this proposal.
 
 ## Make the adventures accumulate into a life
 

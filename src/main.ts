@@ -30,6 +30,7 @@ import { projectDungeonSearchView } from "./ui/dungeon-search-view";
 import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-view";
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
 import { projectDungeonGuardianScene } from "./ui/dungeon-guardian-view";
+import { projectRoadSupperCombat, projectRoadSupperScene } from "./ui/road-supper-view";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { projectSmithyJobScene } from "./ui/smithy-job-view";
 import { projectInnBluffScene } from "./ui/inn-bluff-view";
@@ -3265,7 +3266,7 @@ function presentViewScreens(): void {
       equipped.textContent = projected.equippedSlot === null ? "Carried" : `Equipped · ${projected.equippedSlot}`;
       const modifiers = document.createElement("p");
       modifiers.className = "item-modifiers";
-      modifiers.textContent = projected.dungeonTool ?? projected.restorative ?? (projected.modifiers.length === 0
+      modifiers.textContent = projected.food ?? projected.dungeonTool ?? projected.restorative ?? (projected.modifiers.length === 0
         ? "No stat modifiers"
         : projected.modifiers.map((modifier) => modifierLabel(modifier.name, modifier.value)).join(" · "));
       const mastery = document.createElement("p");
@@ -4181,7 +4182,7 @@ function checkpointKey(campaignId: string): string {
 
 async function catchUp(world: WorldState): Promise<WorldState> {
   // Foreground conversations, jobs and board turns resume from saved facts, never hidden-time debt.
-  if (projectDungeonGuardianScene(world) !== null
+  if (projectRoadSupperScene(world) !== null || projectDungeonGuardianScene(world) !== null
     || world.depth.repartee.active !== null || projectReparteeScene(world) !== null
     || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.roomChallenge !== null && world.depth.roomChallenge.result === null
@@ -4234,7 +4235,8 @@ function combatStatusText(status: CombatRosterStatus): string {
 function presentCombatRoster(projection: CombatRosterProjection | null, combat: CombatState | null): void {
   elements.battleOverview.hidden = projection === null;
   elements.battleThreat.hidden = projection === null || combat === null;
-  elements.battleThreat.textContent = combat === null ? "" : describeEncounterThreat(combat.threat);
+  const supper = combat === null ? null : projectRoadSupperCombat(combat);
+  elements.battleThreat.textContent = combat === null ? "" : `${describeEncounterThreat(combat.threat)}${supper?.label ? ` · ${supper.label}` : ""}`;
   delete elements.battleThreat.dataset.rating;
   delete elements.battleThreat.dataset.score;
   delete elements.battleThreat.dataset.band;
@@ -4482,6 +4484,7 @@ function present(): void {
   const dungeonMedicine = projectDungeonFieldMedicineScene(state);
   const dungeonPassage = projectDungeonSecretPassageScene(state);
   const dungeonGuardian = projectDungeonGuardianScene(state);
+  const roadSupper = projectRoadSupperScene(state);
   const pennywiseGate = projectPennywiseGateScene(state);
   const smithyJob = projectSmithyJobScene(state);
   const innBluff = projectInnBluffScene(state);
@@ -4794,7 +4797,14 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (innBluff !== null) {
+  if (roadSupper !== null) {
+    elements.traversalDirective.textContent = `${roadSupper.headline} · ${roadSupper.detail}`;
+    elements.traversalDirective.title = `${roadSupper.routeLabel ?? roadSupper.marketName ?? roadSupper.locationName}. ${state.scene.consequence}`;
+    elements.traversalDirective.dataset.reason = `road-supper-${roadSupper.phase}`;
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = "";
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (innBluff !== null) {
     elements.traversalDirective.textContent = `${innBluff.headline} · ${innBluff.detail}`;
     elements.traversalDirective.title = `${innBluff.innName}, ${innBluff.locationName} · ${innBluff.residentName}. ${innBluff.claim} ${innBluff.tellText} ${state.scene.consequence}`;
     elements.traversalDirective.dataset.reason = `inn-bluff-${innBluff.phase}`;

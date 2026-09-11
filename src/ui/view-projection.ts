@@ -1,6 +1,7 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import { selectDisarmingKit } from "../depth/disarming-kit";
+import { isCanonicalRoadRations } from "../depth/road-rations";
 import { copperhornResearchClue, inkcapResearchClue, isValidFieldResearchState, moonhowlResearchClue } from "../depth/field-research";
 import { counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
@@ -73,6 +74,7 @@ export interface InventoryItemView {
   modifiers: readonly InventoryModifierView[];
   restorative: string | null;
   dungeonTool: string | null;
+  food: string | null;
   useMastery: {
     level: number;
     experience: number;
@@ -360,6 +362,7 @@ export function projectInventoryView(state: WorldState): InventoryViewProjection
     restorative: item.restorative === null ? null : "Combat self-use · restores ¼ max HP",
     dungeonTool: item.id === disarmingKit?.id
       ? "+2 to one disarm attempt · consumed on success or failure" : null,
+    food: isCanonicalRoadRations(item, hero.id) ? "Two rations prepare Road Supper · next bound road battle's first direct hit: 25% less damage; stronger Guard takes precedence" : null,
     useMastery: item.useMastery === null ? null : {
       level: item.useMastery.level,
       experience: item.useMastery.experience,

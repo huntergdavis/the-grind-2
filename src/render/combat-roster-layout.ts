@@ -110,6 +110,10 @@ export function formatCombatQuickReceipt(
   summary: CombatTurnSummary,
   roadcraftImpact: CombatQuickReceiptRoadcraftImpact | null = null,
 ): string {
+  if (summary.damage?.supper !== undefined) {
+    const supper = summary.damage.supper;
+    return compactLabel(`SUPPER USED · ${supper.prevented} DMG PREVENTED${supper.guarded ? " · GUARD STRONGER" : ""} · HP ${summary.damage.healthBefore}→${summary.damage.healthAfter}`, combatQuickReceiptMaxCharacters);
+  }
   if (summary.sharedOpening?.kind === "shared-opening-spent" && summary.damage !== null) {
     return compactLabel(`MILLRACE REVERSAL · OPENING 1→0 · HP ${summary.damage.healthBefore}→${summary.damage.healthAfter} · PIERCING`, combatQuickReceiptMaxCharacters);
   }

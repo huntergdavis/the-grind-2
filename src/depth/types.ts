@@ -411,6 +411,8 @@ export interface WeaponUseMasteryState {
 }
 
 export interface ItemState {
+  /** Explicit food capability; a name alone never makes an old item edible. */
+  food?: { readonly schemaVersion: 1; readonly kind: "road-ration" };
   id: string;
   name: string;
   kind: "equipment" | "consumable" | "key";
@@ -988,6 +990,7 @@ export type CombatTurnEvent =
     })
   | (CombatTurnEventBase & {
       kind: "damage";
+      supper?: import("./supper-preparation").SupperDamageReceipt;
       abilityId: string | null;
       healthBefore: number;
       amount: number;
@@ -1064,6 +1067,7 @@ export type EncounterThreatProfile =
     };
 
 export interface CombatState {
+  supper?: import("./supper-preparation").CombatSupperPreparation;
   id: string;
   round: number;
   turn: number;
@@ -1243,6 +1247,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** Present only after this campaign's actual later-market ration purchase. */
+  roadSupper?: import("./road-supper").RoadSupperState;
   /** Absent until the actual once-per-campaign inn wager seats both actors. */
   innBluff?: import("./inn-bluff").InnBluff | null;
   /** Established only by the actual once-per-campaign shared smithy job. */
@@ -1286,6 +1292,8 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "buy-road-rations"; marketId: string }
+  | { type: "prepare-road-supper"; encounterId: string }
   | { type: "start-inn-bluff"; bluffId: string; locationId: string; innId: string; residentId: string }
   | { type: "resolve-inn-bluff"; bluffId: string; choice: "challenge" | "decline" }
   | { type: "start-smithy-job"; jobId: string; locationId: string; smithId: string; residentId: string }

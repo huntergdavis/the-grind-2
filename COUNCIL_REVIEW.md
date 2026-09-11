@@ -2,6 +2,116 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Road Supper — v0.5.175 release checkpoint
+
+**Implemented; release validation pending, not shipped or publicly verified.**
+Local acceptance is complete: the final production-browser scenario passes in
+**78.7s** (1.6m runner), and all three desktop/mobile/Focus captures were inspected
+at **2026-09-11 11:11:43 PDT**. Purchase, camp, Level 3 intermission, restored
+battle, real first hit, terminal save and ordinary recovery retain exact state.
+No page/console errors, model workers/requests or external requests occurred.
+The third browser attempt corrected a test assumption: `Show level` settles
+the intermission into its visible final pose while paused; it does not hide it.
+Reusing the existing `tests/site.spec.ts:7074` reload flow preserves the exact
+T63 save and restores the battle without replaying the earned level. The
+passing fourth attempt retains the original 150s limit, journey and strict
+geometry assertions; no production behavior was changed for this test fix.
+Earlier failed attempts remain recorded below and in separate scratch outputs.
+Final focused presentation count is **27**, including the mobile regression.
+
+Reuses the V04.12a meal premise and its official-manual references, recovered
+by the 2026-09-11 10:02:41 PDT council review retained below. A fresh
+`deja "Road Supper v175 first direct hit"` has no indexed match; the committed
+scope and actual source receipts, not an imagined recovered implementation,
+are authoritative. [Current bounded design](docs/design/ADVENTURE_FORMS.md#road-supper--v05175)
+replaces the older generic `Guarding 25/1` and 20–40-second proposals.
+
+The first supply audit found no edible item producer. This slice therefore
+adds one actual later-market purchase: two gold buys two canonical Road
+Rations. Existing owed story/recruitment/training lanes keep priority. One solo
+camp on the captured road consumes both units; no immediate healing, MP, XP,
+bond, invented vendor or extra food appears. A bounded one-campaign record
+retains purchase, meal, actual combat assignment and terminal combat history.
+The separate preparation effect reduces the first direct incoming hit by 25%
+before HP clamping, rounded down with minimum damage one. Stronger ordinary
+50% Guard wins without stacking; that hit still spends the preparation. Status
+damage does not spend it; an unused effect expires when the bound fight ends.
+
+A pre-proof candidate-ordering review caught a purchase that would interrupt
+the owed T28 recruitment. That was corrected before the positive run; the
+unchanged v174 T58 anchor `e823e5bde8f2a9f6` remains exact. The single integrated
+proof passes in **2,879 ms**: T59 training, T60 actual purchase (gold20→18),
+T61 route0→5, T62 meal (rations2→0), T63 combat, T65 defeat and T66 ordinary
+recovery. The first direct hit falls from **65 to 48 raw damage**, but the hero
+has only 42 HP and still falls to zero: **actual HP saved is zero**. Neither
+the caption nor combat receipt claims 17 HP saved or a natural victory.
+
+Presentation uses the actual solo hero, two purchased bundles at the real
+market, and a bowl/two empty wrappers at the captured roadside camp. Its short
+steam gesture settles and respects pause/reduced motion. Existing inventory,
+caption, Status, portrait and combat rails carry exact source/resource facts;
+no Watch panel, new reading clock, asset download or LLM change. Current-command
+ownership clears purchase/meal scenes on later events and preserves the saved
+result before startup catch-up.
+
+Focused results at this checkpoint: **26 presentation checks pass** (six
+source-view, two native-prop/motion, seventeen combat-layout and one isolated
+inventory-capability check; the other inventory tests were not run in that
+selection). Producer **8/8** pass in 11.30s; combat effect **5/5** pass in 9.38s
+(2.06s bodies); narrator evaluation **8/8** passes in 11.06s with unchanged
+fingerprints. Final TypeScript passes. Test authoring initially used the wrong
+chooser instead of actual actor policy and omitted nullable fields; a forged
+rated-enemy fixture was then replaced by a standalone generated combat, keeping
+the real provenance validator intact. The boundary check caught three unsorted
+manifest entries; only their ordering was corrected. A second boundary check
+mistook the comment word `window` for DOM access; changing that word to
+`history` changes no logic. Final independent rules review finds no blocker.
+
+Production build passes in **23.16s**, along with version/boundary checks and
+the final TypeScript check. Local exact-source verification matches sixteen
+emitted entries and three assets: `index-DpBeEpIi.js`, `index-B9m_5Qf5.css`
+and `simulation.worker-CuF0UUmg.js`; LLM workers are unchanged. The original
+ten 1,000-command canonical journeys pass once in **180,650 ms**. Seeds 3, 5,
+6 and 9 retain their hashes; the other changed snapshots contain actual supper
+histories, with victories in seeds 1/7 and defeats in 0/2/4/8. Whole-state
+anchors are updated without normalization; early fingerprints stay unchanged.
+The first production browser run passed the actual purchase/reload at 33.7s,
+then found a real 320px camp overlap: the legacy camp y96 offset moved the
+new tableau into interface chrome. Only the exact prepared-supper scene now
+uses the existing reserved Watch layout; ordinary camps are unchanged. Its
+inherited `SAFE` narrator badge is also suppressed to avoid implying a safe
+road. A third native geometry regression and final TypeScript pass. The
+original failure remains in `scratch/road-supper-browser-results`; the same
+150-second/three-capture case will retry after rebuild, without changed seeds,
+geometry assertions or mechanical snapshots. CI, inspected mobile captures and
+public-source verification remain pending. These are local results, not a
+claim of a passing full suite or live deployment.
+
+The corrected production rebuild passes in **18.97s**. Exact local verification
+again matches sixteen source entries; the corrected assets are
+`index-BhpVUkkr.js`, `index-DHdBcD1H.css` and unchanged simulation worker
+`simulation.worker-CuF0UUmg.js`. The retry uses a separate retained output
+directory, `scratch/road-supper-browser-retry-results`.
+
+That retry passes the corrected 320px camp/reload at 53.8s, then stops at T63:
+the real +8 XP battle-entry award crosses Level 3 (45→53 XP, threshold48), and
+the paused earned-level intermission legitimately covers the battle actors.
+The geometry test had not handled that existing presentation. Its next retry
+must assert the earned transition, use its existing outcome control, and retain
+the exact same save before checking battle geometry; no XP, level, pause or
+cutaway behavior is changed in production.
+
+Next proposal only: **known-danger detour**, from the roadmap's existing
+risk-aware exploration lane. One unchanged known campaign, bounded to T160
+and ten seconds, should first establish a public armed trap and an already-known
+safe alternate route. Neither admission nor a policy change is proven here.
+If that boundary is absent, retain the negative result rather than generating
+a shortcut, disarming for free or sweeping new seeds. No implementation or
+additional release gate is attached to this proposal.
+
+<details>
+<summary>Earlier shipped releases, review history and held proposals</summary>
+
 ## The Room Is Taken — v0.5.174 final delivery
 
 **Live and publicly source-verified 2026-09-11 10:22:06 PDT.** Feature
@@ -86,7 +196,7 @@ main suite: 230.02s; deployment job: 4m54s. Public `index-DYqiUJJu.js`,
 emitted source-map entries match the corrected commit; protected ledger
 sources are absent. D5 is complete; no LLM worker or CSS change was included.
 
-Next-item read-only council review at 2026-09-11 10:02:41 PDT recovered V04.12a
+At D5 delivery, the next-item read-only council review at 2026-09-11 10:02:41 PDT recovered V04.12a
 with `deja` and retained its two-owned-unit/no-extra-reward scope. Production
 items have no edible capability; starter supplies are a tonic and weapon, loot
 is equipment, and actual purchases cover tonics and disarming kits. Markets and
@@ -6062,3 +6172,5 @@ the gated V04.13b3c admission path and must not pass the candidate through
 line belongs in the Chronicle and compact focus ribbon, never over the
 battlefield. These reviews reuse recovered session
 `[codex] the_grind_2 · today · 01a06835-15f`.
+
+</details>

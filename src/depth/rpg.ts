@@ -211,6 +211,15 @@ export function isValidItemState(value: unknown): value is ItemState {
   const restorative = value.restorative;
   const useMastery = value.useMastery;
   const dungeonTool = value.dungeonTool;
+  const food = value.food;
+  const validFood = !Object.hasOwn(value, "food") || (
+    isRecord(food) && hasExactKeys(food, ["schemaVersion", "kind"])
+    && food.schemaVersion === 1 && food.kind === "road-ration"
+    && kind === "consumable" && value.slot === null && value.name === "Road Rations"
+    && typeof value.id === "string" && value.id.endsWith(":item:road-ration")
+    && isBoundedInteger(value.quantity, 1, 2) && value.rarity === "common"
+    && modifierEntries.length === 0 && restorative === null && useMastery === null && dungeonTool === undefined
+  );
   const validDungeonTool = dungeonTool === undefined || (
     isRecord(dungeonTool) && hasExactKeys(dungeonTool, ["schemaVersion", "kind", "bonus"])
     && dungeonTool.schemaVersion === 1 && dungeonTool.kind === "disarming-kit" && dungeonTool.bonus === 2
@@ -235,7 +244,7 @@ export function isValidItemState(value: unknown): value is ItemState {
     (kind === "equipment" && slot === "weapon"
       ? isValidWeaponUseMastery(useMastery, value.id as string)
       : useMastery === null) &&
-    validRestorative && validDungeonTool &&
+    validRestorative && validDungeonTool && validFood &&
     (kind === "consumable" || restorative === null) &&
     modifierEntries.every(([modifier, amount]) =>
       itemModifiers.includes(modifier as ItemModifier) && isBoundedInteger(amount, 0, 100)
@@ -488,6 +497,7 @@ function sameItem(left: ItemState, right: ItemState): boolean {
     left.slot === right.slot && left.rarity === right.rarity && left.quantity === right.quantity &&
     JSON.stringify(leftModifiers) === JSON.stringify(rightModifiers) &&
     JSON.stringify(left.restorative) === JSON.stringify(right.restorative) &&
+    JSON.stringify(left.food) === JSON.stringify(right.food) &&
     JSON.stringify(left.useMastery) === JSON.stringify(right.useMastery);
 }
 

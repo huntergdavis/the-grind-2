@@ -144,6 +144,9 @@ import { capturePennywiseGateArrival, isValidCampaignPennywiseGate, pennywiseGat
 import { isValidCampaignSmithyJob, selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions, stepSmithyJob } from "./smithy-job";
 import { innBluffClaim, innBluffCommandId, innBluffTellText, isValidCampaignInnBluff, projectInnBluffDecision, selectInnBluffVenue, stepInnBluff } from "./inn-bluff";
 import { dungeonGuardianCommandId, dungeonGuardianResolutionCommandId, isValidCampaignDungeonLair, recordDungeonLairOutcome, recordDungeonLairStart, revealDungeonLair, selectDungeonLairEncounter } from "./dungeon-lair";
+import { isValidCampaignRoadSupper, recordRoadRationPurchase, recordRoadSupperMeal, recordRoadSupperAssignment, recordRoadSupperTerminal, roadSupperCommandId, selectRoadRationPurchase, selectRoadSupperCamp } from "./road-supper";
+import { createRoadRations } from "./road-rations";
+import { createCombatSupperPreparation } from "./supper-preparation";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -960,7 +963,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -1529,6 +1532,11 @@ export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
 }
 
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
+  const supper = input.roadSupper;
+  if (supper?.meal != null && supper.terminal === null
+    && command.type !== (supper.assignment === null ? "start-combat" : "combat-action")) {
+    throw new Error("Resolve the meal's bound tactical encounter before another command");
+  }
   if (input.innBluff?.resolution === null && command.type !== "resolve-inn-bluff") throw new Error("Resolve the covered-cup encounter before another command");
   if (input.smithyJob?.completion === null && command.type !== "smithy-stroke") throw new Error("Finish the active smithy job before another command");
   if (input.pennywiseGate?.completion === null && command.type !== "choose-pennywise-gate"
@@ -1561,6 +1569,23 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "buy-road-rations": {
+      const plan = selectRoadRationPurchase(input);
+      if (plan === null || plan.marketId !== command.marketId) throw new Error("No matching Road Rations purchase is available");
+      const roadSupper = recordRoadRationPurchase(input, roadSupperCommandId(state.tick, command));
+      const hero = { ...state.hero, gold: plan.goldAfter, inventory: [...state.hero.inventory, createRoadRations(state.hero.id)] };
+      return appendLog({ ...state, hero, roadSupper }, "item",
+        `${state.hero.name} buys Road Rations ×0→×2 at ${plan.marketName}. Gold ${plan.goldBefore}→${plan.goldAfter}. Real supplies for one supper; no healing or XP.`);
+    }
+    case "prepare-road-supper": {
+      const enemyCount = 1 + randomInt(2, state.seed, "depth-director", command.encounterId, 0, "enemy-count");
+      const plan = selectRoadSupperCamp(input, command.encounterId, enemyCount);
+      if (plan === null) throw new Error("No matching road encounter can use these supplies");
+      const roadSupper = recordRoadSupperMeal(input, command.encounterId, enemyCount, roadSupperCommandId(state.tick, command));
+      const hero = { ...state.hero, inventory: state.hero.inventory.filter(item => item.id !== plan.itemId) };
+      return appendLog({ ...state, hero, roadSupper }, "world",
+        `${state.hero.name} prepares Road Supper: Road Rations ×2→×0. “${plan.line}” One first-hit preparation for this encounter: 25% less direct damage, never stacked with stronger Guard. No HP, MP, gold or XP change.`);
+    }
     case "start-inn-bluff":
     case "resolve-inn-bluff": {
       const next = stepInnBluff(input, command), bluff = next.innBluff, result = bluff.resolution;
@@ -2097,7 +2122,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       if (unresolvedRouteEncounterId(state) !== command.encounterId) {
         throw new Error("Tactical combat must match the unresolved active route encounter");
       }
-      const combat = createCombat(
+      let combat = createCombat(
         state.seed,
         state.hero,
         command.encounterId,
@@ -2105,6 +2130,12 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         allies,
         projectRouteEncounterThreatContext(state),
       );
+      const meal = input.roadSupper?.meal;
+      if (meal != null && input.roadSupper!.assignment === null) {
+        if (meal.encounterId !== command.encounterId || meal.enemyCount !== command.enemyCount) throw new Error("The prepared encounter cannot be replaced");
+        combat = { ...combat, supper: createCombatSupperPreparation(state.hero.id, meal.sourceCommandId, meal.tick) };
+        state = { ...state, roadSupper: recordRoadSupperAssignment(input, combat, `depth:${state.tick}:${combat.id}:${command.enemyCount}`) };
+      }
       const hero = observeMonsters(state.hero, combat.combatants);
       const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(state.hero.monsterLore, hero.monsterLore));
       const message = `${combat.combatants.length - 1} enemies close in.${fieldNote === null ? "" : ` ${fieldNote}`}`;
@@ -2263,6 +2294,11 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         next = appendLog({ ...next, dungeon }, "dungeon", combat.outcome === "victory"
           ? `${state.hero.name} clears the lair. “At last, a former lair.” The ordinary battle rewards are settled once; the rest of ${dungeon.name} remains.`
           : `${state.hero.name} leaves the guardian unbeaten. No victory reward or cleared mark; later visits will skirt this lair instead of restarting the fight.`);
+      }
+      if (input.roadSupper?.assignment?.combatId === combat.id && input.roadSupper.terminal === null) {
+        const source = dungeonGuardianResolutionCommandId(combat, state.tick);
+        if (source === null) throw new Error("The supper encounter has no terminal action source");
+        next = { ...next, roadSupper: recordRoadSupperTerminal(input, combat, source) };
       }
       return { ...next, companionCredit: captureCompanionCredit(input, next, command) };
     }
@@ -2616,6 +2652,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (!isValidCampaignDungeonLair(input)) throw new TypeError("Campaign state violates dungeon-lair invariants");
+  if (!isValidCampaignRoadSupper(input)) throw new TypeError("Campaign state violates road-supper invariants");
   if (!isValidCampaignInnBluff(input)) throw new TypeError("Campaign state violates inn-bluff invariants");
   if (!isValidCampaignSmithyJob(input)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(input)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
@@ -2633,6 +2670,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   let output = reduceDepth(input, command);
   if (!isValidCampaignDungeonLair(output)) throw new TypeError("Campaign state violates dungeon-lair invariants");
+  if (!isValidCampaignRoadSupper(output)) throw new TypeError("Campaign state violates road-supper invariants");
   if (!isValidCampaignInnBluff(output)) throw new TypeError("Campaign state violates inn-bluff invariants");
   if (!isValidCampaignSmithyJob(output)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(output)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
@@ -2855,6 +2893,11 @@ function selectedEmergencyRestorative(state: DepthState) {
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  const prepared = state.roadSupper?.meal;
+  if (prepared != null && state.roadSupper!.assignment === null) {
+    return [commandCandidate(state, `${prepared.encounterId}:${prepared.enemyCount}`,
+      "face the road encounter after supper", { type: "start-combat", encounterId: prepared.encounterId, enemyCount: prepared.enemyCount })];
+  }
   const innDecision = projectInnBluffDecision(state);
   if (innDecision !== null) return innDecision.choices.map(option => {
     const command = { type: "resolve-inn-bluff", bluffId: innDecision.bluffId, choice: option.choice } as const;
@@ -3108,6 +3151,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         )];
       }
       const enemyCount = 1 + randomInt(2, state.seed, "depth-director", encounterId, 0, "enemy-count");
+      const supper = selectRoadSupperCamp(state, encounterId, enemyCount);
+      if (supper !== null) {
+        const command = { type: "prepare-road-supper", encounterId } as const;
+        return [{ id: roadSupperCommandId(state.tick + 1, command), deciderId: state.hero.id,
+          label: "prepare two owned rations for this road encounter", command }];
+      }
       return [commandCandidate(
         state,
         `${encounterId}:${enemyCount}`,
@@ -3243,6 +3292,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       innId: innVenue.innId, residentId: innVenue.residentId } as const;
     return [{ id: innBluffCommandId(state.tick + 1, command), deciderId: state.hero.id,
       label: `hear ${innVenue.residentName}'s covered-cup claim at ${innVenue.innName}`, command }];
+  }
+  const rations = selectRoadRationPurchase(state);
+  if (rations !== null) {
+    const command = { type: "buy-road-rations", marketId: rations.marketId } as const;
+    return [{ id: roadSupperCommandId(state.tick + 1, command), deciderId: state.hero.id,
+      label: `buy two Road Rations at ${rations.marketName} for two gold`, command }];
   }
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);
   if (neighbors.length === 0) return [commandCandidate(state, "wait", "watch and recover", { type: "wait" })];

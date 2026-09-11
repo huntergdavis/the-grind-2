@@ -1,4 +1,5 @@
 import { combatDamageRangeV1 } from "../depth/combat-damage";
+import { hasReadySupper, resolveSupperDamage } from "../depth/supper-preparation";
 import { legalMillraceReversal, millraceReversalDamageProfile } from "../depth/shared-opening";
 import type { CombatAction, CombatState } from "../depth/types";
 
@@ -36,9 +37,15 @@ export function projectCombatActionForecast(combat: CombatState, action: CombatA
   const ability = action.type === "ability" ? actor.abilities.find((entry) => entry.id === action.abilityId) : undefined;
   if (action.type === "ability" && (ability === undefined || ability.manaCost > actor.mana)) return empty;
   const damageProfile = action.type === "joint-action" ? millraceReversalDamageProfile : ability ?? null;
-  const range = combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, guarded);
+  const baseRange = combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, guarded);
+  const supper = hasReadySupper(combat, target.id);
+  const range = supper ? {
+    minimumDamage: resolveSupperDamage(baseRange.minimumDamage, guarded),
+    maximumDamage: resolveSupperDamage(baseRange.maximumDamage, guarded),
+  } : baseRange;
   const unguardedMinimumDamage = guarded
-    ? combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, false).minimumDamage
+    ? supper ? resolveSupperDamage(combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, false).minimumDamage, false)
+      : combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, false).minimumDamage
     : range.minimumDamage;
   return { ...range, unguardedMinimumDamage, actorHealthAfterStatuses, guarded, weakenedPotency, canAct };
 }

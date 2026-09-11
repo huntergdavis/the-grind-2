@@ -48,6 +48,21 @@ function summary(overrides: Partial<CombatTurnSummary> = {}): CombatTurnSummary 
   };
 }
 
+it("keeps one consumed supper receipt explicit, including zero extra protection under stronger Guard", () => {
+  for (const guarded of [false, true]) {
+    const ordinary = summary(), damage = ordinary.damage!;
+    const prevented = guarded ? 0 : 2;
+    const view = summary({ defeatedIds: [], damage: { ...damage, healthBefore: 20, healthAfter: guarded ? 13 : 15,
+      amount: guarded ? 7 : 5, guarded, supper: { rulesVersion: "road-supper-v1", mealSourceCommandId: "depth:8:road-supper:combat",
+        turn: 1, damageEventId: damage.id, healthBefore: 20, damageBefore: 7, damageAfter: guarded ? 7 : 5, prevented, guarded } } });
+    const line = formatCombatQuickReceipt(view);
+    expect(line).toContain(`SUPPER USED · ${prevented} DMG PREVENTED`);
+    expect(line.includes("GUARD STRONGER")).toBe(guarded);
+    expect(line).toContain(`HP 20→${guarded ? 13 : 15}`);
+    expect(line.length).toBeLessThanOrEqual(combatQuickReceiptMaxCharacters);
+  }
+});
+
 describe("combat information rail", () => {
   it("uses a fixed-height latest-turn rail independent of receipt complexity", () => {
     const layout = projectCombatInformationRailLayout(true);
