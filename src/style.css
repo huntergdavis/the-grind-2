@@ -34,6 +34,7 @@
 .repartee-caption p { margin: 0.45rem 0 0; font-size: 0.95rem; line-height: 1.45; }
 .repartee-caption .repartee-call { color: #d5dbe6; }
 .repartee-caption .repartee-reply { color: #fff2d4; }
+.repartee-caption .repartee-witness { color: #b7ded3; font-size: 0.85rem; }
 .repartee-caption .repartee-marks { margin-top: 0.5rem; color: #e7bc73; font: 0.8rem ui-monospace, monospace; }
 .repartee-caption .repartee-note { color: #b8c4ca; font-size: 0.75rem; }
 #app[data-chrome-mode="focus"] .repartee-caption[data-phase="challenge"] .repartee-note,
@@ -42,6 +43,12 @@
 #app[data-repartee-scene] .hero-hud,
 #app[data-repartee-scene] #stage-focus-ribbon,
 #app[data-repartee-scene] .mini-map { display: none; }
+/* Dialogue computes its own header/caption safe rectangle. Do not reserve the
+   ordinary Watch ribbon a second time or retain its pre-resize host offsets. */
+#app[data-active-view="watch"][data-repartee-scene] > #stage[data-view-mode="live"] {
+  inset: 0 !important;
+  height: 100% !important;
+}
 .journal-repartee { min-width: 0; padding: 1rem; border: 1px solid #574d3e; border-radius: 0.6rem; background: #151e2a; }
 .journal-repartee > summary { cursor: pointer; color: #efd49f; font-weight: 700; }
 .journal-repartee-content { overflow-wrap: anywhere; }
@@ -56,6 +63,13 @@
   .repartee-caption p { font-size: 0.85rem; line-height: 1.4; }
   .repartee-caption[data-phase="challenge"] .repartee-note,
   .repartee-caption[data-phase="round"] .repartee-note { display: none; }
+}
+@media (max-width: 760px) {
+  /* One compact header leaves room for actors and keeps Journal navigation
+     reachable even when a spoken scene is paused. */
+  #app[data-active-view="watch"][data-repartee-scene] > .topbar { flex-direction: row; align-items: center; }
+  #app[data-active-view="watch"][data-repartee-scene] > .topbar .controls { width: auto; }
+  #app[data-active-view="watch"][data-repartee-scene] > .topbar .eyebrow { padding-top: 0; }
 }
 @media (max-height: 560px) and (min-width: 761px) {
   .repartee-caption { right: 1rem; left: 52%; bottom: 0.75rem; }

@@ -38,6 +38,7 @@ export type ActorInstinctSelector =
   | "companion-flour-veil"
   | "companion-millstone-drag"
   | "millrace-reversal"
+  | "witnessed-playful-reply"
   | "unknown-route"
   | "dangerous-route"
   | "town-route"

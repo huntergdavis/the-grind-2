@@ -5,7 +5,10 @@ import {
   createReparteeProgress, readReparteeBook, reparteeBook, reparteeChallenges,
   reparteeResponses, resolveReparteeRound, startRepartee, type ReparteeProgress,
 } from "../depth/repartee";
-import { projectReparteeScene, reparteeRoundMarks, signedReparteeMomentum } from "./repartee-view";
+import { selectSharedRoadCompanion } from "../depth/companion";
+import { createReparteeWitnessReaction, declareReparteeWitnessPreference } from "../depth/repartee-witness";
+import { generateTown, visitTown } from "../depth/towns";
+import { projectReparteeScene, projectReparteeWitness, reparteeRoundMarks, signedReparteeMomentum } from "./repartee-view";
 
 function fixture() {
   const world = createWorld("repartee-presentation", "campaign:repartee-presentation");
@@ -139,5 +142,114 @@ describe("Books & Flyting presentation", () => {
     expect(reparteeRoundMarks([1, 0, -1])).toBe("[+1] [0] [-1]");
     expect(reparteeRoundMarks([null, null, null])).toBe("[·] [·] [·]");
     expect([0, 3, -3].map(signedReparteeMomentum)).toEqual(["0", "+3", "-3"]);
+  });
+});
+
+function witnessFixture() {
+  const f = fixture();
+  let first = f.answer(f.active, "direct");
+  while (first.depth.repartee.active !== null) first = f.answer(first.depth.repartee, "direct");
+  const location = f.world.depth.atlas.locations.find((entry) => entry.kind === "town" && entry.id !== f.town.locationId)!;
+  const town = visitTown(generateTown(f.world.seed, location.id));
+  const atlas = { ...f.world.depth.atlas, currentLocationId: location.id,
+    discoveredLocationIds: f.world.depth.atlas.locations.map((entry) => entry.id) };
+  const companion = selectSharedRoadCompanion({ seed: f.world.seed, atlas, town,
+    roster: f.world.depth.companions, joinedTick: 6, heroLevel: 2 })!;
+  const building = town.buildings.find((entry) => ["hall", "inn"].includes(entry.kind)
+    && entry.residentIds.some((id) => id !== companion.identity.residentId))!;
+  const resident = town.residents.find((entry) => entry.id !== companion.identity.residentId && building.residentIds.includes(entry.id))!;
+  const active = startRepartee(f.reading, { ...f.startContext, rulesVersion: 2,
+    sourceCommandId: "depth:8:start-repartee", tick: 8, encounterId: `${f.world.campaignId}:encore`,
+    residentId: resident.id, locationId: town.locationId, buildingId: building.id });
+  const preference = declareReparteeWitnessPreference(f.world.seed, { witnessId: companion.identity.residentId,
+    joinedTick: companion.joinedTick, sourceCommandId: active.active!.sourceCommandId, tick: active.active!.startedTick });
+  function state(progress: ReparteeProgress): WorldState {
+    const duel = progress.active ?? progress.completed!;
+    const completion = progress.completed;
+    const round = duel.rounds.at(-1);
+    const tick = completion?.completedTick ?? round?.tick ?? duel.startedTick;
+    const commandId = completion?.completionCommandId ?? round?.sourceCommandId ?? duel.sourceCommandId;
+    const base = f.state(progress, round === undefined && completion === null ? "start-repartee" : "repartee-action", commandId, tick);
+    return { ...base, depth: { ...base.depth, atlas, towns: { ...base.depth.towns, [town.locationId]: town },
+      companions: { ...base.depth.companions, active: [companion] },
+      reparteeWitness: { schemaVersion: 1, firstContest: first.depth.repartee, preference,
+        reaction: completion === null ? null : createReparteeWitnessReaction(progress, preference, {
+          witnessId: companion.identity.residentId, witnessName: companion.identity.name, joinedTick: companion.joinedTick,
+          locationId: town.locationId, tick: completion.completedTick,
+        }) },
+    } };
+  }
+  function finish(): WorldState {
+    let progress = active;
+    const styles = preference.preferenceId === "precision" ? ["direct", "category", "category"]
+      : preference.preferenceId === "humility" ? ["direct", "personality", "direct"] : ["category", "category", "category"];
+    for (let index = 0; index < 3; index += 1) {
+      const duel = progress.active!;
+      const response = reparteeResponses(progress).find((entry) => entry.style === styles[index])!;
+      progress = resolveReparteeRound(progress, { encounterId: duel.encounterId, roundIndex: index, responseId: response.id,
+        sourceCommandId: `depth:${9 + index}:repartee-action`, tick: 9 + index, reputationBefore: town.reputation, reputationCap: 100 });
+    }
+    return state(progress);
+  }
+  return { f, companion, town, building, resident, preference, first, active, state, finish };
+}
+
+describe("Witnessed encore presentation", () => {
+  it("stages the actual third participant and declared taste at the encore venue, not the old reading town", () => {
+    const f = witnessFixture();
+    const state = f.state(f.active);
+    const scene = projectReparteeScene(state)!;
+    expect(scene.encore).toBe(true);
+    expect(scene.phase).toBe("challenge");
+    expect(scene.title).toContain("Flyting encore");
+    expect(scene.buildingId).toBe(f.building.id);
+    expect(scene.buildingId).not.toBe(f.f.building.id);
+    expect(scene.residentId).toBe(f.resident.id);
+    expect(scene.witness).toMatchObject({ id: f.companion.identity.residentId, name: f.companion.identity.name,
+      role: f.companion.identity.role, preferenceId: f.preference.preferenceId, reaction: null });
+    expect(scene.witness!.preferenceDescription.length).toBeGreaterThan(20);
+    expect(state.depth.repartee.reading).toEqual(f.first.depth.repartee.reading);
+    expect(state.depth.reparteeWitness.firstContest).toEqual(f.first.depth.repartee);
+    expect(projectReparteeScene(JSON.parse(JSON.stringify(state)))).toEqual(scene);
+  });
+
+  it("projects the exact saved reaction and directional regard even when applause disagrees", () => {
+    const f = witnessFixture();
+    const state = f.finish();
+    const original = JSON.stringify(state);
+    const reaction = state.depth.reparteeWitness.reaction!;
+    const scene = projectReparteeScene(state)!;
+    expect(scene.phase).toBe("result");
+    expect(scene.witness!.reaction).toEqual({ id: reaction.reactionId, pose: reaction.pose, line: reaction.line,
+      explanation: reaction.explanation, regardBefore: null, regardAfter: reaction.regardAfter, regardDelta: reaction.regardDelta });
+    expect(scene.consequence).toContain(`${f.companion.identity.name}’s regard toward ${state.hero.name}`);
+    expect(scene.consequence).toContain("HP, MP and bond unchanged");
+    expect(scene.outcome === "victory").toBe(reaction.regardDelta < 0);
+    expect(scene.outcome === "defeat").toBe(reaction.regardDelta > 0);
+    expect(projectReparteeScene(JSON.parse(original))).toEqual(scene);
+    expect(JSON.stringify(state)).toBe(original);
+    expect(state.depth.companions.active[0]!.bond).toBe(f.companion.bond);
+  });
+
+  it("suppresses invented, injured, absent, differently joined and mismatched-source witnesses", () => {
+    const f = witnessFixture();
+    const state = f.finish();
+    const witnessState = state.depth.reparteeWitness;
+    const variants: WorldState[] = [
+      { ...state, depth: { ...state.depth, companions: { ...state.depth.companions, active: [] } } },
+      { ...state, depth: { ...state.depth, companions: { ...state.depth.companions, active: [{ ...f.companion, injury: "wounded" }] } } },
+      { ...state, depth: { ...state.depth, companions: { ...state.depth.companions, active: [{ ...f.companion, joinedTick: 5 }] } } },
+      { ...state, depth: { ...state.depth, reparteeWitness: { ...witnessState, preference: { ...f.preference, witnessId: "invented-witness" } } } },
+      { ...state, depth: { ...state.depth, reparteeWitness: { ...witnessState, preference: { ...f.preference, sourceCommandId: "other-start" } } } },
+      { ...state, depth: { ...state.depth, reparteeWitness: { ...witnessState, reaction: { ...witnessState.reaction!, line: "I always admired you." } } } },
+      { ...state, depth: { ...state.depth, reparteeWitness: { ...witnessState, reaction: { ...witnessState.reaction!, completionCommandId: "other-completion" } } } },
+      { ...state, depth: { ...state.depth, reparteeWitness: { ...witnessState, reaction: null } } },
+    ];
+    for (const variant of variants) {
+      expect(projectReparteeWitness(variant)).toBeNull();
+      expect(projectReparteeScene(variant)).toBeNull();
+    }
+    expect(projectReparteeScene({ ...state, tick: state.tick + 1 })).toBeNull();
+    expect(projectReparteeScene({ ...state, chronicle: [{ ...state.chronicle[0]!, commandId: "other-campaign:depth:11:repartee-action" }] })).toBeNull();
   });
 });

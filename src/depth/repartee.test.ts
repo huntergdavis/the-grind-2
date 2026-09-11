@@ -118,6 +118,25 @@ describe("the first useful book and original repartee duel", () => {
     expect(reparteeResponses(started(), 0).find((choice) => choice.style === "category")?.text).toContain("jurisdiction over soup");
   });
 
+  it("keeps F1 at its reading venue while a versioned encore retains that learning at a different town", () => {
+    const learned = read();
+    const elsewhere = { ...startContext, locationId: "location:another-town", buildingId: "building:another-hall", residentId: "resident:another-rival" };
+    expect(startRepartee(learned, elsewhere)).toBe(learned);
+    expect(startRepartee(learned, { ...elsewhere, rulesVersion: 1 })).toBe(learned);
+    const encore = startRepartee(learned, { ...elsewhere, rulesVersion: 2 });
+    expect(encore.active).toMatchObject({ rulesVersion: 2, locationId: elsewhere.locationId, buildingId: elsewhere.buildingId, readingSourceCommandId: readingContext.sourceCommandId });
+    expect(encore.reading).toEqual(learned.reading);
+    expect(reparteeResponses(encore).map((entry) => entry.classification)).toEqual(["direct", "near", "category", "near"]);
+    expect(isValidReparteeProgress(JSON.parse(JSON.stringify(encore)))).toBe(true);
+    const settled = ["direct", "direct", "direct"].reduce((progress) => answer(progress, "direct"), encore);
+    expect(settled.completed).toMatchObject({ rulesVersion: 2, outcome: "victory", reputationAward: 1 });
+    expect(settled.completed!.rounds.every((round) => round.readingSourceCommandId === readingContext.sourceCommandId)).toBe(true);
+    expect(isValidReparteeProgress(JSON.parse(JSON.stringify(settled)))).toBe(true);
+    expect(isValidReparteeProgress({ ...encore, active: { ...encore.active, rulesVersion: 1 } })).toBe(false);
+    expect(isValidReparteeProgress({ ...encore, active: { ...encore.active, locationId: "" } })).toBe(false);
+    expect(isValidReparteeProgress({ ...encore, active: { ...encore.active, rulesVersion: 3 } })).toBe(false);
+  });
+
   it("exhausts all 64 legal three-response paths with signed momentum and no overtime", () => {
     const styles = ["direct", "near", "category", "personality"] as const;
     for (const first of styles) for (const second of styles) for (const third of styles) {
@@ -211,7 +230,7 @@ describe("the first useful book and original repartee duel", () => {
       { ...progress, reading: { ...reading, addedFrameIds: [] } },
       { ...progress, reading: { ...reading, firstRead: false } },
       { ...progress, reading: { ...reading, sourceCommandId: "" } },
-      { ...progress, active: { ...duel, rulesVersion: 2 } },
+      { ...progress, active: { ...duel, rulesVersion: 3 } },
       { ...progress, active: { ...duel, actorId: "another-hero" } },
       { ...progress, active: { ...duel, residentId: duel.actorId } },
       { ...progress, active: { ...duel, locationId: "another-town" } },

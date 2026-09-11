@@ -1205,8 +1205,9 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 28;
+  schemaVersion: 29;
   repartee: import("./repartee").ReparteeProgress;
+  reparteeWitness: import("./repartee-witness").ReparteeWitnessState;
   latestDisarmingKitPurchase: DisarmingKitPurchaseReceipt | null;
   seed: string;
   tick: number;

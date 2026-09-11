@@ -125,7 +125,8 @@ import type {
 } from "./types";
 
 import { createReparteeProgress } from "./repartee";
-import { isValidCampaignRepartee, reparteeCommandCandidates, stepCampaignRepartee } from "./repartee-campaign";
+import { isValidCampaignRepartee, reparteeCommandCandidates, stepCampaignRepartee, witnessedReparteeCommandCandidates } from "./repartee-campaign";
+import { createReparteeWitnessState } from "./repartee-witness";
 
 export const maximumDepthLogEntries = 128;
 export const maximumCompletedCombats = 4;
@@ -835,9 +836,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -885,6 +886,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 28) {
+    // A past solo contest is not evidence of a companion's private judgment.
+    return upgradeDepthState({ ...value, schemaVersion: 29,
+      reparteeWitness: Object.hasOwn(value, "reparteeWitness") ? value.reparteeWitness : createReparteeWitnessState(),
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 29) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -1383,8 +1390,9 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 28,
+    schemaVersion: 29,
     repartee: createReparteeProgress(),
+    reparteeWitness: createReparteeWitnessState(),
     seed,
     tick: 0,
     atlas,
@@ -1481,7 +1489,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
     case "start-repartee":
     case "repartee-action": {
       const result = stepCampaignRepartee(input, command);
-      return appendLog({ ...state, repartee: result.repartee, towns: result.towns }, "town", result.message);
+      return appendLog({ ...state, repartee: result.repartee, reparteeWitness: result.reparteeWitness, towns: result.towns }, "town", result.message);
     }
     case "recruit-companion": {
       if (!canBeginSharedRoadOath(input.companions, input.atlas.currentLocationId, input.tick)) {
@@ -2733,6 +2741,8 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     )];
   }
   if (activeCompanion !== undefined && state.atlas.route === null) {
+    const encore = witnessedReparteeCommandCandidates(state);
+    if (encore !== null) return encore;
     return [commandCandidate(
       state,
       `companion:route:${activeCompanion.destination.locationId}`,

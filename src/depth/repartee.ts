@@ -65,6 +65,8 @@ export interface BookReadingReceipt extends ReparteeReadingContext {
 export interface ReparteeStartContext extends ReparteeReadingContext {
   readonly encounterId: string;
   readonly residentId: string;
+  /** F1 stays at its reading venue; a witnessed encore can use another actual town. */
+  readonly rulesVersion?: 1 | 2;
 }
 
 export interface ReparteeResponse {
@@ -98,7 +100,7 @@ export interface ReparteeRoundReceipt {
 
 export interface ReparteeDuel {
   readonly encounterId: string;
-  readonly rulesVersion: 1;
+  readonly rulesVersion: 1 | 2;
   readonly contentVersion: 1;
   readonly actorId: string;
   readonly residentId: string;
@@ -225,15 +227,17 @@ export function readReparteeBook(progress: ReparteeProgress, context: ReparteeRe
 
 export function startRepartee(progress: ReparteeProgress, context: ReparteeStartContext): ReparteeProgress {
   const reading = progress.reading;
+  const rulesVersion = context.rulesVersion ?? 1;
   if (!isValidReparteeProgress(progress) || !validContext(context) || !identifier(context.encounterId)
     || !identifier(context.residentId) || context.actorId === context.residentId || reading === null
     || progress.active !== null || progress.completed !== null || context.tick <= reading.tick
-    || context.actorId !== reading.actorId || context.locationId !== reading.locationId
-    || context.buildingId !== reading.buildingId || context.sourceCommandId === reading.sourceCommandId) return progress;
+    || ![1, 2].includes(rulesVersion) || context.actorId !== reading.actorId
+    || rulesVersion === 1 && (context.locationId !== reading.locationId || context.buildingId !== reading.buildingId)
+    || context.sourceCommandId === reading.sourceCommandId) return progress;
   return {
     ...progress,
     active: {
-      encounterId: context.encounterId, rulesVersion: 1, contentVersion: 1,
+      encounterId: context.encounterId, rulesVersion, contentVersion: 1,
       actorId: context.actorId, residentId: context.residentId, locationId: context.locationId,
       buildingId: context.buildingId, sourceCommandId: context.sourceCommandId,
       startedTick: context.tick, readingSourceCommandId: reading.sourceCommandId,
@@ -343,8 +347,9 @@ function normalizedLine(text: string): string {
 
 function validDuel(value: unknown, reading: BookReadingReceipt, completed: boolean): value is ReparteeDuel | ReparteeReceipt {
   if (!exactKeys(value, completed ? completionKeys : duelKeys)
-    || !identifier(value.encounterId) || value.rulesVersion !== 1 || value.contentVersion !== 1
-    || value.actorId !== reading.actorId || value.locationId !== reading.locationId || value.buildingId !== reading.buildingId
+    || !identifier(value.encounterId) || (value.rulesVersion !== 1 && value.rulesVersion !== 2) || value.contentVersion !== 1
+    || value.actorId !== reading.actorId || !identifier(value.locationId) || !identifier(value.buildingId)
+    || value.rulesVersion === 1 && (value.locationId !== reading.locationId || value.buildingId !== reading.buildingId)
     || !identifier(value.residentId) || value.residentId === value.actorId
     || !identifier(value.sourceCommandId) || value.sourceCommandId === reading.sourceCommandId
     || !tick(value.startedTick) || value.startedTick <= reading.tick || value.readingSourceCommandId !== reading.sourceCommandId

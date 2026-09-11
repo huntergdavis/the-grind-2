@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { witnessedEncoreFixture } from "../../tests/repartee-witness-fixtures";
 import { neighboringLocationIds } from "../depth/atlas";
 import {
   counterToStance,
@@ -32,6 +33,19 @@ function reparteePolicyWorld(values: readonly HeroValue[], phase: "before-readin
     staged = { ...staged, tick: depth.tick, depth };
   }
   return staged;
+}
+
+let witnessedPolicyReady: WorldState | null = null;
+function witnessedPolicyWorld(values: readonly HeroValue[] = ["loyalty", "curiosity"]): WorldState {
+  witnessedPolicyReady ??= witnessedEncoreFixture("campaign:repartee-shared-joke-policy", "shared-road-playful:7");
+  const ready = { ...witnessedPolicyReady, hero: { ...witnessedPolicyReady.hero, values } };
+  const depth = stepDepth(ready.depth, campaignDirector(ready).candidates[0]!.command);
+  return { ...ready, tick: depth.tick, depth };
+}
+
+function nextPolicyReply(world: WorldState): WorldState {
+  const depth = stepDepth(world.depth, actorPolicy(world, campaignDirector(world)).command);
+  return { ...world, tick: depth.tick, depth };
 }
 
 describe("repartee actor decisions", () => {
@@ -117,6 +131,68 @@ describe("repartee actor decisions", () => {
     expect(() => actorPolicy(world, { ...opportunity, candidates: invalid })).toThrow("no legal choice");
     const missingKnowledge = { ...world, depth: { ...world.depth, repartee: { ...world.depth.repartee, reading: null } } };
     expect(() => actorPolicy(missingKnowledge, opportunity)).toThrow("no legal choice");
+  });
+
+  it("uses loyalty to share exactly one losing-round joke with the actually declared playful witness", () => {
+    let world = witnessedPolicyWorld();
+    expect(world.depth.reparteeWitness.preference!.preferenceId).toBe("playfulness");
+    const original = world.depth.reparteeWitness.firstContest;
+    const hero = world.depth.hero, companions = world.depth.companions;
+    for (let index = 0; index < 3; index++) {
+      const choice = actorPolicy(world, campaignDirector(world));
+      expect(choice.command).toMatchObject({ type: "repartee-action", roundIndex: index });
+      if (index === 1) {
+        expect(choice.command).toMatchObject({ responseId: "loud-authority:category" });
+        expect(choice.trace).toMatchObject({ matchedRuleId: "repartee.shared-joke", reasonCode: "continue-purposefully" });
+        expect(choice.trace.selected.matchedRuleId).toBe("repartee.shared-joke");
+        expect(choice.rationale).toContain(companions.active[0]!.identity.name);
+        expect(choice.rationale).toContain("knowingly accepts -1 momentum");
+        expect(choice.rationale).toContain("declared taste is absurdity");
+      } else expect(choice.trace.matchedRuleId).toBe("repartee.learned-counter");
+      world = nextPolicyReply(world);
+    }
+    expect(world.depth.repartee.completed).toMatchObject({ outcome: "victory", momentum: 1 });
+    expect(world.depth.repartee.completed!.rounds.map((round) => round.delta)).toEqual([1, -1, 1]);
+    expect(world.depth.reparteeWitness.reaction).toMatchObject({ reactionId: "culinary-absurdity", pose: "laugh", regardDelta: 1 });
+    expect(world.depth.reparteeWitness.reaction!.evidence!.roundIndex).toBe(1);
+    expect(world.depth.reparteeWitness.firstContest).toEqual(original);
+    expect(world.depth.hero).toEqual(hero);
+    expect(world.depth.companions).toEqual(companions);
+  });
+
+  it("can autonomously lose the encore and still leave a playful companion laughing", () => {
+    let world = witnessedPolicyWorld(["loyalty", "mercy"]);
+    for (let index = 0; index < 3; index++) world = nextPolicyReply(world);
+    expect(world.depth.repartee.completed).toMatchObject({ outcome: "defeat", momentum: -1, reputationAward: 0 });
+    expect(world.depth.reparteeWitness.reaction).toMatchObject({ outcome: "defeat", reactionId: "culinary-absurdity", pose: "laugh", regardDelta: 1 });
+    expect(world.depth.reparteeWitness.reaction!.line).toContain("trying not to laugh");
+  });
+
+  it("does not use absent, unhealthy, mismatched or undeclared audiences to justify a shared joke", () => {
+    const world = nextPolicyReply(witnessedPolicyWorld()), depth = world.depth;
+    const preference = depth.reparteeWitness.preference!, witness = depth.companions.active[0]!;
+    const opportunity = campaignDirector(world);
+    const invalid: WorldState[] = [
+      { ...world, hero: { ...world.hero, values: ["curiosity"] } },
+      { ...world, seed: "foreign-seed" },
+      { ...world, depth: { ...depth, reparteeWitness: { ...depth.reparteeWitness, firstContest: null } } },
+      { ...world, depth: { ...depth, reparteeWitness: { ...depth.reparteeWitness, preference: { ...preference, sourceCommandId: "foreign-start" } } } },
+      { ...world, depth: { ...depth, reparteeWitness: { ...depth.reparteeWitness, preference: { ...preference, declaredTick: preference.declaredTick + 1 } } } },
+      { ...world, depth: { ...depth, reparteeWitness: { ...depth.reparteeWitness, preference: { ...preference, preferenceId: "precision" } } } },
+      { ...world, depth: { ...depth, companions: { ...depth.companions, active: [] } } },
+      { ...world, depth: { ...depth, companions: { ...depth.companions, active: [{ ...witness, phase: "arrived" }] } } },
+      { ...world, depth: { ...depth, companions: { ...depth.companions, active: [{ ...witness, injury: "wounded" }] } } },
+      { ...world, depth: { ...depth, companions: { ...depth.companions, active: [{ ...witness, joinedTick: witness.joinedTick + 1 }] } } },
+      { ...world, depth: { ...depth, companions: { ...depth.companions, active: [{ ...witness, resources: { ...witness.resources, health: 0 } }] } } },
+      { ...world, depth: { ...depth, atlas: { ...depth.atlas, currentLocationId: "another-town" } } },
+    ];
+    for (const state of invalid) {
+      const choice = actorPolicy(state, opportunity);
+      expect(choice.trace.matchedRuleId).toBe("repartee.learned-counter");
+      expect(choice.command).not.toMatchObject({ responseId: "loud-authority:category" });
+    }
+    const solo = nextPolicyReply(reparteePolicyWorld(["loyalty", "curiosity"]));
+    expect(actorPolicy(solo, campaignDirector(solo)).trace.matchedRuleId).toBe("repartee.learned-counter");
   });
 });
 

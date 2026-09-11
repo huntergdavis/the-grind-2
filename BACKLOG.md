@@ -3,8 +3,9 @@
 ## Start here
 
 The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
-active planning source: Books & Flyting shipped in v0.5.159; next is F2, a real
-witness reaction and directional regard, followed by further playable features
+active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
+encore and directional regard are under release verification. A later source-bound
+safe-rest callback is the separate F2b follow-up, followed by further playable features
 one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

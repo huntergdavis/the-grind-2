@@ -4,7 +4,9 @@ Status: F1 shipped in v0.5.159, publicly verified 2026-09-10 at 18:37 PDT. Broad
 This elaborates **V04.11 Original repartee duels** in [BACKLOG.md](../../BACKLOG.md)
 and the encounter contract in V04.19. It is one engine: `repartee`, with flyting
 as its first ruleset. It does not introduce a competing battle framework.
-F1 follows the shipped v0.5.158 mana-siphon release; F2 witness reactions are next in [ROADMAP.md](../../ROADMAP.md).
+F1 follows the shipped v0.5.158 mana-siphon release. F2a's finite witnessed encore
+is under release verification; see [its precise scope](LIFETIME_STORIES.md) and
+[ROADMAP.md](../../ROADMAP.md). The original F1 scope below remains unchanged.
 This proposal requires no LLM, model experiment or protected-ledger edit.
 
 ## F1 shipped scope — v0.5.159

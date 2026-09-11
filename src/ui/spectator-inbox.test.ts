@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { witnessedEncoreFixture } from "../../tests/repartee-witness-fixtures";
 import {
   advanceWorld,
   attentionPolicyForMode,
@@ -11,6 +12,7 @@ import { maximumAbilities } from "../depth/rpg";
 import { advanceDepth, depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import { generateTown, visitTown } from "../depth/towns";
 import { readReparteeBook, reparteeBook, reparteeResponses, resolveReparteeRound, startRepartee, type ReparteeProgress } from "../depth/repartee";
+import { reparteeWitnessPreference } from "../depth/repartee-witness";
 import type { DepthState, DungeonState, ItemState } from "../depth/types";
 import {
   beginSpectatorAbsence,
@@ -84,6 +86,37 @@ function readInboxBook(before: WorldState): WorldState {
 }
 
 describe("spectator inbox", () => {
+  it("keeps one witnessed encore episode with its actual declared preference and cause-bound reaction", () => {
+    let before = witnessedEncoreFixture("campaign:repartee-witness-inbox");
+    let inbox = createSpectatorInbox(before);
+    let after = advanceWorld(before);
+    inbox = observeSpectatorInbox(inbox, before, after, true);
+    const preference = after.depth.reparteeWitness.preference!;
+    const witness = after.depth.companions.active[0]!;
+    expect(inbox.items[0]!.details).toContain(`Witness · ${witness.identity.name} · ${reparteeWitnessPreference(preference.preferenceId).label}`);
+    for (let round = 0; round < 3; round++) {
+      before = after;
+      after = advanceWorld(before);
+      inbox = observeSpectatorInbox(inbox, before, after, true);
+      expect(inbox.items).toHaveLength(1);
+      expect(inbox.items[0]!.details.length).toBeLessThanOrEqual(maximumSpectatorDetails);
+    }
+    const reaction = after.depth.reparteeWitness.reaction!;
+    expect(inbox.items[0]).toMatchObject({ eventCount: 4, status: "resolved",
+      episodeId: `repartee:${reaction.encounterId}`, latestSourceId: after.chronicle.at(-1)!.id });
+    expect(inbox.items[0]!.details).toContain(`${reaction.witnessName}: ${reaction.line}`);
+    expect(inbox.items[0]!.details).toContain(`Regard · ${reaction.witnessName} → ${after.hero.name}: not established → ${reaction.regardAfter > 0 ? "+" : ""}${reaction.regardAfter} · bond unchanged`);
+    expect(observeSpectatorInbox(inbox, before, after, true)).toBe(inbox);
+    for (const patch of [{ completionCommandId: "unrelated-source" }, { witnessId: "absent-witness" },
+      { witnessName: "An absent stranger" }, { line: "An invented opinion" }]) {
+      const forged = { ...after, depth: { ...after.depth, reparteeWitness: { ...after.depth.reparteeWitness,
+        reaction: { ...reaction, ...patch } } } };
+      const clean = observeSpectatorInbox(createSpectatorInbox(before), before, forged, true);
+      expect(clean.items[0]!.details.some((detail) => detail.startsWith("Regard ·"))).toBe(false);
+      expect(clean.items[0]!.details).not.toContain(`${reaction.witnessName}: ${reaction.line}`);
+    }
+  });
+
   it("captures learned book entries only from their exact reading source", () => {
     const before = createWorld("browser-dungeon-search:8", "campaign:repartee-inbox");
     const after = readInboxBook(before);

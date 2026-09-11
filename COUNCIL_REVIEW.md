@@ -2,6 +2,79 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## A companion judges the encore — v0.5.160 implementation review
+
+Three independent owners handled pure rules/policy, presentation and acceptance;
+root integrated the finite campaign admission and save graph. Recovery reused
+`deja`'s Codex session 06 and the committed [lifetime-story contract](docs/design/LIFETIME_STORIES.md),
+especially the distinction between a witnessed reaction and a later callback.
+This is F2a, not the entire relationship system or an LLM update.
+
+The first solo contest remains exactly archived. One later eligible road-oath
+origin offers a finite encore with an actual hall/inn resident distinct from
+the companion. Explicit duel rules version two allows learned words to travel
+while retaining the original book source; version one still requires its original
+venue. The encore adds at most one town reputation for a real victory, once
+only; health, mana, gold, XP, equipment and combat bond stay unchanged.
+
+A real companion declares precision, humility or playfulness at admission.
+Resolution captures that actual witness, exact response evidence, outcome and
+directional regard. Council review tightened same-tick presence checks while
+allowing later real injury/departure to leave historical memory intact. A second
+review found that humorous category replies were unreachable under ordinary
+autonomous scoring: the encore now admits one deliberate second-round joke
+for a loyal hero with a present, explicitly playful witness. The actor records
+its reason and knowingly accepts the normal -1 score; humor never rewrites a win.
+
+Depth 29 initializes old witness history empty, rejects malformed present fields
+and binds both contests, declaration, actual oath identity and reaction source.
+Foreground catch-up stops before all four encore commands. Original/encore
+transcripts and exact reasons stay in the existing Adventure journal and
+coalesced inbox episode. Native three-person staging adds one witness line and
+a static nod/frown/laugh/quiet cue; no persistent relationship panel is added.
+
+At this checkpoint, 61 focused tests passed across pure rules, witness campaign,
+projection and inbox suites. The eight campaign tests include canonical-key-order
+reloads, once-only outcomes, forged/absent witnesses, old-save initialization and
+normal oath-route continuation. Counts overlap with independent owner runs and
+are not summed. Policy additions, browser acceptance, full release CI and public
+deployment are still being verified; they are not claimed complete here.
+
+The browser journey uses a bounded natural replay of `shared-road-lifecycle`
+with campaign `campaign:browser-repartee-witness`: book T362, original contest
+T363–366, actual Iona Glass recruitment T367, then encore admission. Earlier
+seed8 probes did not reach an encore within 768 turns; no unbounded seed matrix
+was added. Unit fixtures separately disclose their earned-level/visited-town
+staging. Protected local ledger changes and the user's existing preview remain
+untouched. F2b's later safe-rest callback is the next separate feature.
+
+The first frozen-build browser run completed in 60.4 seconds: all four real
+encore beats, exact reloads, both Journal transcripts, source identities and
+unchanged resources/bond passed, with no application errors, inference or
+external requests. Root's inspection of the four captures nevertheless found
+the normal 320-pixel actor stage too small despite readable captions and a
+good Focus layout. That visual finding requires a layout correction and a
+stronger actor-stage geometry assertion before delivery; the first browser
+pass alone is not treated as visual approval.
+
+The local broad release run reached its explicit 330-second wall-clock cap
+without a final result and is not counted as a pass. The separate canonical
+save/migration/replay assertions passed on the quieter rerun within their
+unchanged 20-second limit; the ten full-state anchors were updated for Depth 29
+and actual witness events without normalizing those mechanics away. Final
+clean-checkout release CI remains the authoritative full-suite gate.
+
+The corrected production build passed browser acceptance in 64.2 seconds.
+All four final captures were visually approved: normal 320-pixel mode now
+shows an approximately 283×159-pixel actor stage, with navigation retained;
+Focus shows 304×171. The stronger test checks rendered geometry and all three
+actors for occlusion, not just caption readability. A one-frame settled resize
+refresh observes real caption/chrome reflow and is cancelled during disposal.
+The frozen build passes TypeScript and boundary checks, and the final focused
+policy/pure-rules run passed 43 tests, including both winning and losing while
+sharing a deliberate joke. Both narrator worker asset identities are unchanged.
+The owned preview is closed; public deployment and clean release CI follow.
+
 ## Books & Flyting F1 — v0.5.159 final delivery
 
 **Delivered and publicly verified on 2026-09-10 at 18:37:46 PDT.** Feature commit

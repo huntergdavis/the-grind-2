@@ -456,7 +456,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(28);
+    expect(upgraded.depth.schemaVersion).toBe(29);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -2091,7 +2091,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(28);
+    expect(upgraded.depth.schemaVersion).toBe(29);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",
@@ -2131,7 +2131,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(28);
+      expect(upgraded.depth.schemaVersion).toBe(29);
       expect(upgraded.depth.companions).toEqual({
         schemaVersion: 2,
         kitRulesVersion: "explicit-companion-kit-v1",
@@ -2271,7 +2271,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(28);
+    expect(upgraded.depth.schemaVersion).toBe(29);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",
@@ -2326,7 +2326,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(28);
+    expect(upgraded.depth.schemaVersion).toBe(29);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",
@@ -2448,7 +2448,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(28);
+    expect(upgraded.depth.schemaVersion).toBe(29);
     expect(upgraded.depth.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",

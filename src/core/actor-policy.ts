@@ -13,6 +13,7 @@ import { legalMillraceReversal } from "../depth/shared-opening";
 import { selectDisarmingKitPurchase } from "../depth/town-disarming-kit";
 import { selectDisarmingKit } from "../depth/disarming-kit";
 import { reparteeBook, reparteeResponses, type ReparteeResponse } from "../depth/repartee";
+import { isValidCampaignRepartee } from "../depth/repartee-campaign";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -79,6 +80,7 @@ export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorI
     { id: "opening.fallback", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
   ]),
   repartee: freezeProfile("repartee", [
+    { id: "repartee.shared-joke", conditions: [], selector: "witnessed-playful-reply", reasonCode: "continue-purposefully" },
     { id: "repartee.learned-counter", conditions: ["hero-curious"], selector: "any", reasonCode: "test-technique" },
     { id: "repartee.graceful-concession", conditions: ["hero-merciful"], selector: "any", reasonCode: "control-conflict" },
     { id: "repartee.defiant-voice", conditions: ["hero-courageous"], selector: "any", reasonCode: "meet-danger" },
@@ -96,13 +98,25 @@ interface CandidateScore {
 interface ActorPolicyKnowledge {
   dungeonMoves: ReadonlyMap<MazeDirection, DungeonMoveKnowledge>;
   reparteeResponses: ReadonlyMap<string, ReparteeResponse>;
+  sharedJokeWitness: string | null;
+}
+
+function sharedJokeWitness(state: WorldState): string | null {
+  const depth = state.depth, active = depth.repartee.active;
+  if (!state.hero.values.includes("loyalty") || active?.rulesVersion !== 2 || active.roundIndex !== 1
+    || state.seed !== depth.seed || state.hero.id !== depth.hero.id
+    || depth.reparteeWitness.preference?.preferenceId !== "playfulness") return null;
+  // This one policy moment uses the same real source/presence checks as the reducer.
+  // A role, absent friend, private invented taste or unrelated saved preference is insufficient.
+  return isValidCampaignRepartee(depth) ? depth.companions.active[0]?.identity.name ?? null : null;
 }
 
 function projectActorPolicyKnowledge(state: WorldState): ActorPolicyKnowledge {
   const moves = state.depth.dungeon === null ? [] : projectDungeonMoveKnowledge(state.depth.dungeon);
   const responses = state.depth.repartee.active === null ? [] : reparteeResponses(state.depth.repartee);
   return { dungeonMoves: new Map(moves.map((move) => [move.direction, move])),
-    reparteeResponses: new Map(responses.map((response) => [response.id, response])) };
+    reparteeResponses: new Map(responses.map((response) => [response.id, response])),
+    sharedJokeWitness: sharedJokeWitness(state) };
 }
 
 function knownReparteeResponse(state: WorldState, candidate: DepthCommandCandidate, knowledge: ActorPolicyKnowledge): ReparteeResponse | undefined {
@@ -220,7 +234,10 @@ function scoreCandidate(
     if (response === undefined) throw new Error("Actor Policy cannot score an unknown repartee response");
     score = 20 + response.delta * 20;
     const curious = state.hero.values.includes("curiosity"), merciful = state.hero.values.includes("mercy");
-    if (curious && response.style === "direct") {
+    if (knowledge.sharedJokeWitness !== null && response.id === "loud-authority:category") {
+      score = 100;
+      reason = `loyalty makes room for one deliberate joke for ${knowledge.sharedJokeWitness}, whose declared taste is absurdity; the hero knowingly accepts -1 momentum for this round instead of answering the claim; ${response.explanation}`;
+    } else if (curious && response.style === "direct") {
       score += 40;
       reason = `curiosity tests a counter learned from ${reparteeBook.title}; ${response.explanation}`;
     } else if (!curious && merciful && response.classification === "near") {
@@ -392,6 +409,8 @@ function selectorMatches(
     case "companion-millstone-drag": return command.type === "combat-action" && command.action.type === "companion-action" && command.action.companionActionId === "millstone-drag";
     case "millrace-reversal": return command.type === "combat-action" && command.action.type === "joint-action"
       && command.action.jointActionId === "millrace-reversal" && forecast?.canAct === true && forecast.minimumDamage > 0;
+    case "witnessed-playful-reply": return knowledge.sharedJokeWitness !== null
+      && knownReparteeResponse(state, candidate, knowledge)?.id === "loud-authority:category";
     case "unknown-route": return command.type === "plan-route" && !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
     case "dangerous-route": {
       if (command.type !== "plan-route") return false;

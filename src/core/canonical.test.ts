@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v159 records Depth 28, learned vocabulary, and the real three-round flyting turns.
+      // v160 records Depth 29, retained solo/encore transcripts and actual witness judgments.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "5010a5964e794456",
-      "872cb1f639091782",
-      "2d2eeecf279df1f8",
-      "ce0ef523c5c0ec02",
-      "42ccbeb0350d2787",
-      "8da0f55e5dc40576",
-      "c200614100e4e762",
-      "ee3f2738226cae3e",
-      "6b4ae6e9372d982e",
-      "4eef1b6b92811a8b",
+      "d1d0957adedd7910",
+      "12fb1bf83ea7b30d",
+      "d3f73c1a802242b6",
+      "6936ec0521bc8dfa",
+      "5052d77e4f12f095",
+      "868d8d314e0cb386",
+      "047b3c5b41af0a02",
+      "b3e9ac6fa59e20f5",
+      "7b289ec0184072d9",
+      "3c2eca9efd3626f0",
     ]);
   }, 80_000);
 });

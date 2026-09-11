@@ -5,7 +5,7 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: F2 — The witness remembers.** Build one present-companion reaction to a real event, with cause-bound directional regard and a later earned callback. F1's solo duel is delivered; witness participation and memory are new work, not existing behavior.
+1. Finish **F2a — A companion judges the encore (v0.5.160)**: one actual pre-departure witness, a declared preference and an exact saved reaction. Implementation is under release verification; public delivery is not yet claimed. **F2b — Recall it at a later safe rest** follows separately.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -34,7 +34,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F2 — The witness remembers** | A present companion reacts, gains or loses regard for a reason, and can recall that moment later | Next; design builds on the delivered event producer |
+| **F2a — A companion judges the encore** | One real travelling companion watches a finite encore and records a cause-bound directional judgment, separate from winning and bond | Implemented for v0.5.160; release verification |
+| **F2b — The witness remembers** | The same present companion recalls the actual exchange once at a later eligible safe rest | Next; requires retained source and renewed presence |
 | **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Research/design; not a reskin of movement |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
 

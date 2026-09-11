@@ -1,7 +1,38 @@
 # Lifetime stories: regard, humor and consequences
 
-Status: design proposal, 2026-09-10. No new runtime system is claimed.
+Status: F2a implemented locally for v0.5.160, 2026-09-10; release verification in progress. Broader systems below remain proposals unless included in the scope note.
 Owner: gameplay/story roadmap. LLM work remains paused.
+
+## F2a implementation scope — a companion judges the encore
+
+After the original solo contest, one later eligible road-oath departure may
+offer an autonomous encore in its actual visited origin town. The hero carries
+the original learned vocabulary; a version-two duel can use a different real
+hall/inn and resident without rewriting where the book was read. The witness
+cannot also be the rival. The original transcript is archived exactly, and the
+encore consumes one additional opportunity rather than enabling repeat farming.
+Recovery, active encounters, quest settlement and arrival/farewell retain priority;
+the next ordinary action after resolution returns to oath route planning.
+
+At admission, that actual companion declares a stable, seeded judging preference:
+precision, humility or playfulness. This is authored character state, not an
+inference from profession, portrait, disposition or the hero's values. At
+resolution, the still-present companion records one reaction to exact spoken
+evidence. A sound answer can earn regard despite defeat, a hollow leadership
+boast can lose regard despite victory, and culinary nonsense can amuse without
+changing its legitimately losing score. No prior opinion is invented: the first
+directional record starts with `regardBefore: null` and records -1, 0 or +1.
+Zero means this recorded exchange produced no change, not a known lifetime
+neutral relationship. Existing combat bond is untouched.
+
+The native three-person stage shows a short witness line and a nod, frown,
+laugh or quiet posture. Journal → Adventure → Books & Flyting retains both
+contests, declared preference, exact evidence, outcome and witness-to-hero regard.
+No new permanent panel or viewer-operated contest is introduced. Depth 29
+migration initializes empty witness history, never retroactive opinions.
+All four encore commands remain foreground story beats; hidden catch-up stops
+before them. F2b's later safe-rest callback, trust, affection, more performances
+and a general relationship system are not implemented by this slice.
 
 ## The point
 
@@ -43,7 +74,7 @@ A. Victory is not automatic approval. Defeat is not automatic dislike. Private
 reactions require an explicit authored rule or stored preference; never infer
 them from names, portraits, professions or hidden omniscient knowledge.
 An absent record means no recorded judgment, not proof of neutral feelings.
-F2 must explicitly introduce its small judging-preference record; the current
+F2a explicitly introduces its small judging-preference record; the existing
 resident disposition does not establish a companion's personal values or humor.
 
 Do not introduce five meters as a prerequisite. First ship one real witnessed

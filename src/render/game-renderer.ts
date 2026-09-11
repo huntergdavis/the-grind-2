@@ -455,6 +455,7 @@ export class GameRenderer {
   private paused = false;
   private lightBaseY = 0;
   private resizeObserver: ResizeObserver | null = null;
+  private settledReparteeResizeFrame: number | null = null;
   private reducedMotion = false;
   private battleBinding: BattleAnimationBinding | null = null;
   private battleCueId: string | null = null;
@@ -487,7 +488,16 @@ export class GameRenderer {
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
-  private readonly handleResize = (): void => this.resizeToHost();
+  private readonly handleResize = (): void => {
+    this.resizeToHost();
+    if (this.host.dataset.reparteePhase === undefined || this.settledReparteeResizeFrame !== null) return;
+    // Header offsets and wrapped dialogue can settle after the initial host
+    // resize callback. One next-frame read avoids retaining their old bounds.
+    this.settledReparteeResizeFrame = requestAnimationFrame(() => {
+      this.settledReparteeResizeFrame = null;
+      if (!this.disposed) this.resizeToHost();
+    });
+  };
   private readonly handleReducedMotion = (event: MediaQueryListEvent): void => {
     this.reducedMotion = event.matches;
     this.host.dataset.reducedMotion = String(this.reducedMotion);
@@ -542,8 +552,14 @@ export class GameRenderer {
     renderer.host.dataset.rendererLifecycle = "mounted";
     renderer.host.dataset.rendererListenerCount = "3";
     renderer.resizeToHost();
-    renderer.resizeObserver = new ResizeObserver(() => renderer.resizeToHost());
+    renderer.resizeObserver = new ResizeObserver((entries) => {
+      if (renderer.host.dataset.reparteePhase !== undefined || entries.some(entry => entry.target === host)) renderer.handleResize();
+    });
     renderer.resizeObserver.observe(host);
+    for (const selector of ["#repartee-caption", ".topbar", "#view-toolbar", "#stage-focus-controls"]) {
+      const chrome = host.closest("#app")?.querySelector(selector);
+      if (chrome !== null && chrome !== undefined) renderer.resizeObserver.observe(chrome);
+    }
     window.addEventListener("resize", renderer.handleResize);
     renderer.reducedMotionQuery.addEventListener("change", renderer.handleReducedMotion);
     renderer.app.ticker.add(renderer.handleTick);
@@ -555,6 +571,8 @@ export class GameRenderer {
     this.disposed = true;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    if (this.settledReparteeResizeFrame !== null) cancelAnimationFrame(this.settledReparteeResizeFrame);
+    this.settledReparteeResizeFrame = null;
     window.removeEventListener("resize", this.handleResize);
     this.reducedMotionQuery?.removeEventListener("change", this.handleReducedMotion);
     this.reducedMotionQuery = null;
@@ -1115,7 +1133,8 @@ export class GameRenderer {
     delete this.host.dataset.disarmingKitPurchaseReceipt;
     delete this.host.dataset.disarmingKitPurchaseVisual;
     for (const key of ["reparteePhase", "reparteeCommand", "reparteeBook", "reparteeRound", "reparteeMomentum",
-      "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual"]) delete this.host.dataset[key];
+      "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
+      "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -4674,8 +4693,13 @@ export class GameRenderer {
     this.host.dataset.reparteeHero = scene.heroId;
     this.host.dataset.reparteeResident = scene.residentId ?? "none";
     this.host.dataset.reparteeOutcome = scene.outcome ?? "pending";
+    this.host.dataset.reparteeWitness = scene.witness?.id ?? "none";
+    this.host.dataset.reparteeWitnessPose = scene.witness?.reaction?.pose ?? (scene.witness === null ? "none" : "watching");
+    this.host.dataset.reparteeRegard = scene.witness?.reaction === null || scene.witness === null
+      ? "unestablished" : String(scene.witness.reaction.regardAfter);
     this.host.dataset.reparteeVisual = scene.phase === "reading"
       ? "actual-hero|public-copy|reading-desk|no-resource-damage"
+      : scene.witness !== null ? "actual-hero|actual-resident|actual-companion|witnessed-encore|three-marks|no-resource-damage|bond-unchanged"
       : "actual-hero|actual-resident|speaking-gestures|three-marks|no-resource-damage";
     this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172331));
     this.worldLayer.addChild(rect(0, 148, 320, 32, 0x403d35));
@@ -4711,10 +4735,24 @@ export class GameRenderer {
       this.lightLayer.addChild(circle(177, 115, 30, 0xefcd7c, 0.09));
       return;
     }
-    this.drawHero(state, 92, 139, palette, 1.7, scene.heroId, false);
+    const heroX = scene.witness === null ? 92 : 111;
+    const residentX = scene.witness === null ? 232 : 242;
+    this.drawHero(state, heroX, 139, palette, 1.7, scene.heroId, false);
     if (scene.residentId !== null) {
-      const rival = this.drawHero(state, 232, 139, palette, 1.7, scene.residentId, false);
+      const rival = this.drawHero(state, residentX, 139, palette, 1.7, scene.residentId, false);
       rival.scale.x = -1.7;
+    }
+    if (scene.witness !== null) {
+      const witness = this.drawCompanion(state, scene.witness.id, scene.witness.role, 43, 144, palette, 1.4);
+      const pose = scene.witness.reaction?.pose ?? "quiet";
+      // Static posture is meaningful in reduced motion too; regard is not a health bar.
+      witness.rotation = pose === "nod" ? 0.06 : pose === "frown" ? -0.07 : pose === "laugh" ? -0.05 : 0;
+      const cue = new Graphics();
+      if (pose === "nod") cue.moveTo(29, 96).lineTo(33, 100).lineTo(40, 92).stroke({ color: 0x9cdbce, width: 1.8 });
+      else if (pose === "frown") cue.moveTo(28, 98).quadraticCurveTo(35, 93, 42, 98).stroke({ color: 0xd6a5ad, width: 1.8 });
+      else if (pose === "laugh") cue.moveTo(28, 95).quadraticCurveTo(35, 103, 42, 95).stroke({ color: 0xf0cf85, width: 1.8 });
+      else cue.circle(33, 97, 1.7).circle(39, 97, 1.7).fill(0xa5c7c3);
+      this.worldLayer.addChild(cue);
     }
     book(161, 148, 0.8);
     const speech = (x: number, color: number, tail: number): void => {
@@ -4722,8 +4760,8 @@ export class GameRenderer {
         .poly([x - 3, 89, x + 7, 89, x + tail, 97]).fill({ color, alpha: 0.95 })
         .circle(x - 8, 78, 2).fill(0x253343).circle(x, 78, 2).fill(0x253343).circle(x + 8, 78, 2).fill(0x253343));
     };
-    speech(232, 0xbccbd9, -7);
-    if (scene.reply !== null) speech(92, 0xefcb83, 7);
+    speech(residentX, 0xbccbd9, -7);
+    if (scene.reply !== null) speech(heroX, 0xefcb83, 7);
     for (let index = 0; index < 3; index += 1) {
       const delta = scene.marks[index];
       const x = 146 + index * 15;

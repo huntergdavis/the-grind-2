@@ -8,6 +8,7 @@ import {
 } from "../depth/counter-duel";
 import type { EquipmentSlot, QuestObjective } from "../depth/types";
 import { reparteeBook } from "../depth/repartee";
+import { isValidReparteeWitnessReaction, reparteeWitnessPreference } from "../depth/repartee-witness";
 
 export const maximumSpectatorMoments = 8;
 export const maximumSpectatorDetails = 8;
@@ -416,11 +417,17 @@ function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleE
   if (duel === null) return null;
   const resident = after.depth.towns[duel.locationId]?.residents.find((entry) => entry.id === duel.residentId);
   const rival = resident?.name ?? duel.residentId;
+  const preference = after.depth.reparteeWitness.preference;
+  const witness = after.depth.companions.active.find((entry) => entry.identity.residentId === preference?.witnessId
+    && entry.joinedTick === preference.joinedTick);
   if (source.commandType === "start-repartee" && previous.active === null && current.active !== null
     && duel.startedTick === source.tick && `${after.campaignId}:${duel.sourceCommandId}` === source.commandId) {
     return {
       episodeId: `repartee:${duel.encounterId}`, title: "Flyting declared", kind: "battle", status: "ongoing",
-      details: [`Rival · ${rival}`, "Three rounds · direct +1, near 0, category mistake −1 · victory earns at most +1 town reputation"],
+      details: [`Rival · ${rival}`, "Three rounds · direct +1, near 0, category mistake −1 · victory earns at most +1 town reputation",
+        ...(preference !== null && witness !== undefined && preference.sourceCommandId === duel.sourceCommandId
+          && preference.declaredTick === source.tick
+          ? [`Witness · ${witness.identity.name} · ${reparteeWitnessPreference(preference.preferenceId).label}`] : [])],
     };
   }
   if (source.commandType !== "repartee-action" || previous.active?.encounterId !== duel.encounterId) return null;
@@ -431,6 +438,13 @@ function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleE
   const resolved = completed !== null && completed.completedTick === source.tick
     && `${after.campaignId}:${completed.completionCommandId}` === source.commandId;
   if (!newRound && !resolved) return null;
+  const reaction = after.depth.reparteeWitness.reaction;
+  const witnessed = resolved && before.depth.reparteeWitness.reaction === null && reaction !== null
+    && preference !== null && isValidReparteeWitnessReaction(reaction, current, preference)
+    && witness !== undefined && reaction.witnessId === witness.identity.residentId
+    && reaction.witnessName === witness.identity.name
+    && reaction.encounterId === duel.encounterId && reaction.completedTick === source.tick
+    && `${after.campaignId}:${reaction.completionCommandId}` === source.commandId;
   return {
     episodeId: `repartee:${duel.encounterId}`,
     title: resolved ? `Flyting ${completed.outcome}` : `Flyting round ${duel.rounds.length}`,
@@ -439,6 +453,8 @@ function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleE
       ...(newRound && round !== undefined ? [`${rival}: ${round.call}`, `${after.hero.name}: ${round.reply}`] : []),
       `Momentum · ${duel.momentum > 0 ? "+" : ""}${duel.momentum} after ${duel.rounds.length} rounds`,
       ...(resolved ? [`Outcome · ${completed.outcome} · reputation ${completed.reputationBefore} → ${completed.reputationAfter} (+${completed.reputationAward})`] : []),
+      ...(witnessed ? [`${reaction.witnessName}: ${reaction.line}`,
+        `Regard · ${reaction.witnessName} → ${after.hero.name}: not established → ${reaction.regardAfter > 0 ? "+" : ""}${reaction.regardAfter} · bond unchanged`] : []),
     ],
   };
 }
