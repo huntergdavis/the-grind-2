@@ -490,7 +490,7 @@ describe("spectator inbox", () => {
     expect(inbox.items[0]?.details.join(" ")).not.toMatch(/learned/i);
   });
 
-  it("coalesces real dungeon entry, landmarks, and completion into one episode", () => {
+  it("coalesces real dungeon entry, landmarks, and completion while retaining a separate guardian battle", () => {
     let before = createWorld("spectator-dungeon", "campaign:dungeon");
     const location = before.depth.atlas.locations.find((entry) => entry.kind === "dungeon");
     if (location === undefined) throw new Error("Spectator dungeon fixture has no atlas dungeon");
@@ -515,16 +515,66 @@ describe("spectator inbox", () => {
       "dungeon",
     );
     inbox = observeSpectatorInbox(inbox, before, after, true);
+    const dungeonId = after.depth.dungeon!.id;
+    const entrySourceId = after.chronicle.at(-1)!.id;
+    const entryEpisodeId = inbox.items[0]!.id;
+    const landmarkSources: string[] = [];
+    let battleEntrySourceId: string | null = null, battleResolutionSourceId: string | null = null;
     const maximumTurns = (after.depth.dungeon?.cells.length ?? 0) * 2;
     for (let turn = 0; turn < maximumTurns && !after.depth.dungeon?.completed; turn += 1) {
       before = after;
-      after = withDepth(before, advanceDepth(before.depth), "dungeon");
+      const depth = advanceDepth(before.depth);
+      // The location boundary and Chronicle envelope are explicit UI fixtures;
+      // the dungeon actions, guardian battle and recovery are actual depth rules.
+      const mode = before.depth.combat !== null || depth.combat !== null ? "battle"
+        : before.depth.hero.resources.health <= 0 ? "camp" : "dungeon";
+      after = withDepth(before, depth, mode);
       inbox = observeSpectatorInbox(inbox, before, after, true);
+      const sourceId = after.chronicle.at(-1)!.id;
+      const dungeonEpisode = inbox.items.find(item => item.episodeId === `dungeon:${dungeonId}`)!;
+      expect(dungeonEpisode.id).toBe(entryEpisodeId);
+      expect(dungeonEpisode.sourceId).toBe(entrySourceId);
+      const landmarks = depth.dungeon!.cells.filter(cell => depth.dungeon!.visitedCellIds.includes(cell.id)
+        && !before.depth.dungeon!.visitedCellIds.includes(cell.id)
+        && (cell.feature === "shrine" || cell.feature === "treasure" || cell.feature === "lair"));
+      if (landmarks.length > 0 && !depth.dungeon!.completed) {
+        landmarkSources.push(sourceId);
+        expect(dungeonEpisode.latestSourceId).toBe(sourceId);
+        for (const cell of landmarks) expect(dungeonEpisode.details)
+          .toContain(`${cell.feature[0]!.toUpperCase()}${cell.feature.slice(1)} chamber reached`);
+      }
+      if (before.depth.combat === null && depth.combat !== null) {
+        battleEntrySourceId = sourceId;
+        expect(inbox.items.find(item => item.episodeId === `battle:${depth.combat!.id}`)).toMatchObject({
+          kind: "battle", status: "ongoing", title: "Battle joined", sourceId, latestSourceId: sourceId,
+        });
+        expect(dungeonEpisode.latestSourceId).not.toBe(sourceId);
+      } else if (before.depth.combat !== null && depth.combat === null) {
+        battleResolutionSourceId = sourceId;
+        expect(inbox.items.find(item => item.episodeId === `battle:${before.depth.combat!.id}`)).toMatchObject({
+          kind: "battle", status: "resolved", sourceId: battleEntrySourceId, latestSourceId: sourceId,
+        });
+        expect(dungeonEpisode.latestSourceId).not.toBe(sourceId);
+      }
     }
     expect(after.depth.dungeon?.completed).toBe(true);
-    expect(inbox.items).toHaveLength(1);
-    expect(inbox.items[0]).toMatchObject({ kind: "dungeon", status: "resolved" });
-    expect(inbox.items[0]?.title).toContain("Crossed");
+    expect(landmarkSources.length).toBeGreaterThan(0);
+    expect(battleEntrySourceId).not.toBeNull();
+    expect(battleResolutionSourceId).not.toBeNull();
+    expect(battleResolutionSourceId).not.toBe(battleEntrySourceId);
+    expect(inbox.items).toHaveLength(2);
+    const dungeonEpisodes = inbox.items.filter(item => item.kind === "dungeon");
+    expect(dungeonEpisodes).toHaveLength(1);
+    expect(dungeonEpisodes[0]).toMatchObject({ id: entryEpisodeId, episodeId: `dungeon:${dungeonId}`,
+      status: "resolved", sourceId: entrySourceId, latestSourceId: after.chronicle.at(-1)!.id });
+    expect(dungeonEpisodes[0]?.title).toContain("Crossed");
+    const guardian = after.depth.dungeon!.lair!.encounter!;
+    const battleEpisodes = inbox.items.filter(item => item.kind === "battle");
+    expect(battleEpisodes).toHaveLength(1);
+    expect(battleEpisodes[0]).toMatchObject({ episodeId: `battle:${guardian.combatId}`, status: "resolved",
+      sourceId: battleEntrySourceId, latestSourceId: battleResolutionSourceId });
+    expect(battleEpisodes[0]?.title).toBe(guardian.resolution!.outcome === "victory" ? "Battle won"
+      : guardian.resolution!.outcome === "defeat" ? "Battle lost" : "Battle ended in stalemate");
   });
 
   it("records Wayfinder key, gate, and shortcut transitions as visible dungeon moments", () => {

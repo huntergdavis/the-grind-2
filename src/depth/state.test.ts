@@ -718,14 +718,36 @@ describe("composed depth state", () => {
     });
     expect(state.log.at(-1)?.message).toContain("its exact chamber remains unknown");
 
+    let guardianStarts = 0;
     for (let turn = 0; turn < 256 && !state.dungeon?.completed; turn += 1) {
       const candidate = depthCommandCandidates(state)[0]?.command;
+      // New expeditions can earn one guardian. Resolve actual legal combat
+      // and any owed defeat/tonic recovery; never erase or invent its result.
+      if (candidate?.type === "combat-action" && state.combat !== null) {
+        state = stepDepth(state, { type: "combat-action", action: chooseCombatAction(state.combat) });
+        continue;
+      }
+      if (candidate?.type === "wait") {
+        expect(state.hero.resources.health).toBe(0);
+        const lair = state.dungeon!.lair;
+        state = stepDepth(state, candidate);
+        expect(state.dungeon!.currentCellId).toBe(state.dungeon!.entryCellId);
+        expect(state.dungeon!.lair).toEqual(lair);
+        continue;
+      }
       if (
         candidate?.type !== "move-dungeon" && candidate?.type !== "disarm-dungeon-trap" &&
-        candidate?.type !== "unlock-dungeon-gate" && candidate?.type !== "search-dungeon"
+        candidate?.type !== "unlock-dungeon-gate" && candidate?.type !== "search-dungeon" &&
+        candidate?.type !== "start-dungeon-guardian" && candidate?.type !== "use-dungeon-tonic" &&
+        candidate?.type !== "open-dungeon-passage"
       ) throw new Error(`Unexpected successor traversal command ${candidate?.type ?? "none"}`);
+      if (candidate.type === "start-dungeon-guardian") guardianStarts += 1;
       state = stepDepth(state, candidate);
     }
+    expect(guardianStarts).toBe(1);
+    const guardianResult = state.dungeon!.lair!.encounter!.resolution;
+    expect(guardianResult).not.toBeNull();
+    expect(guardianResult!.outcome).toBe(guardianResult!.combat.outcome);
     expect(state.dungeon?.completed).toBe(true);
     expect(state.dungeon?.currentCellId).toBe(state.dungeon?.exitCellId);
     expect(projectDungeonLandmark(state.dungeon!)).toEqual({

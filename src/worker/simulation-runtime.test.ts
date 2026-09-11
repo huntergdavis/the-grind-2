@@ -140,7 +140,7 @@ describe("simulation worker runtime", () => {
     let active = createWorld("worker-threat-provenance", "campaign");
     for (let step = 0; step < 512 && active.depth.combat === null; step += 1) active = advanceWorld(active);
     const combat = active.depth.combat;
-    if (combat?.threat.rating !== "place-bound") throw new Error("Worker threat fixture did not reach rated combat");
+    if (combat === null || combat.threat.rating === "legacy-unrated") throw new Error("Worker threat fixture did not reach rated combat");
 
     const forgedLegacy: WorldState = {
       ...active,
@@ -152,17 +152,26 @@ describe("simulation worker runtime", () => {
     const rejected = new SimulationRuntime().process(initializeEnvelope(forgedLegacy));
     expect(errorCode(rejected)).toBe("invalidPayload");
 
+    // The first actual battle can now be a dungeon guardian. Forge its real
+    // provenance family rather than grafting road-only fields onto that profile.
+    const profile = combat.threat;
+    const wrongCellId = active.depth.dungeon?.visitedCellIds.find(id =>
+      profile.rating === "dungeon-bound" && id !== profile.cellId);
+    if (profile.rating === "dungeon-bound" && wrongCellId === undefined) {
+      throw new Error("Worker dungeon threat fixture has no other actually visited room");
+    }
+    const forgedProfile = profile.rating === "place-bound"
+      ? { ...profile, fromLocationId: profile.destinationLocationId, destinationLocationId: profile.fromLocationId }
+      : { ...profile, cellId: wrongCellId! };
+    const forgedContext: WorldState = { ...active, depth: { ...active.depth, combat: { ...combat, threat: forgedProfile } } };
+    expect(errorCode(new SimulationRuntime().process(initializeEnvelope(forgedContext)))).toBe("invalidPayload");
+
     const runtime = new SimulationRuntime();
     expect(runtime.process(initializeEnvelope(active)).kind).toBe("state");
     const live = runtime.currentState as unknown as Record<string, any>;
-    const profile = live.depth.combat.threat;
     live.depth.combat = {
       ...live.depth.combat,
-      threat: {
-        ...profile,
-        fromLocationId: profile.destinationLocationId,
-        destinationLocationId: profile.fromLocationId,
-      },
+      threat: forgedProfile,
     };
     const response = runtime.process(advanceEnvelope(active.tick, "request:forged-threat"));
     expect(errorCode(response)).toBe("internalError");
