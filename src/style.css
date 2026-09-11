@@ -43,6 +43,10 @@
 #app:is([data-repartee-scene], [data-bell-scene]) .hero-hud,
 #app:is([data-repartee-scene], [data-bell-scene]) #stage-focus-ribbon,
 #app:is([data-repartee-scene], [data-bell-scene]) .mini-map { display: none; }
+#app[data-elsewhere-loaf] :is(.chronicle, .hero-hud, #stage-focus-ribbon, .mini-map) { display: none; }
+#app[data-active-view="watch"][data-elsewhere-loaf] > #stage[data-view-mode="live"] { inset: 0 !important; height: 100% !important; }
+#elsewhere-loaf-outcome { margin-top: 0.5rem; font-size: 0.75rem; padding: 0.25rem 0.6rem; }
+.company-history[data-elsewhere-loaf] { overflow-wrap: anywhere; }
 /* Dialogue computes its own header/caption safe rectangle. Do not reserve the
    ordinary Watch ribbon a second time or retain its pre-resize host offsets. */
 #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > #stage[data-view-mode="live"] {
@@ -73,6 +77,9 @@
   #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > .topbar { flex-direction: row; align-items: center; }
   #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > .topbar .controls { width: auto; }
   #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > .topbar .eyebrow { padding-top: 0; }
+  #app[data-active-view="watch"][data-elsewhere-loaf] > .topbar { flex-direction: row; align-items: center; }
+  #app[data-active-view="watch"][data-elsewhere-loaf] > .topbar .controls { width: auto; }
+  #app[data-active-view="watch"][data-elsewhere-loaf] > .topbar .eyebrow { padding-top: 0; }
 }
 @media (max-height: 560px) and (min-width: 761px) {
   .repartee-caption { right: 1rem; left: 52%; bottom: 0.75rem; }

@@ -5,10 +5,10 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: Elsewhere — The Experimental Loaf.** A former baker
-   attempts a real, recorded task while the hero is away. First establish the
-   current participant/inn/away boundary and define supplied materials and
-   outcome rules; a profession label alone is not an accomplished activity.
+1. **Release candidate: Elsewhere — The Experimental Loaf, v0.5.179.** A former
+   baker attempts one recorded task while the hero is away. Implementation,
+   focused tests and final desktop/mobile/Focus browser acceptance pass.
+   GitHub CI and public deployment verification are next.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -153,7 +153,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Elsewhere: The Experimental Loaf** | A former baker makes an actual cautious or experimental attempt, with an edible or bricklike outcome | Next proposal; new canonical worksite/activity required, not an existing off-screen accomplishment |
+| **Elsewhere: The Experimental Loaf** | A former baker makes an actual cautious or experimental attempt, with an edible or bricklike outcome | v0.5.179 in progress; actual T73 away boundary established |
+| **News from the oven** | On a real later reunion, the same baker can tell the hero how the recorded bake turned out | Next proposal after the loaf ships; preserve earlier dialogue and old completed greetings, no invented delivery or reward |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 

@@ -2,6 +2,95 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Elsewhere: The Experimental Loaf — v0.5.179 in progress
+
+Reuses the V04.9c2 calling and the previous council's narrow proposal,
+recovered with `deja "Experimental Loaf"` on 2026-09-11. Rules, presentation
+and acceptance agents reviewed the slice independently. One unchanged
+`dbb6b60` known journey completed in **2,087 ms**, within its existing T320
+bound. T72 is still Elderwatch; actual travel reaches Eldervale at T73,
+hash `4ce6ee4356e6a55b`. Healthy former baker Ada Fen joined T28, fulfilled
+her oath at Elderwatch T45, and has a verified Candle Inn there. T74 plans
+the return, T75 camps and T76 begins battle. These facts establish eligibility,
+not a pre-existing bake or an unrecorded journey home. Exact T73–T75 baseline
+states are retained in ignored scratch; no seed sweep or forced resources.
+
+The implementation adds one explicit inn trial worksite, supplying one batch
+of dough. A committed steady/experimental choice and independent seeded oven
+draw determine one plain, unexpectedly good or bricklike loaf. Admission and
+completion advance alongside actual commands, without replacing the hero's
+command, scene or adventure log. The source command identity comes from the
+already validated actor choice. Returning to the venue pauses unfinished work
+until the hero is away again. A completed receipt is retained, not repeated.
+
+Presentation uses one finite existing-controller cutaway and collapsed Company
+history, with the actual baker and oven but no hero. Delayed playback says
+“Earlier, elsewhere.” Public admission does not leak the committed oven result.
+No hero resources, XP, knowledge, relationship score, new scheduler or model.
+Old saves are not backfilled during load. Verification and deployment pending.
+
+Initial integration checks found the released town-visit candidate's actual
+`town:location:8` source at golden:0 T518, not a `depth:T` source. The narrow fix
+accepts only the exact recorded public, visited town identity; it does not
+rename the hero's existing command or skip its action. Eight focused rules
+tests and TypeScript pass. The new source-closure manifests were also added
+and alphabetically corrected; the boundary check passes.
+
+The corrected single ten-campaign replay produced every snapshot in **190.007s**
+but failed its unchanged **80s local limit**. This is not a local test pass.
+Only golden:1 changes, to `7b41f754e220d1ac`: Hale Cooper admits a steady bake
+at T122 and finishes a plain loaf at T123. All nine campaigns without a new
+bake retain their exact v178 hashes. Only that full-state anchor is updated;
+no state is normalized away and no test limit is increased. Clean CI remains
+the release gate, as in the previous release.
+
+The corrected single integrated journey passes in **5,072 ms** post-import,
+under the unchanged T320/20-second bound. Ada chooses steady baking: admission
+T73 hashes `7b4e8a9a1dc2ea42`, plain-loaf completion T74 `95940f1f61a29b47`,
+and ordinary camp T75 `81089edaf8c0eeee`. Removing only the optional NPC receipt
+in an explicitly labeled test comparison recovers every exact old hero-world
+hash, including later T85. Actual commands, scene/log, resources, routes and
+companions are unchanged; all four checkpoints reload exactly. Current reunion
+and supper browser anchors now use the new whole-save hashes; released archival
+saves remain untouched.
+
+Eight presentation checks and final TypeScript pass. The renderer uses the
+existing actor identity primitive without hero gear or the generic pre-existing
+bread prop, plus a bounded knead/admire gesture. Ordinary hero overlays hide
+during the temporary cutaway. Playback follows live committed transitions;
+reload retains Company history and shows the hero's actual scene, without a
+new missed-event queue or automatic replay. Older retained packets receive the
+“Earlier, elsewhere” label if presented. Browser and public verification pending.
+
+The short independent integration review found no blocking source, privacy,
+actor, lifecycle or history issue. Nearby regressions initially found one
+additional stale T85 full-state anchor in the existing reunion scene test;
+it now uses the independently observed `f5b9799468cf117e`, and its two tests
+pass. The other 29 checks from that first batch passed. Together with the
+rules and new presentation checks, **45 distinct focused tests** pass across
+eight files. Production build, version/boundary checks and complete local HTML,
+three-asset and eight-source-entry verification pass. Neither LLM worker changes.
+
+The first production browser case passes in **56.0s** with exact live T73/T74,
+reload/Company history, ordinary T75, and no errors or model/external requests.
+All three captures were inspected. Desktop and 320px/Focus layouts are clear,
+but visual inspection caught a staging mismatch not caught by unobstructed-bounds
+checks: the baker stood too far from the dough for the kneading gesture.
+A narrow actor/hand-position correction is underway; the first passing run
+does not serve as final acceptance for that later presentation change.
+
+The final staging moves Ada beside the table and places the actual front hand
+inside the dough. A new native contact test samples the whole bounded knead
+and reduced-motion pose; all three native tests and final TypeScript pass,
+bringing the focused total to **46 distinct tests**. The rebuilt production
+browser passes in **56.5s**, including actual Pixi hand/product coordinate
+containment, live receipts, exact reload, ordinary continuation and no errors
+or model/external requests. All three final desktop/320px/Focus captures were
+visually inspected by **2026-09-11 16:03:28 PDT**; the original captures remain
+separate. The corrected scene no longer kneads empty air. Final local build
+and complete HTML/asset/source checks pass; GitHub CI and public verification
+remain pending.
+
 ## An old line returns — v0.5.178 verified release
 
 **Live and publicly source-verified 2026-09-11 14:55:31 PDT.** Feature

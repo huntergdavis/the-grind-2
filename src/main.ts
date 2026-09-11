@@ -83,6 +83,7 @@ import {
   type BattleSpoilsCutawayCandidate,
   type AbilityResonanceCutawayCandidate,
   type FarewellCutawayCandidate,
+  type ElsewhereLoafCutawayCandidate,
   type FieldNoteResolutionCutawayCandidate,
   type FieldNoteResolutionLiveTellCutawayCandidate,
   type HeroGrowthAllocationCutawayCandidate,
@@ -195,6 +196,7 @@ import { SimulationClient } from "./worker/simulation-client";
 import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
 import { createReparteeView, projectReparteeScene, type ReparteeSceneView } from "./ui/repartee-view";
 import { createCompanionReunionRecord } from "./ui/companion-reunion-view";
+import { createElsewhereLoafRecord, elsewhereLoafTitle } from "./ui/elsewhere-loaf-view";
 import { selectCompanionReunion } from "./depth/companion-reunion";
 import { createCompanionCreditRecord } from "./ui/companion-credit-view";
 import { selectCompanionCredit } from "./depth/companion-credit";
@@ -445,6 +447,12 @@ const elements = {
   spectatorInboxClose: requiredElement<HTMLButtonElement>("#spectator-inbox-close"),
   updateStatus: requiredElement<HTMLElement>("#update-status"),
   trapCutaway: requiredElement<HTMLElement>("#trap-cutaway"),
+  elsewhereLoafCutaway: requiredElement<HTMLElement>("#elsewhere-loaf-cutaway"),
+  elsewhereLoafTitle: requiredElement<HTMLElement>("#elsewhere-loaf-title"),
+  elsewhereLoafActor: requiredElement<HTMLElement>("#elsewhere-loaf-actor"),
+  elsewhereLoafLine: requiredElement<HTMLElement>("#elsewhere-loaf-line"),
+  elsewhereLoafSupply: requiredElement<HTMLElement>("#elsewhere-loaf-supply"),
+  elsewhereLoafOutcome: requiredElement<HTMLButtonElement>("#elsewhere-loaf-outcome"),
   trapCutawayTitle: requiredElement<HTMLElement>("#trap-cutaway-title"),
   trapCutawayEvent: requiredElement<HTMLElement>("#trap-cutaway-event"),
   trapCutawayCommand: requiredElement<HTMLElement>("#trap-cutaway-command"),
@@ -2487,6 +2495,31 @@ interface CutawayRecipeAdapter {
 }
 
 const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> = {
+  "elsewhere-loaf@1": {
+    root: elements.elsewhereLoafCutaway, outcomeButton: elements.elsewhereLoafOutcome, prepare: () => null,
+    present: (candidate) => {
+      const packet = (candidate as ElsewhereLoafCutawayCandidate).packet;
+      elements.app.dataset.elsewhereLoaf = packet.phase;
+      Object.assign(elements.elsewhereLoafCutaway.dataset, { active: "true", event: packet.eventId,
+        source: packet.sourceCommandId, phase: packet.phase, actor: packet.residentId, location: packet.locationId });
+      elements.elsewhereLoafTitle.textContent = elsewhereLoafTitle(packet, state.tick);
+      elements.elsewhereLoafActor.textContent = `${packet.companionName} · ${packet.innName}`;
+      elements.elsewhereLoafLine.textContent = packet.line;
+      elements.elsewhereLoafSupply.textContent = packet.phase === "admission"
+        ? `Inn-supplied dough: 1 · ${packet.style === "experimental" ? "An experiment" : "A steady recipe"}`
+        : "Trial dough: 1→0 · One loaf. The hero is elsewhere.";
+      elements.elsewhereLoafOutcome.disabled = false;
+      elements.elsewhereLoafCutaway.hidden = false;
+    },
+    presentPhase: phase => { elements.elsewhereLoafCutaway.dataset.presentationPhase = phase; },
+    finish: () => {
+      elements.elsewhereLoafCutaway.hidden = true;
+      elements.elsewhereLoafCutaway.dataset.active = "false";
+      elements.elsewhereLoafOutcome.disabled = true;
+      delete elements.app.dataset.elsewhereLoaf;
+      renderer.render(state);
+    },
+  },
   "trap-resolution@1": {
     root: elements.trapCutaway,
     outcomeButton: elements.trapCutawayOutcome,
@@ -2769,6 +2802,10 @@ function settleActiveCutaway(promotePending = true): void {
 }
 
 function cancelCutawayPresentation(): void {
+  elements.elsewhereLoafCutaway.hidden = true;
+  elements.elsewhereLoafCutaway.dataset.active = "false";
+  elements.elsewhereLoafOutcome.disabled = true;
+  delete elements.app.dataset.elsewhereLoaf;
   cutawayController = cancelCutawayController(cutawayController);
   trapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
   syncCutawayBusy();
@@ -3451,6 +3488,8 @@ function presentViewScreens(): void {
     elements.journalCompanionActive.querySelector<HTMLElement>("details > summary")?.focus({ preventScroll: true });
   }
   const previousReunion = elements.journalCompanionFormer.querySelector<HTMLDetailsElement>("details[data-companion-reunion]");
+  const previousLoaf = elements.journalCompanionFormer.querySelector<HTMLDetailsElement>("details[data-elsewhere-loaf]");
+  const loafRecordFocused = previousLoaf?.querySelector("summary") === document.activeElement;
   const reunionRecordFocused = previousReunion?.querySelector("summary") === document.activeElement;
   elements.journalCompanionFormer.replaceChildren(...party.former.map((companion) => {
     const item = document.createElement("li");
@@ -3478,6 +3517,12 @@ function presentViewScreens(): void {
         && previousReunion.open;
       item.append(reunionRecord);
     }
+    const loafRecord = createElsewhereLoafRecord(document, state, companion.id, companion.joinedTick);
+    if (loafRecord !== null) {
+      loafRecord.open = previousLoaf?.dataset.campaign === state.campaignId
+        && previousLoaf.dataset.elsewhereLoaf === loafRecord.dataset.elsewhereLoaf && previousLoaf.open;
+      item.append(loafRecord);
+    }
     return item;
   }));
   const archivedCredit = state.depth.companionCredit;
@@ -3499,6 +3544,7 @@ function presentViewScreens(): void {
   if (reunionRecordFocused) {
     elements.journalCompanionFormer.querySelector<HTMLElement>("details[data-companion-reunion] > summary")?.focus({ preventScroll: true });
   }
+  if (loafRecordFocused) elements.journalCompanionFormer.querySelector<HTMLElement>("details[data-elsewhere-loaf] > summary")?.focus({ preventScroll: true });
   if (creditRecordFocused) {
     (elements.journalCompanionActive.querySelector<HTMLElement>("details[data-companion-credit] > summary")
       ?? elements.journalCompanionFormer.querySelector<HTMLElement>("details[data-companion-credit] > summary"))?.focus({ preventScroll: true });
@@ -5570,6 +5616,8 @@ elements.spectatorInboxClose.addEventListener("click", () => {
   presentSpectatorInbox();
   focusWatchControl();
 });
+
+elements.elsewhereLoafOutcome.addEventListener("click", () => { renderer.showCutawayOutcome(); });
 
 elements.trapCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;

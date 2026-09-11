@@ -275,7 +275,7 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly eleven production recipes as frozen capability-free data", () => {
+  it("registers exactly twelve production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
@@ -289,6 +289,7 @@ describe("versioned presentation cutaway registry", () => {
       "weapon-memory@1",
       "battle-spoils@1",
       "town-itinerary@1",
+      "elsewhere-loaf@1",
     ]);
     expect(cutawayRegistry.recipes.find((recipe) => recipe.key === "field-note-resolution@1")).toEqual({
       registryVersion: 1,

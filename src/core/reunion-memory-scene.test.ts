@@ -6,7 +6,7 @@ import { advanceWorld, campaignDirector, upgradeWorldState } from "./simulation"
 describe("an old line returns in the actual reunion", () => {
   it("keeps the earned arrival and all character facts while recording the new exact dialogue", () => {
     const before = naturalCompanionReunionFixture();
-    expect([before.tick, canonicalHash(before)]).toEqual([85, "b9f956d8d29d2d94"]);
+    expect([before.tick, canonicalHash(before)]).toEqual([85, "f5b9799468cf117e"]);
     const world = advanceWorld(before), reunion = world.depth.companionReunion!, completed = reunion.completed!;
     expect(world.tick).toBe(86);
     expect(completed.memory).toMatchObject({ witnessId: reunion.residentId, joinedTick: reunion.joinedTick,

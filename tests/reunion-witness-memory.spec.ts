@@ -199,7 +199,7 @@ test("the same former companion remembers an exact witnessed line without changi
   };
   try {
     expect([before.tick, world.tick, next.tick]).toEqual([85, 86, 87]);
-    expect(canonicalHash(before)).toBe("b9f956d8d29d2d94");
+    expect(canonicalHash(before)).toBe("f5b9799468cf117e");
     expect(before.chronicle.at(-1)!.commandId).toBe(before.campaignId + ":" + reunion.arrival.sourceCommandId);
     expect(reunion.arrival).toMatchObject({ tick: 85, sourceCommandId: "depth:85:travel:9", sourceLocationId: "location:10", distance: 9 });
     expect(reunion).toMatchObject({ companionName: "Ada Fen", joinedTick: 28, departureTick: 45, locationId: "location:0" });

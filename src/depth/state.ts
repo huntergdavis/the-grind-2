@@ -148,6 +148,7 @@ import { isValidCampaignRoadSupper, recordRoadRationPurchase, recordRoadSupperMe
 import { createRoadRations } from "./road-rations";
 import { createCombatSupperPreparation } from "./supper-preparation";
 import { isValidCampaignSpareGearTrade, selectSpareGearTrade, stepSpareGearTrade } from "./spare-gear-trade";
+import { advanceElsewhereLoaf, isValidCampaignElsewhereLoaf } from "./elsewhere-loaf";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -964,7 +965,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) || !isValidCampaignSpareGearTrade(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) || !isValidCampaignSpareGearTrade(state) || !isValidCampaignElsewhereLoaf(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -2663,7 +2664,8 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
   return selectDungeonSecretPassage(dungeon);
 }
 
-export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+export function stepDepth(input: DepthState, command: DepthCommand, sourceCommandId?: string): DepthState {
+  if (!isValidCampaignElsewhereLoaf(input)) throw new TypeError("Campaign state violates elsewhere-loaf invariants");
   if (!isValidCampaignSpareGearTrade(input)) throw new TypeError("Campaign state violates spare-gear-trade invariants");
   if (!isValidCampaignDungeonLair(input)) throw new TypeError("Campaign state violates dungeon-lair invariants");
   if (!isValidCampaignRoadSupper(input)) throw new TypeError("Campaign state violates road-supper invariants");
@@ -2683,6 +2685,15 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     throw new TypeError("Campaign state violates schema invariants");
   }
   let output = reduceDepth(input, command);
+  // The actual selected command supplies provenance, not a new hero action.
+  // Never append this NPC event to the hero log: that log drives the hero scene.
+  if (sourceCommandId !== undefined) {
+    const elsewhereLoaf = advanceElsewhereLoaf(input, output, sourceCommandId);
+    if (elsewhereLoaf !== undefined && elsewhereLoaf !== input.elsewhereLoaf) {
+      output = { ...output, elsewhereLoaf };
+    }
+  }
+  if (!isValidCampaignElsewhereLoaf(output)) throw new TypeError("Campaign state violates elsewhere-loaf invariants");
   if (!isValidCampaignSpareGearTrade(output)) throw new TypeError("Campaign state violates spare-gear-trade invariants");
   if (!isValidCampaignDungeonLair(output)) throw new TypeError("Campaign state violates dungeon-lair invariants");
   if (!isValidCampaignRoadSupper(output)) throw new TypeError("Campaign state violates road-supper invariants");

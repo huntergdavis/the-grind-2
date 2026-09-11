@@ -114,6 +114,8 @@ import { projectRoadSupperCombat, projectRoadSupperScene, type RoadSupperScene }
 import { drawRoadSupper, projectRoadSupperSteam, roadSupperTableau } from "./road-supper";
 import { projectSpareGearTradeScene, type SpareGearTradeScene } from "../ui/spare-gear-trade-view";
 import { drawSpareGearTrade, spareGearTradeTableau } from "./spare-gear-trade";
+import { isElsewhereLoafPacket, projectElsewhereLoafPacket, type ElsewhereLoafPacket } from "../ui/elsewhere-loaf-view";
+import { drawElsewhereLoaf, elsewhereLoafTableau, projectElsewhereLoafPose } from "./elsewhere-loaf";
 import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennywise-gate-view";
 import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
 import { projectSmithyJobScene, type SmithyJobScene } from "../ui/smithy-job-view";
@@ -516,12 +518,14 @@ export class GameRenderer {
   private battleSpoilsCutawayBinding: BattleSpoilsCutawayBinding | null = null;
   private townItineraryCutawayBinding: TownItineraryCutawayBinding | null = null;
   private fieldNoteCutawayBinding: FieldNoteCutawayBinding | null = null;
+  private elsewhereLoafBinding: { startedAt: number; duration: number; complete: () => void;
+    rig: HeroRigBinding | null; product: Container; phase: ElsewhereLoafPacket["phase"]; staticPresentation: boolean } | null = null;
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
   private readonly handleResize = (): void => {
     this.resizeToHost();
-    if ((this.host.dataset.reparteePhase === undefined && this.host.dataset.bellPhase === undefined)
+    if ((this.host.dataset.reparteePhase === undefined && this.host.dataset.bellPhase === undefined && this.host.dataset.elsewhereLoafEvent === undefined)
       || this.settledReparteeResizeFrame !== null) return;
     // Header offsets and wrapped dialogue can settle after the initial host
     // resize callback. One next-frame read avoids retaining their old bounds.
@@ -559,12 +563,14 @@ export class GameRenderer {
     this.updateBattleSpoilsCutawayAnimation();
     this.updateTownItineraryCutawayAnimation();
     this.updateFieldNoteCutawayAnimation();
+    this.updateElsewhereLoaf();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
     this.lightLayer.y = this.reducedMotion
       ? this.lightBaseY
       : animatedLayerY(this.lightBaseY, this.elapsed);
+    this.updateElsewhereLoafContact();
   };
 
   private constructor(private readonly host: HTMLElement) {}
@@ -591,11 +597,11 @@ export class GameRenderer {
     renderer.host.dataset.rendererListenerCount = "3";
     renderer.resizeToHost();
     renderer.resizeObserver = new ResizeObserver((entries) => {
-      if (renderer.host.dataset.reparteePhase !== undefined || renderer.host.dataset.bellPhase !== undefined
+      if (renderer.host.dataset.reparteePhase !== undefined || renderer.host.dataset.bellPhase !== undefined || renderer.host.dataset.elsewhereLoafEvent !== undefined
         || entries.some(entry => entry.target === host)) renderer.handleResize();
     });
     renderer.resizeObserver.observe(host);
-    for (const selector of ["#repartee-caption", "#bell-caption", ".topbar", "#view-toolbar", "#stage-focus-controls"]) {
+    for (const selector of ["#repartee-caption", "#bell-caption", "#elsewhere-loaf-cutaway", ".topbar", "#view-toolbar", "#stage-focus-controls"]) {
       const chrome = host.closest("#app")?.querySelector(selector);
       if (chrome !== null && chrome !== undefined) renderer.resizeObserver.observe(chrome);
     }
@@ -729,6 +735,7 @@ export class GameRenderer {
       options.onComplete();
     };
     const starters: Record<ProductionCutawayRecipeKey, () => boolean> = {
+      "elsewhere-loaf@1": () => this.startElsewhereLoaf(candidate.packet as ElsewhereLoafPacket, { ...options, onComplete: complete }),
       "trap-resolution@1": () => this.startTrapCutaway(
         candidate.packet as TrapResolutionPacket,
         {
@@ -834,6 +841,7 @@ export class GameRenderer {
   showCutawayOutcome(): boolean {
     if (this.activeCutawayRecipeKey === null) return false;
     const presenters: Record<ProductionCutawayRecipeKey, () => boolean> = {
+      "elsewhere-loaf@1": () => this.settleElsewhereLoaf(),
       "trap-resolution@1": () => this.showTrapCutawayOutcome(),
       "companion-farewell@1": () => this.showFarewellCutawayOutcome(),
       "hero-level-up@1": () => this.showHeroLevelUpCutawayOutcome(),
@@ -852,6 +860,7 @@ export class GameRenderer {
   settleCutaway(): boolean {
     if (this.activeCutawayRecipeKey === null) return false;
     const settlers: Record<ProductionCutawayRecipeKey, () => boolean> = {
+      "elsewhere-loaf@1": () => this.settleElsewhereLoaf(),
       "trap-resolution@1": () => this.settleTrapCutaway(),
       "companion-farewell@1": () => this.settleFarewellCutaway(),
       "hero-level-up@1": () => this.settleHeroLevelUpCutaway(),
@@ -868,6 +877,8 @@ export class GameRenderer {
   }
 
   cancelCutaway(): void {
+    this.elsewhereLoafBinding = null;
+    this.clearElsewhereLoafAttributes();
     this.activeCutawayRecipeKey = null;
     this.cancelTrapCutaway();
     this.cancelFarewellCutaway();
@@ -881,7 +892,7 @@ export class GameRenderer {
   }
 
   private hasActiveCutawayBinding(): boolean {
-    return this.trapCutawayBinding !== null
+    return this.elsewhereLoafBinding !== null || this.trapCutawayBinding !== null
       || this.farewellCutawayBinding !== null
       || this.heroLevelUpCutawayBinding !== null
       || this.heroGrowthAllocationCutawayBinding !== null
@@ -893,6 +904,7 @@ export class GameRenderer {
   }
 
   private clearAllCutawayAttributes(): void {
+    this.clearElsewhereLoafAttributes();
     this.clearTrapCutawayAttributes();
     this.clearFarewellCutawayAttributes();
     this.clearHeroLevelUpCutawayAttributes();
@@ -1206,6 +1218,8 @@ export class GameRenderer {
       state.chronicle.at(-1)?.commandType === "counter-duel-action" &&
       previousState.depth.counterDuel !== null;
     this.lastState = state;
+    this.elsewhereLoafBinding = null;
+    this.clearElsewhereLoafAttributes();
     this.activeCutawayRecipeKey = null;
     this.trapCutawayBinding = null;
     this.farewellCutawayBinding = null;
@@ -4619,6 +4633,7 @@ export class GameRenderer {
         this.host.dataset.dungeonAlertDetailResolution = detailResolution.toFixed(4);
       }
     }
+    this.updateElsewhereLoafContact();
   }
 
   private resizeToHost(): void {
@@ -4634,7 +4649,7 @@ export class GameRenderer {
       this.app.renderer.resize(width, height);
     }
     this.host.dataset.rendererResolution = this.app.renderer.resolution.toFixed(4);
-    if (dimensionsChanged && this.lastState?.scene.mode === "camp" && this.viewMode === "live") {
+    if (dimensionsChanged && this.lastState?.scene.mode === "camp" && this.viewMode === "live" && this.elsewhereLoafBinding === null) {
       this.render(this.lastState);
       return;
     }
@@ -4841,7 +4856,8 @@ export class GameRenderer {
 
   private reparteeSafeBounds(): SceneLayoutBounds | null {
     const bellScene = this.host.dataset.bellPhase !== undefined;
-    if ((!bellScene && this.host.dataset.reparteePhase === undefined) || this.viewMode !== "live") return null;
+    const elsewhereScene = this.host.dataset.elsewhereLoafEvent !== undefined;
+    if ((!bellScene && !elsewhereScene && this.host.dataset.reparteePhase === undefined) || this.viewMode !== "live") return null;
     const app = this.host.closest<HTMLElement>("#app");
     const host = this.host.getBoundingClientRect();
     const safe = { left: 8, top: 8, right: host.width - 8, bottom: host.height - 8 };
@@ -4852,14 +4868,90 @@ export class GameRenderer {
       const bounds = node.getBoundingClientRect();
       if (bounds.height > 0) safe.top = Math.max(safe.top, bounds.bottom - host.top + 8);
     }
-    const caption = app.querySelector<HTMLElement>(bellScene ? "#bell-caption" : "#repartee-caption");
+    const caption = app.querySelector<HTMLElement>(elsewhereScene ? "#elsewhere-loaf-cutaway" : bellScene ? "#bell-caption" : "#repartee-caption");
     if (caption !== null && !caption.hidden) {
       const bounds = caption.getBoundingClientRect();
       if (host.width > 760 && host.height <= 560) safe.right = Math.min(safe.right, bounds.left - host.left - 12);
       else safe.bottom = Math.min(safe.bottom, bounds.top - host.top - 12);
     }
-    this.host.dataset[bellScene ? "bellSafeRect" : "reparteeSafeRect"] = [safe.left, safe.top, safe.right, safe.bottom].map((value) => value.toFixed(2)).join(",");
+    this.host.dataset[elsewhereScene ? "elsewhereLoafSafeRect" : bellScene ? "bellSafeRect" : "reparteeSafeRect"] = [safe.left, safe.top, safe.right, safe.bottom].map((value) => value.toFixed(2)).join(",");
     return safe;
+  }
+
+  private clearElsewhereLoafAttributes(): void {
+    for (const key of ["elsewhereLoafEvent", "elsewhereLoafCommand", "elsewhereLoafPhase", "elsewhereLoafActor",
+      "elsewhereLoafLocation", "elsewhereLoafInn", "elsewhereLoafDough", "elsewhereLoafProduct", "elsewhereLoafQuantity",
+      "elsewhereLoafActorPosition", "elsewhereLoafVisual", "elsewhereLoafSafeRect", "elsewhereLoafHeroPresent",
+      "elsewhereLoafGesture", "elsewhereLoafGestureProgress", "elsewhereLoafHandPosition",
+      "elsewhereLoafProductPosition", "elsewhereLoafProductBounds"]) delete this.host.dataset[key];
+  }
+
+  private startElsewhereLoaf(packet: ElsewhereLoafPacket, options: CutawayPresentationOptions): boolean {
+    const state = this.lastState;
+    if (this.disposed || state === null || this.viewMode !== "live" || this.hasActiveCutawayBinding() || !isElsewhereLoafPacket(packet)) return false;
+    const expected = projectElsewhereLoafPacket(state, packet.phase);
+    if (expected === null || Object.keys(expected).some(key => expected[key as keyof ElsewhereLoafPacket] !== packet[key as keyof ElsewhereLoafPacket])) return false;
+    this.clearAllCutawayAttributes();
+    this.battleBinding = null; this.counterDuelBinding = null; this.travelRoadBinding = null;
+    this.heroRigs.length = 0; this.scaleSensitiveTexts.length = 0; this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer); this.clear(this.lightLayer);
+    const bakery = drawElsewhereLoaf(packet);
+    this.worldLayer.addChild(bakery);
+    // Same identity-drawing primitive, but never the absent hero and never the
+    // generic baker's bread prop before this trial has produced an actual loaf.
+    this.drawHero(state, elsewhereLoafTableau.actorX, elsewhereLoafTableau.actorY, palettes.chronicle, 1.7, packet.residentId, false);
+    const rig = this.heroRigs.pop();
+    if (rig !== undefined) {
+      rig.puppet.y = 0; rig.frontLeg.rotation = 0; rig.rearLeg.rotation = 0;
+    }
+    Object.assign(this.host.dataset, { sceneMode: "chronicle", liveSceneMode: state.scene.mode,
+      cutawayActive: "true", cutawayEvent: packet.eventId, cutawayKind: "elsewhere-loaf", cutawayPhase: "elsewhere",
+      elsewhereLoafEvent: packet.eventId, elsewhereLoafCommand: packet.sourceCommandId, elsewhereLoafPhase: packet.phase,
+      elsewhereLoafActor: packet.residentId, elsewhereLoafLocation: packet.locationId, elsewhereLoafInn: packet.innId,
+      elsewhereLoafDough: String(packet.doughQuantity), elsewhereLoafProduct: packet.product,
+      elsewhereLoafQuantity: String(packet.productQuantity),
+      elsewhereLoafActorPosition: `${elsewhereLoafTableau.actorX},${elsewhereLoafTableau.actorY}`, elsewhereLoafHeroPresent: "false",
+      elsewhereLoafVisual: `actual-former-baker|admitted-inn-worksite|${packet.product}|no-hero|no-hero-reward` });
+    this.elsewhereLoafBinding = { startedAt: this.elapsed,
+      duration: options.fast || this.reducedMotion ? townItineraryStaticHoldSeconds : 6.4,
+      rig: rig ?? null, product: bakery.children.at(-1)!, phase: packet.phase, staticPresentation: options.fast || this.reducedMotion,
+      complete: () => { options.onPhase("final"); options.onComplete(); } };
+    options.onPhase("elsewhere"); this.updateElsewhereLoaf(); this.layout(); return true;
+  }
+
+  private updateElsewhereLoaf(): void {
+    const binding = this.elsewhereLoafBinding;
+    if (binding === null) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const pose = projectElsewhereLoafPose(binding.phase, elapsed, binding.staticPresentation);
+    if (binding.rig !== null) {
+      binding.rig.frontArm.rotation = pose.frontArm; binding.rig.rearArm.rotation = pose.rearArm;
+      binding.rig.puppet.rotation = pose.body;
+    }
+    this.host.dataset.elsewhereLoafGesture = binding.phase === "admission" ? "knead" : "admire";
+    this.host.dataset.elsewhereLoafGestureProgress = pose.progress.toFixed(3);
+    if (elapsed >= binding.duration) this.settleElsewhereLoaf();
+  }
+
+  private settleElsewhereLoaf(): boolean {
+    const binding = this.elsewhereLoafBinding;
+    if (binding === null) return false;
+    this.elsewhereLoafBinding = null;
+    this.host.dataset.cutawayActive = "false"; this.host.dataset.cutawayPhase = "final";
+    binding.complete(); return true;
+  }
+
+  private updateElsewhereLoafContact(): void {
+    const binding = this.elsewhereLoafBinding;
+    if (binding?.rig == null) return;
+    const hand = this.worldLayer.toLocal(binding.rig.frontArm.toGlobal({ x: 2.2, y: 11.2 }));
+    const product = this.worldLayer.toLocal(binding.product.toGlobal({ x: 0, y: 0 }));
+    const bounds = binding.product.getLocalBounds();
+    const topLeft = this.worldLayer.toLocal(binding.product.toGlobal({ x: bounds.minX, y: bounds.minY }));
+    const bottomRight = this.worldLayer.toLocal(binding.product.toGlobal({ x: bounds.maxX, y: bounds.maxY }));
+    this.host.dataset.elsewhereLoafHandPosition = [hand.x, hand.y].map(value => value.toFixed(3)).join(",");
+    this.host.dataset.elsewhereLoafProductPosition = [product.x, product.y].map(value => value.toFixed(3)).join(",");
+    this.host.dataset.elsewhereLoafProductBounds = [topLeft.x, topLeft.y, bottomRight.x, bottomRight.y].map(value => value.toFixed(3)).join(",");
   }
 
   private drawBorrowedBell(state: WorldState, scene: BorrowedBellSceneView, palette: readonly [number, number, number]): void {

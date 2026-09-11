@@ -30,6 +30,7 @@ const presentationRegistryFiles = [
   "src/ui/weapon-memory.ts",
   "src/ui/battle-spoils.ts",
   "src/ui/town-itinerary.ts",
+  "src/ui/elsewhere-loaf-view.ts",
   "src/ui/pattern-break-signature.ts",
   "src/ui/pattern-break-observer-reaction.ts",
   "src/render/cutaway-registry.ts",

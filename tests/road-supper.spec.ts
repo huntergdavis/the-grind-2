@@ -203,7 +203,7 @@ test("actual bought rations become one road supper, one source-bound preparation
     expect([beforePurchase.tick, purchased.tick, beforeMeal.tick, meal.tick, started.tick, resolved.tick, next.tick])
       .toEqual([59, 60, 74, 75, 76, 79, 80]);
     expect([canonicalHash(purchased), canonicalHash(beforeMeal), canonicalHash(meal), canonicalHash(resolved)])
-      .toEqual(["82baa77aba72378e", "6452ad3327e971a7", "5934800e8fab7bd7", "a7a0797ff5540c77"]);
+      .toEqual(["82baa77aba72378e", "95940f1f61a29b47", "81089edaf8c0eeee", "4958005382211b46"]);
     expect(advanceWorld(beforePurchase)).toEqual(purchased);
     expect(advanceWorld(beforeMeal)).toEqual(meal);
     expect(advanceWorld(meal)).toEqual(started);

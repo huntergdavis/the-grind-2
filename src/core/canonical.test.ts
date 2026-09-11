@@ -28,13 +28,13 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v178 keeps Depth 35 and adds exact witnessed memory only to matching new reunions.
+      // v179 keeps Depth 35 and adds one optional, actually committed former-baker activity.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
       "cafb7919c6f51ba3",
-      "a730955269e56daf",
+      "7b41f754e220d1ac",
       "ae7c822856e64ac8",
       "7754231a8353130c",
       "fcd59cc3e43f9b03",

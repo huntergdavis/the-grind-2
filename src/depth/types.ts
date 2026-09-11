@@ -1247,6 +1247,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** One former baker's actual off-screen work; absent saves invent no past activity. */
+  elsewhereLoaf?: import("./elsewhere-loaf").ElsewhereLoaf;
   /** Established only by this campaign's actual one spare-weapon sale. */
   spareGearTrade?: import("./spare-gear-trade").SpareGearTrade;
   /** Present only after this campaign's actual later-market ration purchase. */

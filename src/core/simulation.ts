@@ -8,6 +8,7 @@ import { isValidCampaignSmithyJob } from "../depth/smithy-job";
 import { innBluffClaim, innBluffTellText, isValidCampaignInnBluff } from "../depth/inn-bluff";
 import { isValidCampaignDungeonLair } from "../depth/dungeon-lair";
 import { isValidCampaignRoadSupper } from "../depth/road-supper";
+import { isValidCampaignElsewhereLoaf } from "../depth/elsewhere-loaf";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -1049,7 +1050,7 @@ export function rulesEngine(
     ? null
     : resolveLegacyMentorArcBeat(state, legacyMentorArcPlan, choice.commandId);
   const tick = state.tick + 1;
-  let depth = stepDepth(state.depth, choice.command);
+  let depth = stepDepth(state.depth, choice.command, selected.id);
   const experienceGain = legacyManifestationPlan === null && legacyMentorArcPlan === null
     ? experienceGainForCommand(choice.command, state.depth, depth)
     : 0;
@@ -1691,7 +1692,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
-    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) || !isValidCampaignDungeonLair(state.depth) || !isValidCampaignRoadSupper(state.depth) ||
+    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) || !isValidCampaignDungeonLair(state.depth) || !isValidCampaignRoadSupper(state.depth) || !isValidCampaignElsewhereLoaf(state.depth) ||
     !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||

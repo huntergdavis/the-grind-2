@@ -35,8 +35,10 @@ equipped gear and earned weapon history. Browser, CI and public-source checks
 pass; it adds no panel or LLM request. **An old line returns (v0.5.178)** is live:
 new matching reunions recall an actual witnessed reply and its original reaction.
 Browser acceptance, CI and public-source verification pass; old greetings remain
-unchanged. Next is **Elsewhere: The Experimental Loaf**, a proposed recorded
-activity for a former baker, not an already implemented off-screen accomplishment.
+unchanged. **Elsewhere: The Experimental Loaf (v0.5.179)** is in progress:
+one recorded former-baker activity at a supplied inn worksite, with current
+T73 away eligibility established. Release verification is pending. A later
+**News from the oven** reunion report is a separate unimplemented proposal.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.

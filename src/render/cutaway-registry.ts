@@ -1,4 +1,5 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
+import { isElsewhereLoafPacket, projectElsewhereLoafTransition, type ElsewhereLoafPacket } from "../ui/elsewhere-loaf-view";
 import {
   isTownItineraryPacketV1,
   projectTownItinerary,
@@ -62,6 +63,7 @@ export const cutawayPhaseLimit = 8 as const;
 export const cutawayFlavorLimit = 8 as const;
 
 export type ProductionCutawayRecipeKey =
+  | "elsewhere-loaf@1"
   | "trap-resolution@1"
   | "companion-farewell@1"
   | "hero-level-up@1"
@@ -161,7 +163,9 @@ export type AbilityResonanceCutawayCandidate = CutawayCandidate<"ability-resonan
 export type WeaponMemoryCutawayCandidate = CutawayCandidate<"weapon-memory@1", WeaponMemoryCeremonyPacketV1>;
 export type BattleSpoilsCutawayCandidate = CutawayCandidate<"battle-spoils@1", BattleSpoilsComparisonPacketV1>;
 export type TownItineraryCutawayCandidate = CutawayCandidate<"town-itinerary@1", TownItineraryPacketV1>;
+export type ElsewhereLoafCutawayCandidate = CutawayCandidate<"elsewhere-loaf@1", ElsewhereLoafPacket>;
 export type ProductionCutawayCandidate =
+  | ElsewhereLoafCutawayCandidate
   | TrapCutawayCandidate
   | FarewellCutawayCandidate
   | HeroLevelUpCutawayCandidate
@@ -603,6 +607,18 @@ const townItineraryRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
+const elsewhereLoafRecipe: CutawayRecipeV1 = {
+  registryVersion: 1, key: "elsewhere-loaf@1", packetSchemaVersion: 1,
+  phaseOrder: ["elsewhere", "final"], terminalPhase: "final",
+  actorRequirements: ["actual-former-baker"], propRequirements: ["admitted-inn-oven", "committed-dough-or-product"],
+  truthCueIds: ["elsewhere-loaf-actor", "elsewhere-loaf-line", "elsewhere-loaf-supply"], allowedFlavorIds: [],
+  durationBudget: { targetMs: 6_400, maximumMs: 8_000, staticHoldMs: 1_200 },
+  effectBudget: { movingActors: 1, cameraShots: 1, flavorLayers: 0 },
+  terminalTableau: "one-baker-at-admitted-worksite-with-committed-product",
+  domEquivalentId: "elsewhere-loaf-cutaway", reducedMotion: "complete-static-tableau",
+  repetitionFingerprintVersion: null, repetitionFingerprintFields: [],
+};
+
 export const cutawayRegistry = createCutawayRegistry([
   trapRecipe,
   farewellRecipe,
@@ -615,6 +631,7 @@ export const cutawayRegistry = createCutawayRegistry([
   weaponMemoryRecipe,
   battleSpoilsRecipe,
   townItineraryRecipe,
+  elsewhereLoafRecipe,
 ]);
 
 function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
@@ -627,6 +644,7 @@ function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
 }
 
 function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope): boolean {
+  if (recipeKey === "elsewhere-loaf@1") return isElsewhereLoafPacket(packet);
   if (recipeKey === "trap-resolution@1") return isTrapResolutionPacket(packet);
   if (recipeKey === "companion-farewell@1") return isCompanionFarewellPacket(packet);
   if (recipeKey === "hero-level-up@1") return isHeroLevelUpPacketV1(packet);
@@ -821,5 +839,11 @@ export function projectCutawayCandidates(
   if (weaponMemory !== null) candidates.push(createCutawayCandidate("weapon-memory@1", weaponMemory, staticEnvelope));
   if (battleSpoils !== null) candidates.push(createCutawayCandidate("battle-spoils@1", battleSpoils, staticEnvelope));
   if (townItinerary !== null) candidates.push(createCutawayCandidate("town-itinerary@1", townItinerary, staticEnvelope));
+  const elsewhere = projectElsewhereLoafTransition(before, after, source);
+  if (elsewhere !== null) candidates.push(createCutawayCandidate("elsewhere-loaf@1", elsewhere, {
+    schemaVersion: 1, eventId: elsewhere.eventId, tick: elsewhere.tick,
+    location: elsewhere.locationName, headline: `Elsewhere: ${elsewhere.companionName}`,
+    action: elsewhere.line, consequence: "An independent inn-supplied trial; no hero reward or knowledge.",
+  }));
   return Object.freeze(candidates);
 }

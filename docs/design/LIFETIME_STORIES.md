@@ -5,6 +5,35 @@ publicly source-verified 2026-09-11 14:55:31 PDT. Earlier explicitly delivered
 scopes remain shipped; broader systems below remain proposals.
 Owner: gameplay/story roadmap. LLM work remains paused.
 
+## Elsewhere: The Experimental Loaf — v0.5.179
+
+Implementation in progress; not yet a verified release. One healthy, fulfilled
+former baker can take up a new trial worksite at a known inn in the recorded
+farewell town once the hero is actually elsewhere. The inn explicitly supplies
+one batch of dough. A fixed-seed independent choice commits steady or
+experimental baking; the latter may produce a delightful or bricklike loaf.
+The next eligible committed turn consumes that dough and records one result.
+If the hero returns, unfinished work pauses until another away turn.
+
+This is one bounded canonical activity, not a general NPC economy or schedule.
+It does not prove the baker returned to their origin home. No hero inventory,
+money, XP, affection or knowledge is granted. Receipt-only background state
+preserves the hero's actual adventure. One short cutaway shows only the actual
+baker and task; Company retains both event sources. A late showing is labeled
+“Earlier, elsewhere.” Loading an older save invents no past activity.
+Automatic playback follows live committed transitions. Reload preserves the
+Company record and underlying hero scene; this slice adds no missed-event queue
+or automatic replay of historical bakes.
+
+### Next proposal: News from the oven
+
+A later actual reunion could let this same baker report the exact completed
+bake to the hero. That report must be a newly committed exchange referencing
+the earlier attempt and outcome, not automatic hero knowledge from a cutaway.
+Preserve earlier witnessed-memory dialogue and old completed greetings. Do not
+invent bread delivery, eating, admiration, reward or a journey home. This
+follow-on is not implemented by v0.5.179.
+
 ## F2b shipped scope — a shared memory before parting
 
 One actual `recall-repartee` command creates a quiet rest at the reached oath
