@@ -14,6 +14,8 @@
     <main id="app" aria-label="The Grind 2">
       <div id="stage" aria-hidden="true"></div>
 
+      <section id="repartee-caption" class="repartee-caption" aria-label="Books and flyting" aria-live="polite" aria-atomic="true" hidden></section>
+
       <section id="trap-cutaway" class="trap-cutaway" aria-labelledby="trap-cutaway-title" hidden>
         <header>
           <div>
@@ -612,6 +614,10 @@
               <ol id="journal-completed-list" class="journal-completed-list"></ol>
             </section>
           </article>
+          <details id="journal-repartee" class="journal-repartee" data-journal-section="adventure">
+            <summary>Books &amp; Flyting</summary>
+            <div class="journal-repartee-content"></div>
+          </details>
           <article id="journal-company" class="journal-companions" data-journal-section="company" aria-labelledby="journal-companion-title" hidden>
             <span class="view-kicker">Shared roads</span>
             <h2 id="journal-companion-title">Company on the road</h2>

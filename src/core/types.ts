@@ -18,7 +18,7 @@ export type SceneMode =
 
 export type HeroValue = "curiosity" | "loyalty" | "mercy" | "courage";
 
-export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat" | "millerCombat" | "sharedOpeningCombat";
+export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat" | "millerCombat" | "sharedOpeningCombat" | "repartee";
 
 export type ActorInstinctCondition =
   | "actor-low-health"
@@ -434,6 +434,9 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "combat-action",
   "start-counter-duel",
   "counter-duel-action",
+  "read-book",
+  "start-repartee",
+  "repartee-action",
   "admit-deferred-secret",
   "train-ability",
   "progress-objective",

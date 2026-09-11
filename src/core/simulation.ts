@@ -23,6 +23,7 @@ import {
   isValidDetailedHeroState,
   isValidDepthEncounterThreatState,
   isValidSecretDiscoveryGraph,
+  isValidCampaignRepartee,
   isCanonicalQuestDefinition,
   isValidQuestState,
   isValidQuestCompletionState,
@@ -38,6 +39,8 @@ import {
   selectTonicRestock,
   selectPaidInnRest,
   questLeadAdmissionStatus,
+  reparteeBook,
+  reparteeChallenges,
   projectSuccessorQuestLead,
   stepDepth,
   upgradeDepthState,
@@ -336,6 +339,9 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "read-book":
+    case "start-repartee":
+    case "repartee-action":
     case "recruit-companion":
     case "farewell-companion":
     case "fulfill-quest":
@@ -378,6 +384,9 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "read-book":
+    case "start-repartee":
+    case "repartee-action":
     case "recruit-companion":
     case "farewell-companion":
     case "fulfill-quest":
@@ -424,6 +433,23 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  if (choice.command.type === "read-book" || choice.command.type === "start-repartee" || choice.command.type === "repartee-action") {
+    const duel = depth.repartee.active ?? depth.repartee.completed;
+    const round = duel?.rounds.at(-1);
+    const resident = town?.residents.find((entry) => entry.id === duel?.residentId);
+    return {
+      mode: "chronicle", location: town?.name ?? opportunity.location,
+      goal: "A contest of wit, not weapons",
+      headline: choice.command.type === "read-book" ? reparteeBook.title
+        : depth.repartee.completed !== null ? `Flyting: ${depth.repartee.completed.outcome}`
+          : `${state.hero.name} and ${resident?.name ?? "the resident"} trade words`,
+      action: choice.command.type === "read-book" ? reparteeBook.excerpt
+        : choice.command.type === "start-repartee" ? reparteeChallenges[0]!.text
+          : round === undefined ? `${state.hero.name} concedes with dignity.` : `“${round.call}” — “${round.reply}”`,
+      consequence: depth.log.at(-1)?.message ?? "Three rounds. Words alone settle this contest.",
+      sensoryIntensity: 1,
+    };
+  }
   const route = depth.atlas.route;
   const destination =
     route === null
@@ -1049,7 +1075,8 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
-    !isValidSecretDiscoveryGraph(state.depth)
+    !isValidSecretDiscoveryGraph(state.depth) ||
+    !isValidCampaignRepartee(state.depth)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -1209,7 +1236,7 @@ function isDecisionConsideration(value: unknown): value is Record<string, unknow
 
 function isDecisionTrace(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  const contexts = ["road", "ordinaryCombat", "direCombat", "millerCombat", "sharedOpeningCombat"];
+  const contexts = ["road", "ordinaryCombat", "direCombat", "millerCombat", "sharedOpeningCombat", "repartee"];
   const forwardMotionReasons = ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"];
   const selected = value.selected;
   if (
@@ -1420,7 +1447,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 27 ||
+    state.depth.schemaVersion !== 28 ||
+    !isValidCampaignRepartee(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

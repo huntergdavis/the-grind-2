@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v158 records Depth 27 and versioned three-family traps in new expeditions.
+      // v159 records Depth 28, learned vocabulary, and the real three-round flyting turns.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "05e0bc97dd319176",
-      "010c3bdddefe729b",
-      "9238799c64bad271",
-      "948ff77a97d7667b",
-      "684f5e366efe5f0e",
-      "9b848c17ea39fade",
-      "04617b1528188352",
-      "a9c954e98772263e",
-      "7999b8db4133cd58",
-      "cab0d316f2fed901",
+      "5010a5964e794456",
+      "872cb1f639091782",
+      "2d2eeecf279df1f8",
+      "ce0ef523c5c0ec02",
+      "42ccbeb0350d2787",
+      "8da0f55e5dc40576",
+      "c200614100e4e762",
+      "ee3f2738226cae3e",
+      "6b4ae6e9372d982e",
+      "4eef1b6b92811a8b",
     ]);
   }, 80_000);
 });

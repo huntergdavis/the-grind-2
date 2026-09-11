@@ -14,9 +14,111 @@ import {
   stepDepth,
 } from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
+import { applyHeroExperience, heroExperienceFloor } from "../depth/rpg";
+import { reparteeBook, reparteeResponses } from "../depth/repartee";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
 import type { DungeonState } from "../depth";
 import type { HeroValue, WorldState } from "./types";
+
+function reparteePolicyWorld(values: readonly HeroValue[], phase: "before-reading" | "reading" | "duel" = "duel"): WorldState {
+  const world = createWorld("browser-dungeon-search:8", "campaign:browser-dungeon-search");
+  const hero = applyHeroExperience(world.depth.hero, heroExperienceFloor(2)).hero;
+  let staged: WorldState = { ...world, hero: { ...world.hero, level: hero.level, experience: hero.experience, values },
+    depth: { ...world.depth, hero } };
+  for (const expected of phase === "before-reading" ? [] : phase === "reading" ? ["read-book"] : ["read-book", "start-repartee"]) {
+    const candidate = campaignDirector(staged).candidates[0]!;
+    expect(candidate.command.type).toBe(expected);
+    const depth = stepDepth(staged.depth, candidate.command);
+    staged = { ...staged, tick: depth.tick, depth };
+  }
+  return staged;
+}
+
+describe("repartee actor decisions", () => {
+  it("labels a real public book and resident without pretending either is a combat action", () => {
+    const before = reparteePolicyWorld(["curiosity"], "before-reading");
+    expect(reparteeResponses(before.depth.repartee).some((response) => response.style === "direct")).toBe(false);
+    const reading = actorPolicy(before, campaignDirector(before));
+    expect(reading.command.type).toBe("read-book");
+    expect(reading.trace.selected).toMatchObject({ actionLabel: "reads a public copy", targetLabel: reparteeBook.title });
+    expect(reading.trace.reasons[0]).toContain("public reading copy");
+    const learned = reparteePolicyWorld(["curiosity"], "reading");
+    const start = actorPolicy(learned, campaignDirector(learned));
+    expect(start.command.type).toBe("start-repartee");
+    if (start.command.type !== "start-repartee") throw new Error("Expected an actual resident's contest");
+    const startCommand = start.command;
+    const resident = learned.depth.towns[startCommand.locationId]?.residents.find((entry) => entry.id === startCommand.residentId);
+    expect(start.trace.selected).toMatchObject({ actionLabel: "accepts a flyting contest", targetLabel: resident?.name });
+    expect(start.trace.reasons[0]).toContain("not a fight");
+  });
+
+  it("lets curiosity select newly learned direct counters from only the four public legal replies", () => {
+    let world = reparteePolicyWorld(["curiosity", "mercy", "courage"]);
+    for (let roundIndex = 0; roundIndex < 3; roundIndex++) {
+      const opportunity = campaignDirector(world), choice = actorPolicy(world, opportunity);
+      expect(choice.command.type).toBe("repartee-action");
+      if (choice.command.type !== "repartee-action") throw new Error("Expected a spoken response");
+      const command = choice.command;
+      const response = reparteeResponses(world.depth.repartee).find((entry) => entry.id === command.responseId);
+      expect(response).toMatchObject({ style: "direct", delta: 1 });
+      expect(choice.trace).toMatchObject({ context: "repartee", profileId: "repartee", matchedRuleId: "repartee.learned-counter", reasonCode: "test-technique" });
+      expect(choice.trace.reasons[0]).toContain("curiosity tests a counter learned");
+      expect(choice.trace.reasons[0]).toContain(response?.explanation);
+      expect(choice.trace.selected.actionLabel).toBe(response?.text);
+      expect(choice.trace.considered).toHaveLength(4);
+      expect(choice.trace.considered.every((entry) => opportunity.candidates.some((candidate) => entry.commandId === `${world.campaignId}:${candidate.id}`))).toBe(true);
+      expect(actorPolicy(world, opportunity)).toEqual(choice);
+      const depth = stepDepth(world.depth, choice.command);
+      world = { ...world, tick: depth.tick, depth };
+    }
+    expect(world.depth.repartee.completed).toMatchObject({ outcome: "victory", momentum: 3 });
+  });
+
+  it("lets mercy concede gracefully and courage choose a fallible defiant voice without changing the semantic score", () => {
+    for (const [values, outcome, momentum, rule, reason] of [
+      [["mercy"], "draw", 0, "repartee.graceful-concession", "mercy prefers"],
+      [["courage"], "defeat", -1, "repartee.defiant-voice", "courage favors"],
+    ] as const) {
+      let world = reparteePolicyWorld(values);
+      for (let index = 0; index < 3; index++) {
+        const choice = actorPolicy(world, campaignDirector(world));
+        if (choice.command.type !== "repartee-action") throw new Error("Expected a social choice");
+        const command = choice.command;
+        const response = reparteeResponses(world.depth.repartee).find((entry) => entry.id === command.responseId)!;
+        expect(choice.trace.matchedRuleId).toBe(rule);
+        expect(choice.trace.reasons[0]).toContain(reason);
+        expect(choice.trace.reasons[0]).toContain(response.explanation);
+        expect(reparteeResponses(world.depth.repartee).some((entry) => entry.style === "direct" && entry.delta === 1)).toBe(true);
+        if (values[0] === "mercy") expect(response.classification).toBe("near");
+        else {
+          expect(response.style).toBe("personality");
+          if (index === 1) expect(response).toMatchObject({ classification: "category", delta: -1 });
+        }
+        const depth = stepDepth(world.depth, command);
+        world = { ...world, tick: depth.tick, depth };
+      }
+      expect(world.depth.repartee.completed).toMatchObject({ outcome, momentum, reputationAward: 0 });
+    }
+  });
+
+  it("never selects unknown, stale, foreign-actor, or competing actions even if supplied in an opportunity", () => {
+    const world = reparteePolicyWorld(["curiosity"]), opportunity = campaignDirector(world);
+    const real = opportunity.candidates[0]!;
+    if (real.command.type !== "repartee-action") throw new Error("Expected real repartee candidates");
+    const invalid = [
+      { ...real, id: "unknown-response", command: { ...real.command, responseId: "an-unlearned-perfect-answer" } },
+      { ...real, id: "stale-round", command: { ...real.command, roundIndex: real.command.roundIndex + 1 } },
+      { ...real, id: "foreign-encounter", command: { ...real.command, encounterId: "another-contest" } },
+      { ...real, id: "foreign-actor", deciderId: "another-hero" },
+      { ...real, id: "competing-wait", command: { type: "wait" as const } },
+    ];
+    const ordinary = actorPolicy(world, opportunity);
+    expect(actorPolicy(world, { ...opportunity, candidates: [...invalid, ...opportunity.candidates] })).toEqual(ordinary);
+    expect(() => actorPolicy(world, { ...opportunity, candidates: invalid })).toThrow("no legal choice");
+    const missingKnowledge = { ...world, depth: { ...world.depth, repartee: { ...world.depth.repartee, reading: null } } };
+    expect(() => actorPolicy(missingKnowledge, opportunity)).toThrow("no legal choice");
+  });
+});
 
 function wayfinderChoiceWorld(mode: "visible" | "hidden" | "baseline" = "visible"): WorldState {
   const world = createWorld("policy-sighted-wayfinder", "campaign:policy-sighted-wayfinder");
@@ -344,8 +446,8 @@ describe("Visible Instinct actor profiles", () => {
     expect(actorPolicy(hiddenWorld, hiddenOpportunity)).toEqual(actorPolicy(emptyWorld, emptyOpportunity));
   });
 
-  it("keeps five frozen profiles within rule and condition caps", () => {
-    expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat", "millerCombat", "sharedOpeningCombat"]);
+  it("keeps six frozen profiles within rule and condition caps", () => {
+    expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat", "millerCombat", "sharedOpeningCombat", "repartee"]);
     for (const profile of Object.values(actorInstinctProfiles)) {
       expect(Object.isFrozen(profile)).toBe(true);
       expect(Object.isFrozen(profile.rules)).toBe(true);

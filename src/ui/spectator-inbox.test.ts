@@ -10,6 +10,7 @@ import { canUnlockDungeonGate, generateDungeon } from "../depth/dungeon";
 import { maximumAbilities } from "../depth/rpg";
 import { advanceDepth, depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import { generateTown, visitTown } from "../depth/towns";
+import { readReparteeBook, reparteeBook, reparteeResponses, resolveReparteeRound, startRepartee, type ReparteeProgress } from "../depth/repartee";
 import type { DepthState, DungeonState, ItemState } from "../depth/types";
 import {
   beginSpectatorAbsence,
@@ -61,7 +62,102 @@ function routineBeat(before: WorldState): WorldState {
   return withDepth(before, { ...before.depth, tick: before.depth.tick + 1 }, "travel");
 }
 
+// These isolate source-bound inbox projection using real pure-rule receipts.
+// Town admission and autonomous decisions have their separate integration test.
+function reparteeBeat(before: WorldState, commandType: "read-book" | "start-repartee" | "repartee-action",
+  resolve: (sourceCommandId: string, tick: number) => ReparteeProgress): WorldState {
+  const tick = before.tick + 1;
+  const sourceCommandId = `depth:${tick}:repartee-fixture`;
+  const repartee = resolve(sourceCommandId, tick);
+  const after = withDepth(before, { ...before.depth, tick, repartee }, "chronicle");
+  const source = after.chronicle.at(-1)!;
+  return { ...after, chronicle: [...after.chronicle.slice(0, -1), { ...source, commandType, commandId: `${before.campaignId}:${sourceCommandId}` }] };
+}
+
+function readInboxBook(before: WorldState): WorldState {
+  const town = before.depth.towns[before.depth.atlas.currentLocationId]!;
+  const building = town.buildings.find((entry) => entry.kind === "inn" || entry.kind === "hall")!;
+  expect(building).toBeDefined();
+  return reparteeBeat(before, "read-book", (sourceCommandId, tick) => readReparteeBook(before.depth.repartee, {
+    actorId: before.hero.id, locationId: town.locationId, buildingId: building.id, sourceCommandId, tick,
+  }));
+}
+
 describe("spectator inbox", () => {
+  it("captures learned book entries only from their exact reading source", () => {
+    const before = createWorld("browser-dungeon-search:8", "campaign:repartee-inbox");
+    const after = readInboxBook(before);
+    const bytes = JSON.stringify(after);
+    const inbox = observeSpectatorInbox(createSpectatorInbox(before), before, after, true);
+    expect(inbox.items).toHaveLength(1);
+    expect(inbox.items[0]).toMatchObject({ kind: "discovery", status: "resolved", episodeId: null,
+      title: "A book opens new answers", sourceId: after.chronicle.at(-1)!.id,
+      details: [`Read · ${reparteeBook.title}`, "Learned · 12 expressions · 2 counter frames", "No XP, reputation, health or mana changed"] });
+    expect(observeSpectatorInbox(inbox, before, after, true)).toBe(inbox);
+    expect(JSON.stringify(after)).toBe(bytes);
+    for (const sourceChange of [{ commandId: "unrelated-command" }, { commandType: "wait" as const },
+      { commandId: after.depth.repartee.reading!.sourceCommandId },
+      { commandId: `campaign:someone-else:${after.depth.repartee.reading!.sourceCommandId}` }]) {
+      const unrelated = { ...after, chronicle: [{ ...after.chronicle.at(-1)!, ...sourceChange }] };
+      expect(observeSpectatorInbox(createSpectatorInbox(before), before, unrelated, true).items).toEqual([]);
+    }
+  });
+
+  it("coalesces three recorded flyting rounds into one bounded source-linked result", () => {
+    let before = readInboxBook(createWorld("browser-dungeon-search:8", "campaign:repartee-inbox"));
+    const reading = before.depth.repartee.reading!;
+    const resident = before.depth.towns[reading.locationId]!.residents.find((entry) => entry.homeBuildingId === reading.buildingId)!;
+    expect(resident).toBeDefined();
+    let inbox = createSpectatorInbox(before);
+    let after = reparteeBeat(before, "start-repartee", (sourceCommandId, tick) => startRepartee(before.depth.repartee, {
+      actorId: before.hero.id, locationId: reading.locationId, buildingId: reading.buildingId,
+      residentId: resident.id, encounterId: "repartee:inbox-one", sourceCommandId, tick,
+    }));
+    const firstSource = after.chronicle.at(-1)!.id;
+    inbox = observeSpectatorInbox(inbox, before, after, true);
+    expect(inbox.items[0]).toMatchObject({ title: "Flyting declared", status: "ongoing", kind: "battle",
+      episodeId: "repartee:repartee:inbox-one", sourceId: firstSource });
+    for (let roundIndex = 0; roundIndex < 3; roundIndex += 1) {
+      before = after;
+      const response = reparteeResponses(before.depth.repartee).find((entry) => entry.classification === "direct")!;
+      after = reparteeBeat(before, "repartee-action", (sourceCommandId, tick) => resolveReparteeRound(before.depth.repartee, {
+        encounterId: "repartee:inbox-one", roundIndex, responseId: response.id, sourceCommandId, tick,
+        reputationBefore: before.depth.towns[reading.locationId]!.reputation, reputationCap: 100,
+      }));
+      inbox = observeSpectatorInbox(inbox, before, after, true);
+      expect(inbox.items).toHaveLength(1);
+      expect(inbox.items[0]!.details.length).toBeLessThanOrEqual(maximumSpectatorDetails);
+    }
+    const result = after.depth.repartee.completed!;
+    expect(result.outcome).toBe("victory");
+    expect(inbox.items[0]).toMatchObject({ title: "Flyting victory", status: "resolved", eventCount: 4,
+      sourceId: firstSource, latestSourceId: after.chronicle.at(-1)!.id, provenance: "chronicle" });
+    expect(inbox.items[0]!.details).toContain(`${before.hero.name}: ${result.rounds.at(-1)!.reply}`);
+    expect(inbox.items[0]!.details).toContain(`Outcome · victory · reputation ${result.reputationBefore} → ${result.reputationAfter} (+1)`);
+    expect(inbox.items[0]!.omittedDetails).toBeGreaterThan(0);
+    expect(observeSpectatorInbox(inbox, before, after, true)).toBe(inbox);
+    const unrelated = { ...after, chronicle: [{ ...after.chronicle.at(-1)!, commandId: "unrelated-command" }] };
+    expect(observeSpectatorInbox(createSpectatorInbox(before), before, unrelated, true).items).toEqual([]);
+  });
+
+  it("records a declared flyting retreat without inventing a reply or defeat", () => {
+    const read = readInboxBook(createWorld("browser-dungeon-search:8", "campaign:repartee-retreat-inbox"));
+    const reading = read.depth.repartee.reading!;
+    const resident = read.depth.towns[reading.locationId]!.residents.find((entry) => entry.homeBuildingId === reading.buildingId)!;
+    const before = reparteeBeat(read, "start-repartee", (sourceCommandId, tick) => startRepartee(read.depth.repartee, {
+      actorId: read.hero.id, locationId: reading.locationId, buildingId: reading.buildingId,
+      residentId: resident.id, encounterId: "repartee:retreat-inbox", sourceCommandId, tick,
+    }));
+    const reputation = before.depth.towns[reading.locationId]!.reputation;
+    const after = reparteeBeat(before, "repartee-action", (sourceCommandId, tick) => resolveReparteeRound(before.depth.repartee, {
+      encounterId: "repartee:retreat-inbox", roundIndex: 0, responseId: "retreat", sourceCommandId, tick,
+      reputationBefore: reputation, reputationCap: 100,
+    }));
+    const inbox = observeSpectatorInbox(createSpectatorInbox(before), before, after, true);
+    expect(inbox.items[0]).toMatchObject({ title: "Flyting retreat", status: "resolved", kind: "battle",
+      details: ["Momentum · 0 after 0 rounds", `Outcome · retreat · reputation ${reputation} → ${reputation} (+0)`] });
+  });
+
   it("captures companion recruitment and farewell as exact named moments", () => {
     const base = createWorld("spectator-companion", "campaign:companion");
     const originId = base.depth.atlas.currentLocationId;

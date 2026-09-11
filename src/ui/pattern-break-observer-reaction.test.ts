@@ -40,41 +40,41 @@ let cachedEarnedReactionWorld: WorldState | null = null;
 
 function earnedCompanionReactionWorld(): WorldState {
   if (cachedEarnedReactionWorld !== null) return cachedEarnedReactionWorld;
-  for (let index = 0; index < 512; index += 1) {
-    const seed = `pattern-break-observer:${index}`;
-    const joined = advanceWorld(eligibleWorld(seed));
-    const routed = advanceWorld(joined);
-    const encounterId = unresolvedRouteEncounterId(routed.depth);
-    if (encounterId === null || routed.depth.companions.active.length !== 1) continue;
-    const started = stepDepth(routed.depth, { type: "start-counter-duel", encounterId });
-    const armed = advanceDepth(started);
-    if (armed.counterDuel?.patternBreak?.status !== "armed") continue;
-    const preview = advanceDepth(armed);
-    if (preview.completedCounterDuels.at(-1)?.patternBreak?.status !== "spent") continue;
-    const world = upgradeWorldState({
-      ...routed,
-      tick: armed.tick,
-      depth: armed,
-      scene: {
-        ...routed.scene,
-        mode: "battle",
-        headline: `Pattern Duel · Round 1 · ${armed.counterDuel.heroScore}–${armed.counterDuel.opponentScore}`,
-        action: "The first prediction matched the public live tell and revealed stance.",
-        consequence: "Opening armed · 1/2 confirmed reads · the next confirmed read breaks the pattern.",
-        sensoryIntensity: 3,
-      },
-      lifecycle: {
-        ...routed.lifecycle,
-        simulationTick: armed.tick,
-      },
-    });
-    const resolved = advanceWorld(world);
-    if (projectPatternBreakObserverReaction(resolved) !== null) {
-      cachedEarnedReactionWorld = resolved;
-      return resolved;
-    }
+  // Captured from the original bounded search. Keep the actual generated
+  // companion, route and earned Break, without replaying 46 unrelated seeds.
+  const seed = "pattern-break-observer:46";
+  const joined = advanceWorld(eligibleWorld(seed));
+  const routed = advanceWorld(joined);
+  const encounterId = unresolvedRouteEncounterId(routed.depth);
+  if (encounterId === null || routed.depth.companions.active.length !== 1) {
+    throw new Error("The pinned observer fixture must recruit and route its real companion");
   }
-  throw new Error("No deterministic companion Pattern Break reaction fixture found");
+  const started = stepDepth(routed.depth, { type: "start-counter-duel", encounterId });
+  const armed = advanceDepth(started);
+  if (armed.counterDuel?.patternBreak?.status !== "armed") throw new Error("The pinned observer fixture must earn its first confirmed read");
+  const preview = advanceDepth(armed);
+  if (preview.completedCounterDuels.at(-1)?.patternBreak?.status !== "spent") throw new Error("The pinned observer fixture must earn its Pattern Break");
+  const world = upgradeWorldState({
+    ...routed,
+    tick: armed.tick,
+    depth: armed,
+    scene: {
+      ...routed.scene,
+      mode: "battle",
+      headline: `Pattern Duel · Round 1 · ${armed.counterDuel.heroScore}–${armed.counterDuel.opponentScore}`,
+      action: "The first prediction matched the public live tell and revealed stance.",
+      consequence: "Opening armed · 1/2 confirmed reads · the next confirmed read breaks the pattern.",
+      sensoryIntensity: 3,
+    },
+    lifecycle: {
+      ...routed.lifecycle,
+      simulationTick: armed.tick,
+    },
+  });
+  const resolved = advanceWorld(world);
+  if (projectPatternBreakObserverReaction(resolved) === null) throw new Error("The pinned observer fixture must retain its exact visible witness");
+  cachedEarnedReactionWorld = resolved;
+  return resolved;
 }
 
 describe("Pattern Break observer reaction projection", () => {

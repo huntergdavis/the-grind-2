@@ -5,7 +5,7 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. Start **F1 — Books & Flyting**: one book, learned language and a real solo duel.
+1. Finish delivery of **F1 — Books & Flyting (v0.5.159)**: one book, learned language and a real solo duel. Implementation is under release verification; public deployment is not yet claimed.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -29,7 +29,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F1 — Books & Flyting** | Read one original book, learn useful expressions, then watch a real autonomous verbal duel with win/loss/draw | Design; not implemented |
+| **F1 — Books & Flyting** | Read one original book, learn useful expressions, then watch a real autonomous verbal duel with win/loss/draw | Implemented in v0.5.159; release verification in progress |
 | **F2 — The witness remembers** | A present companion reacts, gains or loses regard for a reason, and can recall that moment later | Design; follows a real event producer |
 | **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Research/design; not a reskin of movement |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
@@ -80,7 +80,7 @@ general framework. All remain client-side and work without an LLM.
 - Post-battle turning-point recaps, including a clearly labeled unused alternative.
 - Learned tactical instincts with limited slots and replacement rules.
 - **Adventure Impressions:** experiences gradually create bounded behavioral traits.
-- Flyting tactics that select from learned language and public challenge cues rather than inventing words or reading an opponent's hidden choice.
+- Broader flyting tactics and challenge families beyond F1's learned replies, public calls and personality-aware selection.
 - Bank-and-spend combat tempo and temporary weakness-exposure windows.
 - Real formations, interception and lane control—not merely rearranged sprites.
 - **Anatomical encounters:** target known monster zones; breaking one changes its actions or stance.
@@ -101,7 +101,7 @@ general framework. All remain client-side and work without an LLM.
 - More accomplishment-based XP and differentiated quest rewards.
 - Horizontal post-cap progression: new specializations, journeys and bounded tradeoffs.
 - Breadth-earned titles, distinctions and heraldry without automatic power inflation.
-- **Books and vocabulary:** persistent learned expressions, registers and constructive counters; broader language opens options rather than endless damage bonuses.
+- **Books and vocabulary expansion:** more books, registers and constructive counters beyond F1's original 12-expression repertoire; broader language opens options rather than endless damage bonuses.
 
 ## 4. Quests and campaign consequences
 
@@ -158,7 +158,7 @@ general framework. All remain client-side and work without an LLM.
 
 Each is a real ruleset with consequences—not just another battle animation.
 
-- **Flyting / repartee duels:** one original verbal-contest family, with flyting as the first ruleset; book-learned language, real counters, readable stakes and win/loss/draw.
+- **Flyting / repartee expansion:** additional rivals and claim families beyond F1's one original three-round contest; witnessed reactions follow separately in F2.
 - **Poker-like showdowns:** original bluffing, tells, wagers and reveals.
 - **Card-based RPG battles:** bounded decks assembled from earned campaign content.
 - **Microgame gauntlets:** short dodge, catch, balance, repair, memory and escape challenges.

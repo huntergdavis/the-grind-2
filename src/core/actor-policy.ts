@@ -12,6 +12,7 @@ import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnow
 import { legalMillraceReversal } from "../depth/shared-opening";
 import { selectDisarmingKitPurchase } from "../depth/town-disarming-kit";
 import { selectDisarmingKit } from "../depth/disarming-kit";
+import { reparteeBook, reparteeResponses, type ReparteeResponse } from "../depth/repartee";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -77,6 +78,12 @@ export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorI
     { id: "opening.millrace-reversal", conditions: [], selector: "millrace-reversal", reasonCode: "control-tempo" },
     { id: "opening.fallback", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
   ]),
+  repartee: freezeProfile("repartee", [
+    { id: "repartee.learned-counter", conditions: ["hero-curious"], selector: "any", reasonCode: "test-technique" },
+    { id: "repartee.graceful-concession", conditions: ["hero-merciful"], selector: "any", reasonCode: "control-conflict" },
+    { id: "repartee.defiant-voice", conditions: ["hero-courageous"], selector: "any", reasonCode: "meet-danger" },
+    { id: "repartee.address-the-claim", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
+  ]),
 });
 
 interface CandidateScore {
@@ -88,11 +95,21 @@ interface CandidateScore {
 
 interface ActorPolicyKnowledge {
   dungeonMoves: ReadonlyMap<MazeDirection, DungeonMoveKnowledge>;
+  reparteeResponses: ReadonlyMap<string, ReparteeResponse>;
 }
 
 function projectActorPolicyKnowledge(state: WorldState): ActorPolicyKnowledge {
   const moves = state.depth.dungeon === null ? [] : projectDungeonMoveKnowledge(state.depth.dungeon);
-  return { dungeonMoves: new Map(moves.map((move) => [move.direction, move])) };
+  const responses = state.depth.repartee.active === null ? [] : reparteeResponses(state.depth.repartee);
+  return { dungeonMoves: new Map(moves.map((move) => [move.direction, move])),
+    reparteeResponses: new Map(responses.map((response) => [response.id, response])) };
+}
+
+function knownReparteeResponse(state: WorldState, candidate: DepthCommandCandidate, knowledge: ActorPolicyKnowledge): ReparteeResponse | undefined {
+  const command = candidate.command, active = state.depth.repartee.active;
+  if (command.type !== "repartee-action" || active === null || command.encounterId !== active.encounterId
+    || command.roundIndex !== active.roundIndex || candidate.deciderId !== active.actorId) return undefined;
+  return knowledge.reparteeResponses.get(command.responseId);
 }
 
 function combatFacts(state: WorldState, candidate: DepthCommandCandidate): {
@@ -198,6 +215,31 @@ function scoreCandidate(
     if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
     if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
     reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
+  } else if (command.type === "repartee-action") {
+    const response = knownReparteeResponse(state, candidate, knowledge);
+    if (response === undefined) throw new Error("Actor Policy cannot score an unknown repartee response");
+    score = 20 + response.delta * 20;
+    const curious = state.hero.values.includes("curiosity"), merciful = state.hero.values.includes("mercy");
+    if (curious && response.style === "direct") {
+      score += 40;
+      reason = `curiosity tests a counter learned from ${reparteeBook.title}; ${response.explanation}`;
+    } else if (!curious && merciful && response.classification === "near") {
+      score += response.style === "personality" ? 50 : 40;
+      reason = `mercy prefers an honest, dignified concession over winning the point; ${response.explanation}`;
+    } else if (!curious && !merciful && state.hero.values.includes("courage") && response.style === "personality") {
+      score += 60;
+      reason = `courage favors a defiant personal answer over guaranteeing the round; ${response.explanation}`;
+    } else {
+      reason = `the known answer is judged against the public claim: ${response.explanation}`;
+    }
+  } else if (command.type === "read-book") {
+    const building = state.depth.towns[command.locationId]?.buildings.find((entry) => entry.id === command.buildingId);
+    score = 30;
+    reason = `${reparteeBook.title} is an available public reading copy at ${building?.name ?? "the recorded building"}; learning new replies grants no combat power`;
+  } else if (command.type === "start-repartee") {
+    const resident = state.depth.towns[command.locationId]?.residents.find((entry) => entry.id === command.residentId);
+    score = 30;
+    reason = `${resident?.name ?? "the recorded resident"} offers a three-round exchange with declared town-reputation stakes, not a fight`;
   } else if (command.type === "plan-route") {
     const destination = state.depth.atlas.locations.find((entry) => entry.id === command.destinationId);
     const unknown = !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
@@ -372,6 +414,7 @@ function selectorMatches(
 }
 
 function contextFor(state: WorldState, candidates: readonly DepthCommandCandidate[]): ActorInstinctContext {
+  if (candidates.some((candidate) => candidate.command.type === "repartee-action")) return "repartee";
   const combatCandidate = candidates.find((candidate) => candidate.command.type === "combat-action");
   if (combatCandidate === undefined) return "road";
   const actor = combatFacts(state, combatCandidate).actor;
@@ -407,6 +450,17 @@ function presentationLabels(
 ): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
+    case "read-book": return { actionLabel: "reads a public copy", targetLabel: reparteeBook.title };
+    case "start-repartee": return {
+      actionLabel: "accepts a flyting contest",
+      targetLabel: state.depth.towns[command.locationId]?.residents.find((entry) => entry.id === command.residentId)?.name ?? "the recorded resident",
+    };
+    case "repartee-action": {
+      const response = knownReparteeResponse(state, candidate, knowledge);
+      const active = state.depth.repartee.active;
+      const resident = active === null ? undefined : state.depth.towns[active.locationId]?.residents.find((entry) => entry.id === active.residentId);
+      return { actionLabel: response?.text ?? "the unavailable reply", targetLabel: resident?.name ?? "the recorded resident" };
+    }
     case "recruit-companion": {
       const resident = state.depth.towns[state.depth.atlas.currentLocationId]?.residents.find(
         (entry) => entry.id === command.residentId,
@@ -499,10 +553,13 @@ function presentationLabels(
 }
 
 export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorChoice {
-  const context = contextFor(state, opportunity.candidates);
-  const profile = actorInstinctProfiles[context];
   const knowledge = projectActorPolicyKnowledge(state);
-  const ranked = opportunity.candidates
+  const candidates = opportunity.candidates.filter((candidate) => state.depth.repartee.active === null
+    ? candidate.command.type !== "repartee-action"
+    : knownReparteeResponse(state, candidate, knowledge) !== undefined);
+  const context = contextFor(state, candidates);
+  const profile = actorInstinctProfiles[context];
+  const ranked = candidates
     .map((candidate) => {
       const matched = matchingRule(state, candidate, profile, knowledge);
       const command = candidate.command;
@@ -557,7 +614,9 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
     : `${combatFacts(state, guardedAlternative.candidate).target?.name ?? "The foe"}'s Guard prevents a guaranteed finish; ${selected.reason}`;
   const reasons = [forwardReason ?? selectedReason];
   const rationale = forwardReason === null
-    ? `${actor.name} chose to ${selected.candidate.label} because ${selectedReason}.`
+    ? selectedCommand.type === "repartee-action"
+      ? `${actor.name} chose the reply “${selected.candidate.label}” because ${selectedReason.replace(/[.!?]+$/u, "")}.`
+      : `${actor.name} chose to ${selected.candidate.label} because ${selectedReason}.`
     : `${actor.name} chose to ${selected.candidate.label} because ${forwardReason}.`;
   return {
     commandId: selectedTrace.commandId,

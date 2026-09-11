@@ -1205,7 +1205,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 27;
+  schemaVersion: 28;
+  repartee: import("./repartee").ReparteeProgress;
   latestDisarmingKitPurchase: DisarmingKitPurchaseReceipt | null;
   seed: string;
   tick: number;
@@ -1232,6 +1233,9 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "read-book"; bookId: string; locationId: string; buildingId: string }
+  | { type: "start-repartee"; encounterId: string; residentId: string; locationId: string; buildingId: string }
+  | { type: "repartee-action"; encounterId: string; roundIndex: number; responseId: string }
   | { type: "recruit-companion"; residentId: string; destinationId: string }
   | { type: "farewell-companion"; residentId: string }
   | { type: "restock-tonic"; itemId: string }

@@ -7,6 +7,7 @@ import {
   projectCounterDuelHabit,
 } from "../depth/counter-duel";
 import type { EquipmentSlot, QuestObjective } from "../depth/types";
+import { reparteeBook } from "../depth/repartee";
 
 export const maximumSpectatorMoments = 8;
 export const maximumSpectatorDetails = 8;
@@ -389,6 +390,59 @@ function counterDuelDelta(before: WorldState, after: WorldState): {
   };
 }
 
+function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleEntry): {
+  episodeId: string | null;
+  title: string;
+  kind: "discovery" | "battle";
+  status: SpectatorMoment["status"];
+  details: readonly string[];
+} | null {
+  const previous = before.depth.repartee;
+  const current = after.depth.repartee;
+  const reading = current.reading;
+  if (source.tick !== after.tick) return null;
+  if (source.commandType === "read-book" && previous.reading === null && reading !== null
+    && reading.tick === source.tick && `${after.campaignId}:${reading.sourceCommandId}` === source.commandId) {
+    return {
+      episodeId: null, title: "A book opens new answers", kind: "discovery", status: "resolved",
+      details: [
+        `Read · ${reparteeBook.title}`,
+        `Learned · ${reading.addedEntryIds.length} expressions · ${reading.addedFrameIds.length} counter frames`,
+        "No XP, reputation, health or mana changed",
+      ],
+    };
+  }
+  const duel = current.active ?? current.completed;
+  if (duel === null) return null;
+  const resident = after.depth.towns[duel.locationId]?.residents.find((entry) => entry.id === duel.residentId);
+  const rival = resident?.name ?? duel.residentId;
+  if (source.commandType === "start-repartee" && previous.active === null && current.active !== null
+    && duel.startedTick === source.tick && `${after.campaignId}:${duel.sourceCommandId}` === source.commandId) {
+    return {
+      episodeId: `repartee:${duel.encounterId}`, title: "Flyting declared", kind: "battle", status: "ongoing",
+      details: [`Rival · ${rival}`, "Three rounds · direct +1, near 0, category mistake −1 · victory earns at most +1 town reputation"],
+    };
+  }
+  if (source.commandType !== "repartee-action" || previous.active?.encounterId !== duel.encounterId) return null;
+  const completed = current.completed;
+  const round = duel.rounds.at(-1);
+  const newRound = duel.rounds.length === previous.active.rounds.length + 1
+    && round !== undefined && `${after.campaignId}:${round.sourceCommandId}` === source.commandId && round.tick === source.tick;
+  const resolved = completed !== null && completed.completedTick === source.tick
+    && `${after.campaignId}:${completed.completionCommandId}` === source.commandId;
+  if (!newRound && !resolved) return null;
+  return {
+    episodeId: `repartee:${duel.encounterId}`,
+    title: resolved ? `Flyting ${completed.outcome}` : `Flyting round ${duel.rounds.length}`,
+    kind: "battle", status: resolved ? "resolved" : "ongoing",
+    details: [
+      ...(newRound && round !== undefined ? [`${rival}: ${round.call}`, `${after.hero.name}: ${round.reply}`] : []),
+      `Momentum · ${duel.momentum > 0 ? "+" : ""}${duel.momentum} after ${duel.rounds.length} rounds`,
+      ...(resolved ? [`Outcome · ${completed.outcome} · reputation ${completed.reputationBefore} → ${completed.reputationAfter} (+${completed.reputationAward})`] : []),
+    ],
+  };
+}
+
 function projectMoment(before: WorldState, after: WorldState, cursorTick: number): SpectatorMoment | null {
   const sources = retainedSources(after, cursorTick);
   const latestSource = sources.at(-1);
@@ -397,6 +451,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
   const source = aggregate ? null : latestSource;
   const battleChange = battleDelta(before, after);
   const counterDuelChange = counterDuelDelta(before, after);
+  const repartee = reparteeDelta(before, after, latestSource);
   const companion = companionDelta(before, after);
   const ongoingBattleId = before.depth.combat !== null
     && after.depth.combat?.id === before.depth.combat.id
@@ -406,7 +461,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     && after.depth.counterDuel?.id === before.depth.counterDuel.id
     ? before.depth.counterDuel.id
     : null;
-  const battle = counterDuelChange ?? battleChange ?? (ongoingCounterDuelId !== null
+  const battle = (repartee?.kind === "battle" ? repartee : null) ?? counterDuelChange ?? battleChange ?? (ongoingCounterDuelId !== null
     ? {
         episodeId: `counter-duel:${ongoingCounterDuelId}`,
         title: "Pattern Duel in progress",
@@ -434,6 +489,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     : undefined;
   const details = [
     ...(companion?.details ?? []),
+    ...(repartee?.kind === "discovery" ? repartee.details : []),
     ...(battle?.details ?? []),
     ...(dungeon?.details ?? []),
     ...discoveries,
@@ -449,7 +505,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     ? "companion"
     : battle !== null
     ? "battle"
-    : discoveries.length > 0 || secretOutcomes.length > 0
+    : repartee?.kind === "discovery" || discoveries.length > 0 || secretOutcomes.length > 0
       ? "discovery"
       : dungeon !== null
         ? "dungeon"
@@ -469,6 +525,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     ?? String(after.tick);
   const title = companion?.title
     ?? battle?.title
+    ?? repartee?.title
     ?? (discoveries.length > 0
       ? discoveryChange.heldAdmissionCount === discoveries.length
         ? "Held field note admitted"

@@ -106,6 +106,7 @@ import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recover
 import { projectPaidInnRestScene } from "./paid-inn-rest";
 import { projectDisarmingKitPurchaseScene } from "./disarming-kit-purchase";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
+import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
 import { projectDungeonFraming } from "./dungeon-framing";
 import {
   projectCounterDuelPatternBreakSignature,
@@ -1113,6 +1114,8 @@ export class GameRenderer {
     delete this.host.dataset.disarmingKitPurchaseBuilding;
     delete this.host.dataset.disarmingKitPurchaseReceipt;
     delete this.host.dataset.disarmingKitPurchaseVisual;
+    for (const key of ["reparteePhase", "reparteeCommand", "reparteeBook", "reparteeRound", "reparteeMomentum",
+      "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -1314,6 +1317,12 @@ export class GameRenderer {
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, palette[0]));
     this.drawHorizon(palette);
 
+    const repartee = this.viewMode === "live" ? projectReparteeScene(state) : null;
+    if (repartee !== null) {
+      this.drawRepartee(state, repartee, palette);
+      this.layout();
+      return;
+    }
     switch (presentedMode) {
       case "town":
         this.drawTown(state, palette);
@@ -4261,6 +4270,9 @@ export class GameRenderer {
   private layout(): void {
     this.syncStageInformationVisibility();
     const baseLayout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
+    const reparteeBounds = this.reparteeSafeBounds();
+    const reparteeLayout = reparteeBounds === null ? null
+      : calculateBoundedSceneLayout(reparteeBounds, designWidth, designHeight);
     const battlePanelSafeBounds = this.battlePanelSafeBounds();
     const battlePanelLayout = battlePanelSafeBounds === null
       ? null
@@ -4311,7 +4323,7 @@ export class GameRenderer {
       Math.max(0.35, (fieldNoteStageWidth - 16) / designWidth),
       Math.max(0.35, (this.app.screen.height - wideStageTop - 12) / designHeight),
     );
-    const layout = relationshipMobile
+    const layout = reparteeLayout ?? (relationshipMobile
       ? {
           scale: relationshipScale,
           x: (this.app.screen.width - designWidth * relationshipScale) / 2,
@@ -4335,7 +4347,7 @@ export class GameRenderer {
         ? battlePanelLayout
       : this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
         ? { ...baseLayout, y: 96 }
-        : baseLayout;
+        : baseLayout);
     if (battlePanelSafeBounds === null) {
       delete this.host.dataset.combatStageLayout;
       delete this.host.dataset.combatStageSafeRect;
@@ -4629,6 +4641,100 @@ export class GameRenderer {
       layer.rotation = -0.08;
     }
     return layer;
+  }
+
+  private reparteeSafeBounds(): SceneLayoutBounds | null {
+    if (this.host.dataset.reparteePhase === undefined || this.viewMode !== "live") return null;
+    const app = this.host.closest<HTMLElement>("#app");
+    const host = this.host.getBoundingClientRect();
+    const safe = { left: 8, top: 8, right: host.width - 8, bottom: host.height - 8 };
+    if (app === null) return safe;
+    for (const selector of [".topbar", ".view-toolbar", "#stage-focus-ribbon", "#stage-focus-controls"]) {
+      const node = app.querySelector<HTMLElement>(selector);
+      if (node === null || node.hidden || getComputedStyle(node).display === "none") continue;
+      const bounds = node.getBoundingClientRect();
+      if (bounds.height > 0) safe.top = Math.max(safe.top, bounds.bottom - host.top + 8);
+    }
+    const caption = app.querySelector<HTMLElement>("#repartee-caption");
+    if (caption !== null && !caption.hidden) {
+      const bounds = caption.getBoundingClientRect();
+      if (host.width > 760 && host.height <= 560) safe.right = Math.min(safe.right, bounds.left - host.left - 12);
+      else safe.bottom = Math.min(safe.bottom, bounds.top - host.top - 12);
+    }
+    this.host.dataset.reparteeSafeRect = [safe.left, safe.top, safe.right, safe.bottom].map((value) => value.toFixed(2)).join(",");
+    return safe;
+  }
+
+  private drawRepartee(state: WorldState, scene: ReparteeSceneView, palette: readonly [number, number, number]): void {
+    this.host.dataset.reparteePhase = scene.phase;
+    this.host.dataset.reparteeCommand = scene.commandId;
+    this.host.dataset.reparteeBook = scene.bookId;
+    this.host.dataset.reparteeRound = String(scene.marks.filter((mark) => mark !== null).length);
+    this.host.dataset.reparteeMomentum = String(scene.momentum);
+    this.host.dataset.reparteeHero = scene.heroId;
+    this.host.dataset.reparteeResident = scene.residentId ?? "none";
+    this.host.dataset.reparteeOutcome = scene.outcome ?? "pending";
+    this.host.dataset.reparteeVisual = scene.phase === "reading"
+      ? "actual-hero|public-copy|reading-desk|no-resource-damage"
+      : "actual-hero|actual-resident|speaking-gestures|three-marks|no-resource-damage";
+    this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172331));
+    this.worldLayer.addChild(rect(0, 148, 320, 32, 0x403d35));
+    // A spare civic arcade, not an invented inventory item or extra combat arena.
+    for (const x of [25, 153, 281]) {
+      this.worldLayer.addChild(new Graphics().roundRect(x - 16, 28, 32, 105, 14).fill(0x293644)
+        .roundRect(x - 10, 36, 20, 91, 10).fill(0x101a27));
+    }
+    this.worldLayer.addChild(rect(0, 133, 320, 5, 0x655845));
+    const title = this.createScaleSensitiveText(scene.buildingName, {
+      fontFamily: "Georgia, serif", fontSize: 8, fill: 0xdacba9, align: "center", wordWrap: true, wordWrapWidth: 265,
+    });
+    title.anchor.set(0.5, 0);
+    title.position.set(160, 6);
+    this.addStageInformation(this.worldLayer, title);
+    const book = (x: number, y: number, scale: number): void => {
+      const pages = new Container();
+      pages.position.set(x, y);
+      pages.scale.set(scale);
+      pages.addChild(new Graphics().poly([-18, -8, -2, -6, 0, -3, 2, -6, 18, -8, 18, 7, 2, 9, 0, 11, -2, 9, -18, 7]).fill(0xd1a255)
+        .poly([-16, -7, -2, -5, 0, -2, 0, 9, -3, 7, -16, 5]).fill(0xf5e4b8)
+        .poly([16, -7, 2, -5, 0, -2, 0, 9, 3, 7, 16, 5]).fill(0xe7d1a1));
+      for (let line = 0; line < 3; line += 1) {
+        pages.addChild(new Graphics().moveTo(-13, -3 + line * 3).lineTo(-4, -2 + line * 3)
+          .moveTo(4, -2 + line * 3).lineTo(13, -3 + line * 3).stroke({ color: 0x876d49, width: 0.8 }));
+      }
+      this.worldLayer.addChild(pages);
+    };
+    if (scene.phase === "reading") {
+      this.worldLayer.addChild(rect(155, 135, 7, 29, 0x6b4832), rect(205, 135, 7, 29, 0x6b4832), rect(146, 128, 75, 9, 0x986e43));
+      this.drawHero(state, 122, 139, palette, 1.7, scene.heroId, false);
+      book(176, 119, 1.7);
+      this.lightLayer.addChild(circle(177, 115, 30, 0xefcd7c, 0.09));
+      return;
+    }
+    this.drawHero(state, 92, 139, palette, 1.7, scene.heroId, false);
+    if (scene.residentId !== null) {
+      const rival = this.drawHero(state, 232, 139, palette, 1.7, scene.residentId, false);
+      rival.scale.x = -1.7;
+    }
+    book(161, 148, 0.8);
+    const speech = (x: number, color: number, tail: number): void => {
+      this.worldLayer.addChild(new Graphics().roundRect(x - 18, 67, 36, 23, 7).fill({ color, alpha: 0.95 })
+        .poly([x - 3, 89, x + 7, 89, x + tail, 97]).fill({ color, alpha: 0.95 })
+        .circle(x - 8, 78, 2).fill(0x253343).circle(x, 78, 2).fill(0x253343).circle(x + 8, 78, 2).fill(0x253343));
+    };
+    speech(232, 0xbccbd9, -7);
+    if (scene.reply !== null) speech(92, 0xefcb83, 7);
+    for (let index = 0; index < 3; index += 1) {
+      const delta = scene.marks[index];
+      const x = 146 + index * 15;
+      const color = delta === null ? 0x526172 : delta === 1 ? 0xe4bd6e : delta === -1 ? 0xc498b2 : 0x9ab5c5;
+      this.worldLayer.addChild(new Graphics().circle(x, 44, 5).fill(color));
+      if (delta !== null && delta !== undefined) {
+        this.worldLayer.addChild(new Graphics().moveTo(x - 2, 44).lineTo(x + 2, 44).stroke({ color: 0x172331, width: 1 }));
+        if (delta === 1) this.worldLayer.addChild(new Graphics().moveTo(x, 42).lineTo(x, 46).stroke({ color: 0x172331, width: 1 }));
+        if (delta === 0) this.worldLayer.addChild(new Graphics().circle(x, 44, 2).stroke({ color: 0x172331, width: 0.8 }));
+      }
+    }
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {

@@ -6,6 +6,8 @@ export * from "./combat-turn";
 export * from "./companion";
 export * from "./companion-kit";
 export * from "./counter-duel";
+export * from "./repartee";
+export * from "./repartee-campaign";
 export * from "./dungeon";
 export * from "./quest-lead";
 export * from "./rpg";

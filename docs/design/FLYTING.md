@@ -1,11 +1,25 @@
 # Flyting: learned words, useful counters, remembered conduct
 
-Status: design proposal, 2026-09-10. No runtime implementation is claimed.
+Status: F1 implemented locally for v0.5.159, 2026-09-10; release verification in progress. Broader sections below remain design proposals unless included in the shipped-scope note.
 This elaborates **V04.11 Original repartee duels** in [BACKLOG.md](../../BACKLOG.md)
 and the encounter contract in V04.19. It is one engine: `repartee`, with flyting
 as its first ruleset. It does not introduce a competing battle framework.
-The unfinished v0.5.158 mana-siphon work remains first in [ROADMAP.md](../../ROADMAP.md).
+The v0.5.158 mana-siphon release is publicly verified; F1 now follows it in [ROADMAP.md](../../ROADMAP.md).
 This proposal requires no LLM, model experiment or protected-ledger edit.
+
+## F1 implementation scope — v0.5.159
+
+One original public reading copy, **A Small Dictionary for Large Nuisances**, unlocks twelve expressions and two semantic counter frames. After level two, the first eligible visited town with a real hall/inn and its resident offers a reading, then one autonomous three-round contest. Recovery, ongoing companion oaths and active encounters retain priority. No resident, book history or past learning is invented during migration.
+
+The three declared calls concern dependence on learning, loudness as authority and caution as cowardice. Legal replies answer those actual claims: direct counters score +1, partial/conceding answers 0 and category mistakes −1. Curiosity, mercy and courage influence autonomous selection, with exact reasons in the normal decision trace. Vocabulary opens options; it does not force victory.
+
+Positive total momentum wins, negative loses, zero draws, and explicit concession remains a legal reducer action. A win changes the existing town reputation by at most +1, capped at 100. Every outcome consumes this one opportunity. HP, MP, XP, gold, equipment, quests and companion bonds are unchanged.
+
+The campaign snapshot retains the book source and exact three-round transcript. Journal → Adventure → Books & Flyting shows learning provenance, legal alternatives, scores and semantic explanations. Policy reasons link to the actual Chronicle while its bounded history retains them; older reasons are honestly marked unavailable. Saved receipt IDs use the depth-command namespace; world projections bind them through the exact campaign prefix.
+
+Native dialogue and a dedicated book/two-person stage replace duplicate Watch panels for these scenes. Focus preserves the words, round marks and earned outcome; no permanent additional panel or button-driven duel is introduced. Reading and replies are foreground story commands, so hidden catch-up stops before them. F2 witness regard, more books/rivals, repeat contests and a universal encounter registry are not implemented by F1.
+
+Recovery evidence reused before implementation: `deja "flyting"`, the committed design below and the pinned Herder reading/vocabulary findings (Claude session `7dc8bf11-9b0`). The runtime content here is original; no sibling book prose was copied.
 
 ## What the sibling game actually does
 

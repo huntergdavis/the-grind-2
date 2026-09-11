@@ -36,10 +36,23 @@ function resolveLevel(seed: string, targetLevel: number) {
   const created = createWorld(seed, `campaign:${seed}`);
   const initial = campaignDirector(created).candidates.some((candidate) => candidate.command.type === "buy-disarming-kit")
     ? advanceWorld(created) : created;
-  const before = withExperience(initial, heroExperienceFloor(targetLevel) - 1);
+  let before = withExperience(initial, heroExperienceFloor(targetLevel) - 1);
+  if (campaignDirector(before).candidates[0]?.command.type === "read-book") {
+    // Resolve the admitted public reading and all three real replies before
+    // isolating the +1 XP induction; no completed social history is fabricated.
+    for (const type of ["read-book", "start-repartee", "repartee-action", "repartee-action", "repartee-action"]) {
+      expect(campaignDirector(before).candidates.every((candidate) => candidate.command.type === type)).toBe(true);
+      const previous = before;
+      before = advanceWorld(before);
+      expect(before.hero.experience).toBe(previous.hero.experience);
+      expect(before.hero.level).toBe(previous.hero.level);
+    }
+    expect(before.depth.repartee.completed?.rounds).toHaveLength(3);
+  }
   const after = advanceWorld(before);
   const source = after.chronicle.at(-1);
   if (source === undefined) throw new Error("Level fixture produced no Chronicle source");
+  expect(after.hero.experience).toBe(before.hero.experience + 1);
   expect(after.hero.level).toBe(targetLevel);
   return { before, after, source, packet: projectChampionInductionSeal(before, after, source) };
 }

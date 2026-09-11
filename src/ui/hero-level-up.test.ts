@@ -30,10 +30,23 @@ function resolveLevel(seed: string, targetLevel: number) {
   // Resolve the real zero-XP supply stop before staging an earned threshold.
   const initial = campaignDirector(created).candidates.some((candidate) => candidate.command.type === "buy-disarming-kit")
     ? advanceWorld(created) : created;
-  const before = withExperience(initial, heroExperienceFloor(targetLevel) - 1);
+  let before = withExperience(initial, heroExperienceFloor(targetLevel) - 1);
+  if (campaignDirector(before).candidates[0]?.command.type === "read-book") {
+    // High-level fixtures now encounter a real, finite zero-XP social arc first.
+    // Keep its earned reading/result rather than manufacturing a completed book.
+    for (const type of ["read-book", "start-repartee", "repartee-action", "repartee-action", "repartee-action"]) {
+      expect(campaignDirector(before).candidates.every((candidate) => candidate.command.type === type)).toBe(true);
+      const previous = before;
+      before = advanceWorld(before);
+      expect(before.hero.experience).toBe(previous.hero.experience);
+      expect(before.hero.level).toBe(previous.hero.level);
+    }
+    expect(before.depth.repartee.completed?.rounds).toHaveLength(3);
+  }
   const after = advanceWorld(before);
   const source = after.chronicle.at(-1);
   if (source === undefined) throw new Error("Level-up fixture produced no Chronicle source");
+  expect(after.hero.experience).toBe(before.hero.experience + 1);
   expect(after.hero.level).toBe(targetLevel);
   return { before, after, source, packet: projectHeroLevelUp(before, after, source) };
 }

@@ -183,6 +183,8 @@ import {
 } from "./update/automatic-update";
 import { SimulationClient } from "./worker/simulation-client";
 import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
+import { createReparteeView, projectReparteeScene, type ReparteeSceneView } from "./ui/repartee-view";
+import { createReparteeDwell, reparteeDwellPending, updateReparteeDwell } from "./ui/repartee-dwell";
 
 const fastMode = new URLSearchParams(window.location.search).has("fast");
 const beatDurationMs = fastMode
@@ -564,6 +566,8 @@ const chroniclePlateArchive = createChroniclePlateArchive();
 const chroniclePlateView = createChroniclePlateView(requiredElement<HTMLDetailsElement>("#journal-chronicle-plates"),
   chroniclePlateArchive, () => ({ campaignId: state.campaignId, currentTick: state.tick }));
 const statusHistoryView = createStatusHistoryView(elements.journalStatus);
+const reparteeView = createReparteeView(requiredElement<HTMLElement>("#repartee-caption"),
+  requiredElement<HTMLDetailsElement>("#journal-repartee"));
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
@@ -591,6 +595,9 @@ let cutawayController: CutawayControllerState = createCutawayController();
 let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
 let presentationBusy = false;
 let narrativeReading = false;
+let reparteeScene: ReparteeSceneView | null = null;
+let reparteeDwell = createReparteeDwell();
+let reparteeVisible: boolean | null = null;
 let narrativeReplay = false;
 let narrativeCheckQueued = false;
 let lastNarrativeClosedAtMs = -Infinity;
@@ -1052,6 +1059,7 @@ function narrativePresentationAvailable(allowGameMenu = false): boolean {
     || activeView !== "watch" || presentationBusy || catchUpAfterPresentation
     || cutawayController.queue.active !== null || cutawayController.queue.pending !== null
     || state.scene.mode === "battle" || elements.stage.dataset.encounterEngine !== undefined
+    || state.depth.repartee.active !== null || reparteeScene !== null
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
     || document.querySelector(allowGameMenu ? "dialog[open]:not(#game-menu)" : "dialog[open]") !== null) return false;
   const source = state.chronicle.at(-1);
@@ -1593,6 +1601,20 @@ function isPresentationPaused(): boolean {
   return startupHold || paused || presentationSuspended || narrativeReading;
 }
 
+function syncReparteePresentation(): void {
+  const visible = activeView === "watch" && !presentationBusy && !narrativeReading;
+  if (visible !== reparteeVisible) {
+    reparteeVisible = visible;
+    reparteeView.setVisible(visible);
+    renderer.refreshLayout();
+  }
+  reparteeDwell = updateReparteeDwell(reparteeDwell,
+    reparteeScene?.commandId ?? null,
+    performance.now(), visible && !isPresentationPaused() && !document.hidden);
+  if (reparteeScene === null) delete elements.app.dataset.reparteeDwellMs;
+  else elements.app.dataset.reparteeDwellMs = String(Math.floor(reparteeDwell.elapsedMs));
+}
+
 function syncPresentationPaused(): void {
   const presentationPaused = isPresentationPaused();
   const now = Date.now();
@@ -1604,6 +1626,7 @@ function syncPresentationPaused(): void {
   }
   elements.app.dataset.presentationPaused = String(presentationPaused);
   renderer.setPaused(presentationPaused);
+  syncReparteePresentation();
   presentHeroInspectionActivity();
 }
 
@@ -2637,6 +2660,7 @@ function hideCutawayAdapterRoots(): void {
 function syncCutawayBusy(): void {
   presentationBusy = isCutawayBusy(cutawayController);
   elements.app.dataset.presentationBusy = String(presentationBusy);
+  syncReparteePresentation();
   syncNarratorPresentationContext();
 }
 
@@ -4026,6 +4050,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false, suppress
   }
   activeView = view;
   elements.app.dataset.activeView = view;
+  syncReparteePresentation();
   elements.counterDuelSummary.hidden = view !== "watch" || elements.counterDuelSummary.textContent === "";
   for (const button of viewButtons) {
     const selected = button.dataset.view === view;
@@ -4082,6 +4107,8 @@ function checkpointKey(campaignId: string): string {
 }
 
 async function catchUp(world: WorldState): Promise<WorldState> {
+  // A partly watched conversation resumes from its saved words, never hidden-time debt.
+  if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));
   if (!Number.isFinite(lastActive) || lastActive <= 0) return world;
   const observedAtMs = Date.now();
@@ -4848,6 +4875,9 @@ function present(): void {
   presentViewScreens();
   presentHeroInspectionActivity();
   presentSpectatorInbox();
+  reparteeScene = projectReparteeScene(state);
+  reparteeView.render(state);
+  syncReparteePresentation();
   renderer.render(state);
   syncStoryBeatPresentation();
 }
@@ -4894,7 +4924,9 @@ async function runInteraction(action: () => Promise<void>): Promise<void> {
 }
 
 async function step(): Promise<void> {
+  syncReparteePresentation();
   if (startupHold || paused || narrativeReading || document.hidden || stepping || pendingInteractions > 0 || presentationBusy) return;
+  if (reparteeDwellPending(reparteeDwell, reparteeVisible === true, fastMode)) return;
   stepping = true;
   try {
     const before = state;
@@ -4993,6 +5025,8 @@ function startRuntimeWatchdog(): void {
   if (runtimeWatchdog !== undefined) window.clearInterval(runtimeWatchdog);
   runtimeWatchdog = window.setInterval(() => {
     if (startupHold || narrativeReading) return;
+    syncReparteePresentation();
+    if (reparteeDwellPending(reparteeDwell, reparteeVisible === true, fastMode)) return;
     if (presentationBusy) {
       const maximumMs = activeCutawayMaximumMs(cutawayRegistry, cutawayController);
       if (!paused && !document.hidden && maximumMs !== null && Date.now() - cutawayStartedAtMs > maximumMs) {
@@ -5441,6 +5475,7 @@ function setPauseButtonText(text: string): void {
 function togglePaused(): void {
   const generation = ++pauseRequestGeneration;
   paused = !paused;
+  syncReparteePresentation();
   if (paused && stepping) {
     setPauseButtonText("Pausing…");
     void (async () => {

@@ -3,7 +3,7 @@
 ## Start here
 
 The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
-active planning source: Books & Flyting is next, followed by further playable
+active planning source: Books & Flyting is in release verification, followed by further playable
 features one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

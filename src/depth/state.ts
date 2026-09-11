@@ -124,6 +124,9 @@ import type {
   TonicRestockPlan,
 } from "./types";
 
+import { createReparteeProgress } from "./repartee";
+import { isValidCampaignRepartee, reparteeCommandCandidates, stepCampaignRepartee } from "./repartee-campaign";
+
 export const maximumDepthLogEntries = 128;
 export const maximumCompletedCombats = 4;
 export const maximumCompletedCounterDuels = 4;
@@ -832,9 +835,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -877,6 +880,11 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 27) {
+    return upgradeDepthState({ ...value, schemaVersion: 28,
+      repartee: Object.hasOwn(value, "repartee") ? value.repartee : createReparteeProgress(),
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 28) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -890,7 +898,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidDetailedHeroState(value.hero) ||
+      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1375,7 +1383,8 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 27,
+    schemaVersion: 28,
+    repartee: createReparteeProgress(),
     seed,
     tick: 0,
     atlas,
@@ -1449,9 +1458,11 @@ export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
 }
 
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (input.repartee.active !== null && command.type !== "repartee-action") throw new Error("Finish the active flyting contest before another command");
   const resolvingActiveEncounter = input.combat !== null
     ? command.type === "combat-action"
-    : input.counterDuel !== null && command.type === "counter-duel-action";
+    : input.counterDuel !== null && command.type === "counter-duel-action"
+      || input.repartee.active !== null && command.type === "repartee-action";
   if (input.quest.status === "ready-to-fulfill" && command.type !== "fulfill-quest" && !resolvingActiveEncounter) {
     throw new Error("The completed quest must be fulfilled before another command");
   }
@@ -1466,6 +1477,12 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "read-book":
+    case "start-repartee":
+    case "repartee-action": {
+      const result = stepCampaignRepartee(input, command);
+      return appendLog({ ...state, repartee: result.repartee, towns: result.towns }, "town", result.message);
+    }
     case "recruit-companion": {
       if (!canBeginSharedRoadOath(input.companions, input.atlas.currentLocationId, input.tick)) {
         throw new Error("A Shared Road Oath is already resolved here or the solo interval is not complete");
@@ -2385,6 +2402,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
+    !isValidCampaignRepartee(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
@@ -2396,6 +2414,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
+    !isValidCampaignRepartee(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
@@ -2611,6 +2630,7 @@ function selectedEmergencyRestorative(state: DepthState) {
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  if (state.repartee.active !== null) return reparteeCommandCandidates(state)!;
   if (state.pendingQuestReward !== null) {
     return [commandCandidate(
       state,
@@ -2834,6 +2854,8 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       { type: "wait" },
     )];
   }
+  const reparteeCandidates = reparteeCommandCandidates(state);
+  if (reparteeCandidates !== null) return reparteeCandidates;
   const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
   if (
     questLead !== null &&

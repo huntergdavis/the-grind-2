@@ -1,6 +1,6 @@
 {
   "name": "the-grind-2",
-  "version": "0.5.158",
+  "version": "0.5.159",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run src tools/narrator-browser-evaluation/src tools/narrator-browser-evaluation/tests tools/narrator-browser-evaluation-v3/src tools/narrator-browser-evaluation-v3/tests tools/narrator-browser-rateability-v3/src tools/narrator-browser-rateability-v3/tests",
     "test:release": "vitest run src tools/narrator-browser-evaluation/src tools/narrator-browser-evaluation/tests tools/narrator-browser-evaluation-v3/src tools/narrator-browser-evaluation-v3/tests tools/narrator-browser-rateability-v3/src tools/narrator-browser-rateability-v3/tests --maxWorkers=1 --no-file-parallelism",
+    "test:mentor-journey": "TG2_LONG_GAMEPLAY_AUDITS=1 vitest run src/core/simulation.test.ts -t 'autonomously completes one finite promise-return-farewell arc' --maxWorkers=1 --no-file-parallelism",
+    "test:progression-journey": "TG2_LONG_GAMEPLAY_AUDITS=1 vitest run src/core/simulation.test.ts -t 'keeps eternal progression bounded while mastery continues' --maxWorkers=1 --no-file-parallelism",
     "test:rebuild": "python3 -m unittest discover -s tools/narrator-t5-rebuild -p '*_test.py'",
     "test:story-beat-training": "node --test tools/narrator-story-beat-training/export-corpus.test.mjs && python3 -m unittest tools/narrator-story-beat-training/train_test.py",
     "test:story-beat-rebuild": "python3 -m unittest tools/narrator-story-beat-rebuild/rebuild_test.py",

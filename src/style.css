@@ -15,6 +15,52 @@
   display: none !important;
 }
 
+/* Spoken scenes are temporary; their full receipts stay in the existing Journal. */
+.repartee-caption {
+  position: absolute;
+  z-index: 5;
+  right: max(1rem, calc((100% - 46rem) / 2));
+  bottom: 1rem;
+  left: max(1rem, calc((100% - 46rem) / 2));
+  padding: 0.8rem 1rem;
+  border: 1px solid #8e7652;
+  border-radius: 0.7rem;
+  color: #fff2d4;
+  background: rgb(18 24 31 / 96%);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 35%);
+  overflow-wrap: anywhere;
+}
+.repartee-caption h2 { margin: 0; color: #e7bc73; font-size: 0.8rem; letter-spacing: 0.04em; }
+.repartee-caption p { margin: 0.45rem 0 0; font-size: 0.95rem; line-height: 1.45; }
+.repartee-caption .repartee-call { color: #d5dbe6; }
+.repartee-caption .repartee-reply { color: #fff2d4; }
+.repartee-caption .repartee-marks { margin-top: 0.5rem; color: #e7bc73; font: 0.8rem ui-monospace, monospace; }
+.repartee-caption .repartee-note { color: #b8c4ca; font-size: 0.75rem; }
+#app[data-chrome-mode="focus"] .repartee-caption[data-phase="challenge"] .repartee-note,
+#app[data-chrome-mode="focus"] .repartee-caption[data-phase="round"] .repartee-note { display: none; }
+#app[data-repartee-scene] .chronicle,
+#app[data-repartee-scene] .hero-hud,
+#app[data-repartee-scene] #stage-focus-ribbon,
+#app[data-repartee-scene] .mini-map { display: none; }
+.journal-repartee { min-width: 0; padding: 1rem; border: 1px solid #574d3e; border-radius: 0.6rem; background: #151e2a; }
+.journal-repartee > summary { cursor: pointer; color: #efd49f; font-weight: 700; }
+.journal-repartee-content { overflow-wrap: anywhere; }
+.journal-repartee-content p, .journal-repartee-content li { line-height: 1.5; }
+.journal-repartee-content h3 { margin-bottom: 0.4rem; color: #efd49f; }
+.journal-repartee-content ol, .journal-repartee-content ul { padding-left: 1.4rem; }
+.journal-repartee-source { color: #aab7c4; font-size: 0.78rem; }
+.journal-repartee-content details { padding-block: 0.45rem; }
+.journal-repartee-content details > summary { cursor: pointer; color: #d7c19b; }
+@media (max-width: 600px) {
+  .repartee-caption { right: 0.65rem; bottom: 0.65rem; left: 0.65rem; padding: 0.65rem 0.75rem; }
+  .repartee-caption p { font-size: 0.85rem; line-height: 1.4; }
+  .repartee-caption[data-phase="challenge"] .repartee-note,
+  .repartee-caption[data-phase="round"] .repartee-note { display: none; }
+}
+@media (max-height: 560px) and (min-width: 761px) {
+  .repartee-caption { right: 1rem; left: 52%; bottom: 0.75rem; }
+}
+
 html,
 body,
 #app,

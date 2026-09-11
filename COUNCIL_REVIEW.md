@@ -2,6 +2,84 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Books & Flyting F1 — v0.5.159 implementation review
+
+Three parallel owners reviewed/implemented rules, presentation and acceptance.
+The scope is one original book and a real three-round solo verbal contest, not
+a universal battle registry, expanded companion emotion system or new narrator.
+The source-backed [flyting design](docs/design/FLYTING.md) was recovered with
+`deja "flyting"`; Herder's demonstrated books/repertoire pattern was reused,
+not its prose or its unscored banter as a purported scored engine.
+
+Rules checks cover all 64 legal three-response paths, score/outcome replay,
+book learning, once-only capped reputation, exact reload and malformed receipts.
+Campaign tests bind a real discovered/visited town, actual district/building and
+resident, source command and tick. They verify unchanged hero resources,
+inventory, quest and companions. Legacy schema 27 receives empty knowledge,
+not invented history; malformed already-present progress is rejected.
+
+Actor review verifies curiosity, mercy and courage can select different legal
+meanings, producing honest victory, draw or defeat. Learned language opens a
+stronger option without forcing it. Unknown/stale/foreign responses are not
+selectable. Durable depth command IDs are explicitly campaign-prefixed when
+linked to Chronicle decisions; bare and foreign-campaign world IDs are rejected.
+
+One bounded natural seed replay (`browser-dungeon-search:8`) reached the reading
+at T129, the actual resident at T130 and three replies at T131–133. The chosen
+draw left reputation 1→1 and returned the hero to the smithy purchase afterward.
+No level, resident, book source or transcript was fabricated for that handoff.
+All five world beats save and reload exactly; hidden catch-up stops before them.
+
+Watch gets native dialogue, actual actor silhouettes and three signed round
+marks, temporarily hiding duplicate detail chrome. Focus retains the dialogue.
+Journal uses a collapsed Adventure section, with exact transcript, source and
+legal alternatives. Eight seconds of visible reading time per beat is independent
+of adventure speed and suspends during pause/hidden/cutaway time; explicit test
+fast mode bypasses this dwell. A separate helper tests those clock edges.
+
+Implementation checks passed: 12 pure rules, nine campaign, five focused policy,
+18 inbox, eight projection and five dwell tests; root's 29-test combined flow,
+rules and migration run also passed. These counts overlap and are not summed.
+Frozen-build browser acceptance passed in 89.7 seconds using the existing
+explicit `?fast` fixture mode. The earlier normal-speed run hit its 120-second
+cap after the second real round without an application error; it is not counted
+as a completed journey. The successful run verifies exact reading, mid-duel and
+completed reloads, all transcript sources, unchanged resources, no repeat
+admission, no stale combat strip and 1280/320-pixel Focus readability. Four
+captures were visually inspected; no inference or external requests occurred.
+Both narrator worker asset hashes remain unchanged from v158.
+
+The full regression investigation found two older milestone fixtures assumed
+their next command always awarded XP. They now complete the real five-beat
+zero-XP social arc before testing the unchanged exact +1 XP threshold; all
+12 projector checks pass. The 12,000-turn mentor pacing replay, previously
+78.8 seconds in isolation and now exceeding the local run budget, is separated
+from routine CI via `npm run test:mentor-journey`. It remains a real autonomous
+promise/return/farewell, no-power, once-only and exact-resume audit, with a
+110-second cooperative wall guard. The separate 20,000-turn level/mastery
+journey is likewise retained via `npm run test:progression-journey`, including
+its Level 40, mastery and completed-quest assertions. Routine live-history checks
+exercise 128 real turns (four full Chronicle windows) rather than 10,000, keeping
+the exact retention, uniqueness, trace and bounded-state assertions. Direct
+level/mastery/cap tests remain in the default suite. The mentor audit's unrelated whole-campaign golden hash
+was removed, not its semantic outcome assertions. Focused mentor lifecycle,
+eligibility, provenance, migration and catch-up tests still run normally.
+The observer-reaction fixture's repeated search across up to 512 seeds was
+replaced by its measured successful `pattern-break-observer:46` generated seed;
+all three tests now pass in 679ms of test-body time. Its earned encounter and
+strict source/species/present-companion assertions are preserved. The final
+regular simulation file passes 57 tests in 30.29 seconds, with only the two
+explicit long audits skipped. Ten seeds × 1,000 ticks retain exact complete
+current-state golden hashes, separately verified in 83.27 seconds. No increased
+global timeout or model-evaluation matrix is added as a release gate.
+
+Local broad runs hit their explicit time budgets; they are not counted as
+passes. The committed-tree GitHub release suite and public deployment remain
+pending at this checkpoint. Focused feature checks, exact ten-seed whole-state
+replay anchors and frozen-build browser acceptance have passed. Protected local
+ledger changes remain untouched. The only narrator-area edit is the evaluation
+source inventory now listing the newly reachable depth rules and seeded RNG.
+
 ## Clean roadmap and story-producing mechanics — 2026-09-10
 
 The user's full collated catalog was saved to [ROADMAP.md](ROADMAP.md) before
