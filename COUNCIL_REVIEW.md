@@ -2,6 +2,58 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Last exchange — v0.5.176 release candidate
+
+The implemented slice is a concise battle aftermath in the existing Watch
+ribbon, with the same source evidence under the existing terminal Status row.
+It describes the retained last exchange, not a supposed decisive mistake or
+an unused alternative. Initial coverage is direct-damage endings; unsupported
+endings keep the existing presentation. No new panel, archive, timer, model,
+canonical state, policy or random draw is planned.
+
+The council's read-only presentation review identified the existing ribbon,
+combat event packets and Status details as sufficient. Projector and UI work
+are separated, with bounded acceptance reusing the already-earned Road Supper
+T64 → T65 defeat → T66 recovery. This reuses the larger recap backlog recovered
+by `deja "post-battle turning-point recaps"` from session `01a06835-15f`.
+Public deployment is not yet verified. Independent source review found a
+missing campaign-to-combat hero-membership check in the initial projector;
+the one-line guard and focused negative assertion were added before building.
+Existing combat validation establishes internal consistency but cannot alone
+prove ownership by the currently loaded hero. The review otherwise confirmed
+clamped HP loss, distinct targets, exact fatal-event causes and conservative
+historical binding. The UI adds no renderer, CSS, timing or canonical edits;
+the original ten Status tests and five new integration tests pass. The final
+eight projector tests and TypeScript check also pass: **23 focused tests total**.
+
+The first production-browser run passes in **51.5s** (1.1m runner), within its
+unchanged 100s scenario limit. It restores the actual T64 save, resolves the
+actual T65 loss, reloads that exact save and advances to ordinary T66 recovery.
+The full source note remains in Status while the Watch recap clears. All three
+desktop/320px/Focus captures were inspected at **2026-09-11 12:49:54 PDT**;
+text fits and the combatants remain unobscured. Saves are byte-exact, and no
+page/console errors, model workers/requests or external requests occur.
+
+The production build, version contract and reducer-boundary checks pass.
+Local verification matches three assets and five emitted source entries.
+Main JavaScript is `index-9y7BJlYO.js`; stylesheet `index-DHdBcD1H.css`, simulation
+worker `simulation.worker-CuF0UUmg.js` and both narrator workers are unchanged
+from v175. No replay hashes, narrative baselines, test caps or CI configuration
+were changed. CI and public source verification remain pending.
+
+### Known-danger detour — negative admission evidence
+
+The one unchanged v175 `shared-road-playful:7` campaign completed its original
+T160 / ten-second-post-import bound in **4,640 ms**, with final hash
+`24220f5131aa7f34`. Across 45 active dungeon states, the only revealed armed
+traps were current-room mana siphons at T125 (0,2) and T139 (4,4), each followed
+by the required actual disarm. There were **zero remote armed states and zero
+same-obstacle bypass loops**. Evidence remains locally in ignored
+`scratch/known-danger-detour-baseline-evidence.json`. The diagnostic used
+public open-passage checks and visited-only traversal, not hidden geometry.
+The detour is deferred, not shipped or declared impossible. No repeated probe,
+seed sweep, enlarged cap or runtime route change was made.
+
 ## Road Supper — v0.5.175 verified release
 
 **Live and publicly source-verified 2026-09-11 11:32:37 PDT.** Feature
@@ -21,8 +73,8 @@ pass; its actual defeat is retained, not replaced by a manufactured payoff.
 The first direct hit's raw reduction does not falsely claim saved HP after
 overkill. No external/model request or runtime error occurs in acceptance.
 
-Next is the scoped known-danger detour proposal. Existing trap/pathfinding
-hooks are mapped, but no actual eligible alternate route is yet proven.
+The subsequent known-danger detour proposal is deferred after the bounded
+negative admission check recorded above.
 
 <details>
 <summary>Road Supper implementation checkpoints, browser retries and initial CI repair</summary>

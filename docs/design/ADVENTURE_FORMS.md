@@ -899,10 +899,16 @@ alternate path. The same hero must walk every committed step; no free disarm,
 new passage, hidden-neighbor knowledge or avoidance reward. A short existing
 caption and factual route trace would show what the hero remembered.
 
-Admission is **unproven**. First inspect one unchanged known campaign with a
-T160/ten-second bound for both real public danger and a usable known alternative;
-retain a negative result if absent. No new seed sweep, pathfinding framework,
-runtime implementation or combined release gate is authorized by this proposal.
+Admission is **not established; proposal deferred**. The unchanged v175
+`shared-road-playful:7` / `campaign:browser-repartee-memory` journey completed
+160 actual commands in 4,640 ms after imports on 2026-09-11. Among 45 active
+dungeon states, its only two revealed armed traps were mana siphons in the
+current room: T125 at (0,2) and T139 at (4,4), both followed by an actual disarm.
+There were zero remote armed states and zero same-obstacle bypass loops.
+Final T160 hash: `24220f5131aa7f34`. The ignored local diagnostic is
+`scratch/known-danger-detour-baseline-evidence.json`. No further seed sweep,
+pathfinding framework, runtime implementation or combined release gate follows
+this negative result. A future detour needs actual eligible evidence.
 
 Read-only council mapping (2026-09-11): `projectDungeonTraps()` and
 `routeToKnownCell()` in `src/depth/dungeon.ts` expose known armed traps and
@@ -912,6 +918,34 @@ cannot make a legal detour. A current-room armed trap already requires
 disarming, so avoidance must begin before entry and use an existing open loop.
 Choosing a different frontier is not evidence of bypassing the same obstacle.
 No eligible journey or runtime change was established by this review.
+
+## Last exchange — v0.5.176
+
+**Implemented; CI/public deployment pending.** The first battle-aftermath slice replaces
+the ordinary terminal Watch headline with two short clauses from the last
+recorded exchange. The previous actual attack can set up the closing blow,
+but is not described as a mistake, revenge, or the cause of losing. Names,
+abilities, targets and actual HP loss come from retained combat event packets.
+The terminal defeat receipt must name that direct damage event as its cause.
+Status-caused endings, stalemates and missing evidence keep existing display.
+
+The full text and exact event IDs live in a collapsed disclosure on the
+existing terminal Status row. Historical binding requires a timestamped
+receipt already retained by the game (initially Road Supper or dungeon lair).
+Generic completed fights can appear in their current terminal scene, but are
+not guessed into old history rows from reused road IDs. This is not a new
+archive or a promise of permanent retention. Ordinary recovery clears the
+Watch recap; exact save/reload reconstructs eligible retained history.
+
+No extra panel, canonical field, random draw, reward, narrator request or
+display timer is added. Existing HP bars, quick receipts, actor clearance and
+special encounter presentation remain authoritative. The bounded acceptance
+uses the actual Road Supper T64 → T65 defeat → T66 recovery; it does not reroll
+the result. Its first browser run passes in 51.5 seconds, with three inspected
+desktop/mobile/Focus captures and exact saves. Twenty-three focused tests,
+TypeScript, module boundaries and production/source-match checks pass.
+Wider turning-point analysis, unused alternatives and Chronicle
+Plates remain future backlog items.
 
 ## Make the adventures accumulate into a life
 

@@ -1,6 +1,7 @@
 import type { ActorDecisionTrace, ChronicleEntry, RecordedDepthCommandType, SceneMode } from "../core/types";
 import { maximumDepthLogEntries } from "../depth/state";
 import type { DepthLogEntry, DepthState } from "../depth/types";
+import type { BoundCombatAftermath } from "./combat-aftermath";
 
 // These are display bounds for the existing retained sources, not a second archive.
 // The canonical reducer retains the latest 32 Chronicle entries.
@@ -31,6 +32,7 @@ export interface ChronicleStatusHistoryRow extends StatusHistoryIdentity {
   readonly goal: string;
   readonly consequence: string;
   readonly decision: StatusHistoryDecision;
+  readonly aftermath?: BoundCombatAftermath;
 }
 
 export interface MechanicsStatusHistoryRow extends StatusHistoryIdentity {
@@ -81,28 +83,39 @@ function copyDecisionTrace(trace: ActorDecisionTrace | undefined): Readonly<Acto
  * text. Same-tick placement is a display convention, not a new event chronology.
  * Imagined narrator text is deliberately not an input to this projection.
  */
-export function projectStatusHistory(state: StatusHistorySource): readonly StatusHistoryRow[] {
+export function projectStatusHistory(
+  state: StatusHistorySource,
+  aftermaths: readonly BoundCombatAftermath[] = [],
+): readonly StatusHistoryRow[] {
   const chronicle: readonly ChronicleStatusHistoryRow[] = newestUniqueEntries(
     state.chronicle, maximumStatusChronicleEntries,
-  ).map((entry) => Object.freeze({
-    source: "chronicle" as const,
-    eventId: entry.id,
-    campaignId: state.campaignId,
-    tick: entry.tick,
-    mode: entry.mode,
-    location: entry.location,
-    headline: entry.headline,
-    action: entry.action,
-    goal: entry.goal,
-    consequence: entry.consequence,
-    decision: Object.freeze({
-      chosenAction: entry.chosenAction,
-      rationale: entry.rationale,
-      commandId: entry.commandId ?? null,
-      commandType: entry.commandType ?? null,
-      trace: copyDecisionTrace(entry.decisionTrace),
-    }),
-  }));
+  ).map((entry) => {
+    // These packets come from the validated combat projector. The display join
+    // still requires this exact row, rather than just a reusable route/combat ID.
+    const aftermath = entry.commandType !== "combat-action" || entry.mode !== "battle" ? undefined
+      : aftermaths.find((candidate) => candidate.chronicleId === entry.id && candidate.tick === entry.tick
+        && candidate.commandId === entry.commandId && candidate.commandId.startsWith(`${state.campaignId}:depth:`));
+    return Object.freeze({
+      source: "chronicle" as const,
+      eventId: entry.id,
+      campaignId: state.campaignId,
+      tick: entry.tick,
+      mode: entry.mode,
+      location: entry.location,
+      headline: entry.headline,
+      action: entry.action,
+      goal: entry.goal,
+      consequence: entry.consequence,
+      decision: Object.freeze({
+        chosenAction: entry.chosenAction,
+        rationale: entry.rationale,
+        commandId: entry.commandId ?? null,
+        commandType: entry.commandType ?? null,
+        trace: copyDecisionTrace(entry.decisionTrace),
+      }),
+      ...(aftermath === undefined ? {} : { aftermath }),
+    });
+  });
   const mechanics: readonly MechanicsStatusHistoryRow[] = newestUniqueEntries(
     state.depth.log, maximumStatusMechanicsEntries,
   ).map((entry) => Object.freeze({

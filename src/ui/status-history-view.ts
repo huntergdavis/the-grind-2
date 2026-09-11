@@ -1,5 +1,6 @@
 import type { WorldState } from "../core/types";
 import { projectStatusHistory, type StatusHistoryRow } from "./status-history";
+import { projectCombatAftermathEntry } from "./combat-aftermath";
 
 /** Read-only snapshot: a running adventure must not replace focused/open rows. */
 export function createStatusHistoryView(root: HTMLElement) {
@@ -16,7 +17,9 @@ export function createStatusHistoryView(root: HTMLElement) {
   let shown: WorldState | undefined;
 
   function sameHistory(left: WorldState | undefined, right: WorldState | undefined): boolean {
-    return left?.campaignId === right?.campaignId && left?.chronicle === right?.chronicle && left?.depth.log === right?.depth.log;
+    return left?.campaignId === right?.campaignId && left?.chronicle === right?.chronicle && left?.depth.log === right?.depth.log
+      && left?.depth.combat === right?.depth.combat && left?.depth.completedCombats === right?.depth.completedCombats
+      && left?.depth.roadSupper === right?.depth.roadSupper && left?.depth.dungeon === right?.depth.dungeon;
   }
   function syncRefresh(): void {
     const upToDate = sameHistory(latest, shown);
@@ -69,12 +72,32 @@ export function createStatusHistoryView(root: HTMLElement) {
     const receipt = paragraph(`Event ${entry.eventId}${decision.commandId === null ? "" : ` · Command ${decision.commandId}`}`, "journal-status-receipt");
     details.append(receipt);
     item.append(details);
+    if (entry.aftermath !== undefined) {
+      const recap = entry.aftermath;
+      const exchange = doc.createElement("details");
+      exchange.className = "journal-status-decision journal-status-aftermath";
+      exchange.dataset.aftermathCommand = recap.commandId;
+      exchange.dataset.aftermathCombat = recap.combatId;
+      exchange.dataset.aftermathTick = String(recap.tick);
+      exchange.dataset.aftermathEvents = JSON.stringify(recap.sourceEventIds);
+      const summary = doc.createElement("summary");
+      summary.textContent = "Last exchange";
+      exchange.append(summary, paragraph(recap.detail, "journal-status-action"),
+        paragraph(`Battle ${recap.combatId} · T${recap.tick} · Command ${recap.commandId}`, "journal-status-receipt"),
+        paragraph(`Combat events · ${recap.sourceEventIds.join(" · ")}`, "journal-status-receipt"));
+      item.append(exchange);
+    }
     return item;
   }
   function refresh(): void {
     if (latest === undefined || sameHistory(latest, shown)) return;
     shown = latest;
-    const entries = projectStatusHistory(shown);
+    const snapshot = shown;
+    const aftermaths = snapshot.chronicle.flatMap((entry) => {
+      const recap = projectCombatAftermathEntry(snapshot, entry);
+      return recap === null ? [] : [recap];
+    });
+    const entries = projectStatusHistory(shown, aftermaths);
     root.dataset.campaign = shown.campaignId;
     root.dataset.snapshotTick = String(shown.tick);
     summary.textContent = `${shown.hero.name} · Snapshot T${shown.tick} · ${entries.length} records`;

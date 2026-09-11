@@ -26,8 +26,12 @@ pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
 browser, CI and public-source verification pass. D5's inhabited dungeon lair
 is live in v0.5.174, with browser, CI and public-source verification passed.
 Road Supper is live in v0.5.175; browser, CI and public-source verification pass.
-The next bounded proposal is known-danger detours, with actual
-safe-route admission still unproven. T1's ferry
+Last exchange, v0.5.176, is ready for CI after 23 focused tests, a production
+build and a passing 51.5-second desktop/mobile/Focus browser scenario. It adds
+a factual terminal recap to the existing Watch ribbon and source notes to
+Status; no canonical or LLM changes. Public deployment is not yet verified.
+Known-danger detours are deferred: the unchanged T160 bounded journey found
+only current-room traps requiring disarming, not an eligible bypass. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.

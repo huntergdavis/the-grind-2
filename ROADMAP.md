@@ -5,9 +5,9 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: known-danger detour.** Inspect whether an actually revealed
-   armed trap has an already-known safe alternate path. No new passage, hidden
-   knowledge, free disarm or promised natural admission; scope only, not runtime.
+1. **Ready for CI: Last exchange, v0.5.176.** A short, source-backed battle
+   aftermath in the existing Watch ribbon, with its receipts in Status history.
+   Direct-damage endings first; no invented tactical mistake or new panel.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -97,7 +97,14 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Next bounded read-only proposal; admission and implementation unproven |
+| **Last exchange** | Read the actual closing exchange of a battle, then inspect its receipts in Status | Local tests and browser acceptance pass; CI/public deployment pending |
+| **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
+
+The detour probe completed 160 actual commands in 4,640 ms. Its only two
+revealed armed traps (T125 and T139) were already in the current room and
+correctly required disarming. No remote armed trap or known alternate route
+was observed. This is a negative result for that journey, not proof that
+detours are impossible; no seed sweep or larger test gate was added.
 
 This is an individual delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -144,6 +151,8 @@ general framework. All remain client-side and work without an LLM.
 - Tactics that exploit genuinely learned weaknesses and status interactions.
 - Better route decisions using supplies, health, terrain, known danger and deadlines.
 - Post-battle turning-point recaps, including a clearly labeled unused alternative.
+  First source-backed **Last exchange** slice is in progress; it does not yet
+  judge tactical turning points or invent counterfactual outcomes.
 - Learned tactical instincts with limited slots and replacement rules.
 - **Adventure Impressions:** experiences gradually create bounded behavioral traits.
 - Broader flyting tactics and challenge families beyond F1's learned replies, public calls and personality-aware selection.

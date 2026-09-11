@@ -31,6 +31,7 @@ import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-vi
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
 import { projectDungeonGuardianScene } from "./ui/dungeon-guardian-view";
 import { projectRoadSupperCombat, projectRoadSupperScene } from "./ui/road-supper-view";
+import { projectCombatAftermathScene } from "./ui/combat-aftermath";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { projectSmithyJobScene } from "./ui/smithy-job-view";
 import { projectInnBluffScene } from "./ui/inn-bluff-view";
@@ -4983,12 +4984,23 @@ function present(): void {
     ? elements.stageFocusObjective.textContent
     : `${elements.stageFocusObjectiveProgress.textContent} ${elements.stageFocusObjective.textContent}`;
   elements.stageFocusHeadline.textContent = `${state.scene.location} · ${state.scene.headline}`;
+  elements.stageFocusHeadline.removeAttribute("title");
+  for (const key of ["aftermathCommand", "aftermathCombat", "aftermathTick"]) delete elements.stageFocusHeadline.dataset[key];
   const millrace = state.scene.mode === "battle" && combat !== null ? projectMillraceReversal(combat) : null;
   if (millrace !== null) {
     elements.stageFocusHeadline.textContent = millrace.headline;
     if (millrace.phase === "ready") {
       sharedOpeningPip.setAttribute("aria-label", `Shared Opening 1 of 1. ${millrace.headline}`);
       elements.stageFocusHeadline.prepend(sharedOpeningPip);
+    }
+  } else {
+    const aftermath = projectCombatAftermathScene(state);
+    if (aftermath !== null) {
+      elements.stageFocusHeadline.textContent = aftermath.compactDetail;
+      elements.stageFocusHeadline.title = `${aftermath.headline}: ${aftermath.detail}`;
+      elements.stageFocusHeadline.dataset.aftermathCommand = aftermath.commandId;
+      elements.stageFocusHeadline.dataset.aftermathCombat = aftermath.combatId;
+      elements.stageFocusHeadline.dataset.aftermathTick = String(aftermath.tick);
     }
   }
   if (combatTurn === null) {
