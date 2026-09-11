@@ -10,9 +10,10 @@ delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
 shipped in v0.5.163. D2's optional first-person dungeon view shipped in v0.5.164.
 F3a's second book and constructive practice exchange shipped in v0.5.165.
 The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
-Implementing v0.5.166: F3b, one later scored public challenge that uses the learned
-frame. Next proposal: R1, a genuine former-companion reunion on a later return;
-then further playable features one at a time.
+F3b's later scored public challenge shipped in v0.5.166, using the learned frame
+without forcing every character to choose the winning answer. Next proposal:
+R1, a genuine former-companion reunion on a later return; then further playable
+features one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -24,7 +25,31 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — A useful reply (v0.5.165)
+## Latest delivery — Let the room answer (v0.5.166)
+
+Publicly verified 2026-09-11 at 02:02:19 PDT. One actual resident's post-Bell
+challenge tests the book-learned reply about listening and leadership. Two
+foreground beats retain the claim and exact answer. Semantic scores produce
+victory, draw or defeat; only victory grants +1 town reputation, capped at 100,
+once. Curiosity, mercy and defiance can choose differently. The natural tested
+hero draws, keeping reputation 1→1; alternate outcomes are separately tested.
+The shared two-speaker stage and Journal show the result and sources without
+another panel or invented witness. Earlier story records remain unchanged.
+
+Feature `fd7224d9d3de42c6dbb14b1a1cc03883fac66162` is on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34581567602):
+252 release files and 3,598 tests passed, two long audits opt-in/skipped;
+all four canonical tests passed in 18.464 seconds with unchanged limits.
+Main suite 283.44 seconds; deployment job 5 minutes 46 seconds. The natural
+challenge browser journey passed in 52.4 seconds. The older rest regression
+passed in 39.4 seconds using an explicitly staged low-HP boundary on the earned
+route, not a claim of natural rest reachability. Six desktop/mobile/Focus
+captures were inspected. Three public assets and eight source-map entries
+match the feature commit. [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md) preserves the
+local timeouts and missing natural-rest evidence. R1 is scoped, not shipped;
+LLM work remains paused.
+
+## Prior delivery — A useful reply (v0.5.165)
 
 Publicly verified 2026-09-11 at 01:10:32 PDT. A second original public book,
 **How to Chair a Meeting Without Becoming the Furniture**, teaches “sounding

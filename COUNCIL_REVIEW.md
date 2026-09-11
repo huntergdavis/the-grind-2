@@ -2,7 +2,35 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Let the room answer — v0.5.166 implementation checkpoint
+## Let the room answer — v0.5.166 final delivery
+
+**Live and publicly source-verified 2026-09-11 at 02:02:19 PDT.** Feature
+`fd7224d9d3de42c6dbb14b1a1cc03883fac66162` is pushed to `origin/main`.
+[Pages run 34581567602](https://github.com/huntergdavis/the-grind-2/actions/runs/34581567602)
+passed all 252 release files and 3,598 tests, with two explicitly opt-in long
+audits skipped. All four canonical tests passed in 18.464 seconds under the
+unchanged limits. Main suite: 283.44 seconds; deployment job: 5 minutes 46 seconds.
+The historical checkpoint below preserves local failures and bounded repairs.
+
+The natural F3b browser journey passed in 52.4 seconds; the explicit low-HP
+Bell-memory regression passed in 39.4 seconds on the same production build.
+All six native desktop/mobile/Focus captures were inspected. The former proves
+actual T52/T53 admission and a mercy-chosen draw; the latter preserves real
+earned history/route/encounter while honestly staging HP before the actual rest.
+The council's final read-only receipt review found no factual overclaims.
+
+Public manifests identify v0.5.166. Entry `index-Jft8ZrTg.js`, unchanged CSS
+`index-B9m_5Qf5.css` and simulation worker `simulation.worker-YvSBlX9R.js` match
+the built release byte-for-byte. Eight emitted runtime source-map entries
+match the feature commit; checked maps contain no protected-ledger sources.
+LLM workers, optional dungeon-view chunks and existing styling are unchanged.
+
+F3b is complete. Next is the separate [R1 reunion proposal](docs/design/LIFETIME_STORIES.md#r1-proposed-next-slice--a-familiar-face),
+which is independent of flyting/Bell progress and does not claim a verified
+natural return route yet. No reunion, re-recruitment or extra relationship
+meter is represented as shipped in v0.5.166.
+
+## Let the room answer — v0.5.166 historical implementation checkpoint
 
 Reusing the committed [F3b scope](docs/design/FLYTING.md#f3b-proposed-next-slice--let-the-room-answer)
 and F3a's verified actual reading/practice sources. The pre-implementation

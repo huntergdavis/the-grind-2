@@ -5,17 +5,12 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In implementation: F3b — Let the room answer (v0.5.166).** After the Bell expedition, one real
-   resident's public challenge tests the learned constructive frame. One scored
-   reply can earn +1 town reputation; old contests and learning stay intact.
-   [Scoped proposal](docs/design/FLYTING.md#f3b-proposed-next-slice--let-the-room-answer),
-   not yet delivered; the public release remains v0.5.165.
-2. **Next proposal: R1 — A familiar face.** A genuine return to a former
+1. **Next proposal: R1 — A familiar face.** A genuine return to a former
    companion's farewell town can lead to one source-backed reunion, without
    recruiting them again or resetting their history. No flyting/Bell prerequisite.
    [Council scope](docs/design/LIFETIME_STORIES.md#r1-proposed-next-slice--a-familiar-face);
    a natural return route remains unverified. Not part of v0.5.166.
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
@@ -25,18 +20,19 @@ The existing search/entry/disarm, exact save/reload and caption checks passed
 in 66.8 seconds against the released v0.5.164 build; four captures were inspected.
 This is test-only maintenance, not a new dungeon mechanic or runtime release.
 
-**F3a — A useful reply is live in v0.5.165**, publicly verified on
-2026-09-11 at 01:10:32 PDT. One second public book opens a constructive answer
-in a real resident's unscored practice exchange. The native book/two-speaker
-stage and existing Journal retain both sources and known alternatives, with
-no extra panel or reward. Old contests, witness judgment and memory are intact.
-The natural browser journey passed in 41.8 seconds; three desktop/mobile/Focus
-captures were inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34577292255)
-passed 3,580 tests and canonical replay, with two long audits explicitly opt-in.
+**F3b — Let the room answer is live in v0.5.166**, publicly verified on
+2026-09-11 at 02:02:19 PDT. A later resident challenge tests the book-learned
+frame with one scored reply. Character values can prefer a draw or losing joke;
+only victory grants +1 town reputation, capped at 100, once. Native dialogue
+and the existing Journal retain exact words/sources, without another panel.
+The natural challenge browser journey passed in 52.4 seconds; the explicitly
+staged-HP rest regression passed in 39.4 seconds. Six desktop/mobile/Focus
+captures were inspected. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34581567602)
+passed 3,598 tests and canonical replay, with two long audits explicitly opt-in.
 Three public assets and eight source-map entries match the committed release.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview and F3a's lesson are shipped. Wider 3D remains
-a separate proposal; the scored use of the new frame is the next slice.
+optional first-person preview, F3a's lesson and F3b's scored use are shipped.
+Wider 3D remains a separate proposal; a former-companion reunion is next.
 Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
@@ -54,7 +50,6 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F3b — Let the room answer** | Apply the learned frame to one later scored public challenge | Implementing v0.5.166; natural T52/T53 and browser verified; release CI/public delivery pending |
 | **R1 — A familiar face** | Reunite with a former companion and recall an actual shared experience | Scoped proposal; no re-recruitment or extra relationship meters; later return not yet verified |
 
 This is a proposed delivery sequence, not a combined release gate. Each
@@ -182,7 +177,7 @@ general framework. All remain client-side and work without an LLM.
 
 Each is a real ruleset with consequences—not just another battle animation.
 
-- **Flyting / repartee expansion:** additional rivals and claim families beyond the shipped finite F1/F2 contests and witnessed reactions.
+- **Flyting / repartee expansion:** additional rivals and claim families beyond the shipped finite F1/F2 contests, witnessed reactions and F3 book-led public challenge.
 - **Poker-like showdowns:** original bluffing, tells, wagers and reveals.
 - **Card-based RPG battles:** bounded decks assembled from earned campaign content.
 - **Microgame gauntlets:** short dodge, catch, balance, repair, memory and escape challenges.

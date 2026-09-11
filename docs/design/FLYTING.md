@@ -71,10 +71,10 @@ source-map entries match release commit `e6266d2c76cce2fc0f5861f22fcf9fbf5ef9bbc
 The initial older Bell-fixture failures and test-only follow-up are preserved
 in the council receipt. F3b below remains a separate proposal.
 
-## F3b implementation — Let the room answer (v0.5.166)
+## F3b shipped scope — Let the room answer (v0.5.166)
 
-Implemented with focused rules/presentation and natural browser checks; public
-delivery remains pending. After the lesson and Bell expedition settle, a real resident
+Live and publicly verified 2026-09-11 at 02:02:19 PDT. After the lesson and Bell
+expedition settle, a real resident
 offers one public claim: “If you ask the room what it needs, the room is leading
 you.” The learned answer distinguishes listening for needs from choosing how
 to help. Two starter alternatives concede the point or jokingly order the ceiling.
@@ -100,6 +100,13 @@ One actual continuation proves ready T51 → admission T52 → reply T53, with C
 Ash at Candle Inn, Elderwatch. This hero chooses mercy: a draw, reputation 1→1,
 no award. The learned direct counter remains available. Production/browser and
 delivery evidence is recorded in [COUNCIL_REVIEW.md](../../COUNCIL_REVIEW.md).
+[Successful release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34581567602)
+passed 3,598 tests across 252 files, including all four canonical checks in
+18.464 seconds with unchanged limits. Two long audits remain opt-in/skipped.
+Natural challenge browser acceptance passed in 52.4 seconds; three public
+assets and eight runtime source-map entries match feature commit
+`fd7224d9d3de42c6dbb14b1a1cc03883fac66162`. The repaired older rest acceptance
+uses explicitly staged HP and does not claim natural rest reachability.
 
 ## F3b proposed next slice — Let the room answer
 
