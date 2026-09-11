@@ -107,6 +107,7 @@ import { projectPaidInnRestScene } from "./paid-inn-rest";
 import { projectDisarmingKitPurchaseScene } from "./disarming-kit-purchase";
 import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import { projectReparteeScene, type ReparteeSceneView } from "../ui/repartee-view";
+import { projectBorrowedBellScene, type BorrowedBellSceneView } from "../ui/borrowed-bell-view";
 import { projectDungeonFraming } from "./dungeon-framing";
 import {
   projectCounterDuelPatternBreakSignature,
@@ -490,7 +491,8 @@ export class GameRenderer {
   private disposed = false;
   private readonly handleResize = (): void => {
     this.resizeToHost();
-    if (this.host.dataset.reparteePhase === undefined || this.settledReparteeResizeFrame !== null) return;
+    if ((this.host.dataset.reparteePhase === undefined && this.host.dataset.bellPhase === undefined)
+      || this.settledReparteeResizeFrame !== null) return;
     // Header offsets and wrapped dialogue can settle after the initial host
     // resize callback. One next-frame read avoids retaining their old bounds.
     this.settledReparteeResizeFrame = requestAnimationFrame(() => {
@@ -553,10 +555,11 @@ export class GameRenderer {
     renderer.host.dataset.rendererListenerCount = "3";
     renderer.resizeToHost();
     renderer.resizeObserver = new ResizeObserver((entries) => {
-      if (renderer.host.dataset.reparteePhase !== undefined || entries.some(entry => entry.target === host)) renderer.handleResize();
+      if (renderer.host.dataset.reparteePhase !== undefined || renderer.host.dataset.bellPhase !== undefined
+        || entries.some(entry => entry.target === host)) renderer.handleResize();
     });
     renderer.resizeObserver.observe(host);
-    for (const selector of ["#repartee-caption", ".topbar", "#view-toolbar", "#stage-focus-controls"]) {
+    for (const selector of ["#repartee-caption", "#bell-caption", ".topbar", "#view-toolbar", "#stage-focus-controls"]) {
       const chrome = host.closest("#app")?.querySelector(selector);
       if (chrome !== null && chrome !== undefined) renderer.resizeObserver.observe(chrome);
     }
@@ -1136,6 +1139,8 @@ export class GameRenderer {
       "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
       "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
       "reparteeHeroPosition", "reparteeWitnessPosition"]) delete this.host.dataset[key];
+    for (const key of ["bellPhase", "bellCommand", "bellInstance", "bellCell", "bellTurn", "bellRoll", "bellOutcome",
+      "bellPath", "bellSafeRect", "bellVisual", "bellHeroPosition", "bellKnownEffects"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -1340,6 +1345,12 @@ export class GameRenderer {
     const repartee = this.viewMode === "live" ? projectReparteeScene(state) : null;
     if (repartee !== null) {
       this.drawRepartee(state, repartee, palette);
+      this.layout();
+      return;
+    }
+    const bell = this.viewMode === "live" ? projectBorrowedBellScene(state) : null;
+    if (bell !== null) {
+      this.drawBorrowedBell(state, bell, palette);
       this.layout();
       return;
     }
@@ -4664,7 +4675,8 @@ export class GameRenderer {
   }
 
   private reparteeSafeBounds(): SceneLayoutBounds | null {
-    if (this.host.dataset.reparteePhase === undefined || this.viewMode !== "live") return null;
+    const bellScene = this.host.dataset.bellPhase !== undefined;
+    if ((!bellScene && this.host.dataset.reparteePhase === undefined) || this.viewMode !== "live") return null;
     const app = this.host.closest<HTMLElement>("#app");
     const host = this.host.getBoundingClientRect();
     const safe = { left: 8, top: 8, right: host.width - 8, bottom: host.height - 8 };
@@ -4675,14 +4687,89 @@ export class GameRenderer {
       const bounds = node.getBoundingClientRect();
       if (bounds.height > 0) safe.top = Math.max(safe.top, bounds.bottom - host.top + 8);
     }
-    const caption = app.querySelector<HTMLElement>("#repartee-caption");
+    const caption = app.querySelector<HTMLElement>(bellScene ? "#bell-caption" : "#repartee-caption");
     if (caption !== null && !caption.hidden) {
       const bounds = caption.getBoundingClientRect();
       if (host.width > 760 && host.height <= 560) safe.right = Math.min(safe.right, bounds.left - host.left - 12);
       else safe.bottom = Math.min(safe.bottom, bounds.top - host.top - 12);
     }
-    this.host.dataset.reparteeSafeRect = [safe.left, safe.top, safe.right, safe.bottom].map((value) => value.toFixed(2)).join(",");
+    this.host.dataset[bellScene ? "bellSafeRect" : "reparteeSafeRect"] = [safe.left, safe.top, safe.right, safe.bottom].map((value) => value.toFixed(2)).join(",");
     return safe;
+  }
+
+  private drawBorrowedBell(state: WorldState, scene: BorrowedBellSceneView, palette: readonly [number, number, number]): void {
+    const board = scene.board;
+    this.host.dataset.bellPhase = scene.phase;
+    this.host.dataset.bellCommand = scene.commandId;
+    this.host.dataset.bellInstance = scene.instanceId;
+    this.host.dataset.bellCell = String(board.currentCell);
+    this.host.dataset.bellTurn = String(scene.turn);
+    this.host.dataset.bellRoll = scene.roll === null ? "unrolled" : String(scene.roll);
+    this.host.dataset.bellOutcome = board.outcome ?? "pending";
+    this.host.dataset.bellPath = scene.path.join(",");
+    this.host.dataset.bellKnownEffects = JSON.stringify(board.cells.map(cell => ({ id: cell.id, disclosure: cell.disclosure, text: cell.effectText })));
+    this.host.dataset.bellVisual = "nine-public-spaces|directed-routes|actual-hero|borrowed-bell|committed-die|landing-only|unknown-effects-masked";
+    this.worldLayer.addChild(rect(0, 0, 320, 180, 0x162b32));
+    this.worldLayer.addChild(new Graphics().roundRect(4, 4, 312, 172, 9).fill(0x253b3e)
+      .roundRect(8, 8, 304, 164, 7).stroke({ color: 0x617371, width: 1 }));
+    const point = (cell: { x: number; y: number }): { x: number; y: number } => ({ x: 20 + cell.x * 40, y: 60 + cell.y * 45 });
+    for (const cell of board.cells) for (const exit of cell.exits) {
+      const target = board.cells.find(candidate => candidate.id === exit);
+      if (target === undefined) continue;
+      const a = point(cell), b = point(target), dx = b.x - a.x, dy = b.y - a.y;
+      const distance = Math.hypot(dx, dy), ux = dx / distance, uy = dy / distance;
+      const selected = scene.path.some((id, index) => id === cell.id && scene.path[index + 1] === exit);
+      const color = selected ? 0xf0c16d : 0x7c9290;
+      const endX = b.x - ux * 17, endY = b.y - uy * 17;
+      this.worldLayer.addChild(new Graphics().moveTo(a.x + ux * 16, a.y + uy * 16).lineTo(endX, endY)
+        .stroke({ color, width: selected ? 3 : 1.8 })
+        .poly([endX, endY, endX - ux * 6 - uy * 3, endY - uy * 6 + ux * 3,
+          endX - ux * 6 + uy * 3, endY - uy * 6 - ux * 3]).fill(color));
+    }
+    for (const cell of board.cells) {
+      const { x, y } = point(cell);
+      const fill = cell.current ? 0x977943 : cell.disclosure === "unrevealed" ? 0x37404f : cell.landed ? 0x43665d : 0x30484b;
+      this.worldLayer.addChild(new Graphics().circle(x, y, 14).fill(fill)
+        .circle(x, y, 14).stroke({ color: cell.current ? 0xffdf9d : cell.visited ? 0xd8bd83 : 0x829b96, width: cell.current ? 2.5 : 1.4 }));
+      if (!cell.current) {
+        const label = this.createScaleSensitiveText(cell.disclosure === "unrevealed" ? "?" : String(cell.id), {
+          fontFamily: "ui-monospace, monospace", fontSize: 13, fontWeight: "800", fill: 0xf2ebd6,
+        });
+        label.anchor.set(0.5); label.position.set(x, y); this.worldLayer.addChild(label);
+      }
+    }
+    // This toll is explicitly public from admission; no unrevealed room icon or reward is drawn.
+    const toll = board.cells.find(cell => cell.id === 2);
+    if (toll !== undefined) {
+      const p = point(toll);
+      this.worldLayer.addChild(new Graphics().roundRect(p.x - 26, p.y - 40, 52, 18, 3).fill(0x27303a));
+      const sign = this.createScaleSensitiveText("≤1 MP", { fontFamily: "ui-monospace, monospace", fontSize: 12, fill: 0xb8d6f1, fontWeight: "800" });
+      sign.anchor.set(0.5); sign.position.set(p.x, p.y - 31); this.worldLayer.addChild(sign);
+    }
+    const die = new Container(); die.position.set(18, 14);
+    die.addChild(new Graphics().roundRect(0, 0, 30, 30, 5).fill(0xefe0bb).roundRect(0, 0, 30, 30, 5).stroke({ color: 0xab8f5d, width: 1.5 }));
+    if (scene.roll === null) {
+      const unknown = this.createScaleSensitiveText("?", { fontFamily: "ui-monospace, monospace", fontSize: 18, fill: 0x493c30, fontWeight: "800" });
+      unknown.anchor.set(0.5); unknown.position.set(15, 15); die.addChild(unknown);
+    } else {
+      const dots = scene.roll === 1 ? [[15, 15]] : scene.roll === 2 ? [[9, 9], [21, 21]] : [[9, 9], [15, 15], [21, 21]];
+      for (const [x, y] of dots) die.addChild(circle(x!, y!, 2.4, 0x493c30));
+    }
+    this.worldLayer.addChild(die);
+    const completedTurns = scene.phase === "admission" ? 0 : scene.phase === "roll" ? scene.turn - 1 : scene.turn;
+    for (let turn = 1; turn <= 4; turn++) this.worldLayer.addChild(new Graphics().roundRect(229 + (turn - 1) * 17, 18, 12, 12, 2)
+      .fill(turn <= completedTurns ? 0xe1b267 : 0x33484d).stroke({ color: 0xb99f72, width: 1 }));
+    const current = board.cells.find(cell => cell.current);
+    if (current !== undefined) {
+      const p = point(current), heroY = p.y + 8;
+      this.host.dataset.bellHeroPosition = `${p.x},${heroY}`;
+      this.drawHero(state, p.x, heroY, palette, 0.9, scene.heroId, false);
+      const bellX = Math.min(309, p.x + 11), bellY = heroY - 13;
+      this.lightLayer.addChild(new Graphics().arc(bellX, bellY - 2, 5, Math.PI, 0).lineTo(bellX + 7, bellY + 6)
+        .lineTo(bellX - 7, bellY + 6).closePath().fill(0xdab565)
+        .circle(bellX, bellY + 8, 1.5).fill(0xf6d487)
+        .circle(bellX, bellY - 7, 2).stroke({ color: 0xf6d487, width: 1 }));
+    }
   }
 
   private drawRepartee(state: WorldState, scene: ReparteeSceneView, palette: readonly [number, number, number]): void {

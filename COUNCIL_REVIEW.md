@@ -2,6 +2,50 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## The Borrowed Bell — v0.5.162 implementation checkpoint
+
+D1a implements one native nine-space delivery board after an actual companion
+farewell: a committed die before each route/pace decision, two forks, optional
+one-MP precision, landing-only rooms, a four-turn delivery bonus and finite
+late return. Exact turns and rewards remain in the existing Journal and inbox.
+D1b's later recollection is a separate next slice, not part of this delivery.
+Recovery reused the committed [adventure-form design](docs/design/ADVENTURE_FORMS.md)
+and the existing campaign command, save and foreground-scene patterns;
+`deja "Borrowed Bell"` found roadmap discussion, not an existing implementation.
+
+Three independent reviewers owned pure rules, native presentation and natural
+campaign/browser acceptance. Ten pure rules tests, ten campaign tests and four
+presentation tests pass. The natural journey reaches admission T41 after the
+real T40 farewell and delivers T49: rolls 1, 1, 3, 2; four moves; MP 24 → 23;
+gold 17 → 20; then normal route planning. No HP, XP, quest or relationship award.
+The production build passes after removing an unused acceptance-test helper
+which caused the first build's TypeScript failure. Review also corrected a
+route sign from “adds a stop” to “adds one space,” removed duplicate completion
+prose and kept the hidden parcel event out of admission narration.
+
+Final integration review caught a meaningful resume issue: the completed board
+receipt could disappear into normal travel during checkpoint catch-up. The
+existing conversation guard now also protects active/current board scenes.
+`deja "repartee catchUp foreground dwell"` found no session match; this fix
+reuses the actual `main.ts` guard. Corrected-build browser acceptance, canonical
+anchors, clean CI and public source verification remain pending. Existing test
+limits are unchanged; no new long audit matrix or LLM work is included.
+
+The corrected production build, version and boundary checks pass, as do 44
+existing actor-policy/inbox/reading-time regressions. The accidentally broader
+local batch including the heavy narrator receipt audit was stopped, not passed;
+that unchanged audit remains part of clean release CI. The local canonical run
+produced all ten Depth 31 full-state hashes; its replay exceeded the original
+20-second limit at 26.429 seconds, and its 135.311-second golden computation
+reported the expected old-anchor mismatch. Only the observed hashes and version
+comment were updated; no normalization or timeout increase was made.
+
+The first corrected-build browser attempt reached all nine board commands and
+the exact T49 delivery; its stale-checkpoint T44 roll check and initial native
+desktop/mobile geometry passed. It hit the unchanged 150-second cap during
+repeated terminal DOM assertions, so this is not a completed acceptance pass.
+The reviewer is batching equivalent DOM observations before one corrective run.
+
 ## The witness remembers — v0.5.161 final delivery
 
 **Live and publicly source-verified 2026-09-10 at 20:56:55 PDT.** Feature

@@ -39,13 +39,13 @@
 .repartee-caption .repartee-note { color: #b8c4ca; font-size: 0.75rem; }
 #app[data-chrome-mode="focus"] .repartee-caption[data-phase="challenge"] .repartee-note,
 #app[data-chrome-mode="focus"] .repartee-caption[data-phase="round"] .repartee-note { display: none; }
-#app[data-repartee-scene] .chronicle,
-#app[data-repartee-scene] .hero-hud,
-#app[data-repartee-scene] #stage-focus-ribbon,
-#app[data-repartee-scene] .mini-map { display: none; }
+#app:is([data-repartee-scene], [data-bell-scene]) .chronicle,
+#app:is([data-repartee-scene], [data-bell-scene]) .hero-hud,
+#app:is([data-repartee-scene], [data-bell-scene]) #stage-focus-ribbon,
+#app:is([data-repartee-scene], [data-bell-scene]) .mini-map { display: none; }
 /* Dialogue computes its own header/caption safe rectangle. Do not reserve the
    ordinary Watch ribbon a second time or retain its pre-resize host offsets. */
-#app[data-active-view="watch"][data-repartee-scene] > #stage[data-view-mode="live"] {
+#app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > #stage[data-view-mode="live"] {
   inset: 0 !important;
   height: 100% !important;
 }
@@ -58,6 +58,9 @@
 .journal-repartee-source { color: #aab7c4; font-size: 0.78rem; }
 .journal-repartee-content details { padding-block: 0.45rem; }
 .journal-repartee-content details > summary { cursor: pointer; color: #d7c19b; }
+.bell-caption .bell-choice { color: #b7ded3; font-size: 0.85rem; }
+.bell-caption .bell-deadline { color: #e7bc73; font: 0.8rem ui-monospace, monospace; }
+.bell-caption .bell-note { color: #b8c4ca; font-size: 0.75rem; }
 @media (max-width: 600px) {
   .repartee-caption { right: 0.65rem; bottom: 0.65rem; left: 0.65rem; padding: 0.65rem 0.75rem; }
   .repartee-caption p { font-size: 0.85rem; line-height: 1.4; }
@@ -67,9 +70,9 @@
 @media (max-width: 760px) {
   /* One compact header leaves room for actors and keeps Journal navigation
      reachable even when a spoken scene is paused. */
-  #app[data-active-view="watch"][data-repartee-scene] > .topbar { flex-direction: row; align-items: center; }
-  #app[data-active-view="watch"][data-repartee-scene] > .topbar .controls { width: auto; }
-  #app[data-active-view="watch"][data-repartee-scene] > .topbar .eyebrow { padding-top: 0; }
+  #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > .topbar { flex-direction: row; align-items: center; }
+  #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > .topbar .controls { width: auto; }
+  #app[data-active-view="watch"]:is([data-repartee-scene], [data-bell-scene]) > .topbar .eyebrow { padding-top: 0; }
 }
 @media (max-height: 560px) and (min-width: 761px) {
   .repartee-caption { right: 1rem; left: 52%; bottom: 0.75rem; }

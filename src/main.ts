@@ -184,6 +184,7 @@ import {
 import { SimulationClient } from "./worker/simulation-client";
 import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
 import { createReparteeView, projectReparteeScene, type ReparteeSceneView } from "./ui/repartee-view";
+import { createBorrowedBellView, projectBorrowedBellScene, type BorrowedBellSceneView } from "./ui/borrowed-bell-view";
 import { createReparteeDwell, reparteeDwellPending, updateReparteeDwell } from "./ui/repartee-dwell";
 
 const fastMode = new URLSearchParams(window.location.search).has("fast");
@@ -568,6 +569,8 @@ const chroniclePlateView = createChroniclePlateView(requiredElement<HTMLDetailsE
 const statusHistoryView = createStatusHistoryView(elements.journalStatus);
 const reparteeView = createReparteeView(requiredElement<HTMLElement>("#repartee-caption"),
   requiredElement<HTMLDetailsElement>("#journal-repartee"));
+const bellView = createBorrowedBellView(requiredElement<HTMLElement>("#bell-caption"),
+  requiredElement<HTMLDetailsElement>("#journal-bell"));
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
@@ -596,6 +599,7 @@ let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigu
 let presentationBusy = false;
 let narrativeReading = false;
 let reparteeScene: ReparteeSceneView | null = null;
+let bellScene: BorrowedBellSceneView | null = null;
 let reparteeDwell = createReparteeDwell();
 let reparteeVisible: boolean | null = null;
 let narrativeReplay = false;
@@ -1059,7 +1063,8 @@ function narrativePresentationAvailable(allowGameMenu = false): boolean {
     || activeView !== "watch" || presentationBusy || catchUpAfterPresentation
     || cutawayController.queue.active !== null || cutawayController.queue.pending !== null
     || state.scene.mode === "battle" || elements.stage.dataset.encounterEngine !== undefined
-    || state.depth.repartee.active !== null || reparteeScene !== null
+    || state.depth.repartee.active !== null || reparteeScene !== null || bellScene !== null
+    || state.depth.bellExpedition !== null && state.depth.bellExpedition.completion === null
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
     || document.querySelector(allowGameMenu ? "dialog[open]:not(#game-menu)" : "dialog[open]") !== null) return false;
   const source = state.chronicle.at(-1);
@@ -1606,13 +1611,16 @@ function syncReparteePresentation(): void {
   if (visible !== reparteeVisible) {
     reparteeVisible = visible;
     reparteeView.setVisible(visible);
+    bellView.setVisible(visible);
     renderer.refreshLayout();
   }
   reparteeDwell = updateReparteeDwell(reparteeDwell,
-    reparteeScene?.commandId ?? null,
+    reparteeScene?.commandId ?? bellScene?.commandId ?? null,
     performance.now(), visible && !isPresentationPaused() && !document.hidden);
   if (reparteeScene === null) delete elements.app.dataset.reparteeDwellMs;
   else elements.app.dataset.reparteeDwellMs = String(Math.floor(reparteeDwell.elapsedMs));
+  if (bellScene === null) delete elements.app.dataset.bellDwellMs;
+  else elements.app.dataset.bellDwellMs = String(Math.floor(reparteeDwell.elapsedMs));
 }
 
 function syncPresentationPaused(): void {
@@ -4107,8 +4115,10 @@ function checkpointKey(campaignId: string): string {
 }
 
 async function catchUp(world: WorldState): Promise<WorldState> {
-  // A partly watched conversation resumes from its saved words, never hidden-time debt.
-  if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null) return world;
+  // Foreground conversations and board turns resume from saved facts, never hidden-time debt.
+  if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null
+    || world.depth.bellExpedition !== null && world.depth.bellExpedition.completion === null
+    || projectBorrowedBellScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));
   if (!Number.isFinite(lastActive) || lastActive <= 0) return world;
   const observedAtMs = Date.now();
@@ -4877,6 +4887,8 @@ function present(): void {
   presentSpectatorInbox();
   reparteeScene = projectReparteeScene(state);
   reparteeView.render(state);
+  bellScene = projectBorrowedBellScene(state);
+  bellView.render(state);
   syncReparteePresentation();
   renderer.render(state);
   syncStoryBeatPresentation();

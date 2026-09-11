@@ -25,6 +25,8 @@ import {
   isValidSecretDiscoveryGraph,
   isValidCampaignRepartee,
   isValidCampaignReparteeCallback,
+  isValidCampaignBorrowedBell,
+  describeBorrowedBell,
   isCanonicalQuestDefinition,
   isValidQuestState,
   isValidQuestCompletionState,
@@ -340,6 +342,9 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "start-bell":
+    case "roll-bell":
+    case "move-bell":
     case "recall-repartee":
     case "read-book":
     case "start-repartee":
@@ -386,6 +391,9 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "start-bell":
+    case "roll-bell":
+    case "move-bell":
     case "recall-repartee":
     case "read-book":
     case "start-repartee":
@@ -436,6 +444,17 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  if (choice.command.type === "start-bell" || choice.command.type === "roll-bell" || choice.command.type === "move-bell") {
+    const board = depth.bellExpedition!;
+    const location = depth.atlas.locations.find((entry) => entry.id === board.locationId);
+    return { mode: "chronicle", location: location?.name ?? opportunity.location,
+      goal: "Return the Borrowed Bell by turn four",
+      headline: board.completion === null ? "The Borrowed Bell" : board.completion.outcome === "delivered" ? "The bell beats the closing procession" : "A bell returned after closing",
+      action: describeBorrowedBell(depth),
+      consequence: board.completion === null ? "Forks stop movement. Only the landing room takes effect."
+        : `Delivery bonus +${board.completion.bonusGold} gold, once. No combat XP or unrelated quest credit.`,
+      sensoryIntensity: board.completion === null ? 1 : 0 };
+  }
   if (choice.command.type === "recall-repartee" && depth.reparteeCallback !== null) {
     const memory = depth.reparteeCallback;
     const location = depth.atlas.locations.find((entry) => entry.id === memory.restLocationId);
@@ -1091,7 +1110,7 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
     !isValidSecretDiscoveryGraph(state.depth) ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth)
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -1462,8 +1481,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 30 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) ||
+    state.depth.schemaVersion !== 31 ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

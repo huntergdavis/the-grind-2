@@ -1205,7 +1205,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 30;
+  schemaVersion: 31;
+  bellExpedition: import("./borrowed-bell").BellExpedition | null;
   repartee: import("./repartee").ReparteeProgress;
   reparteeWitness: import("./repartee-witness").ReparteeWitnessState;
   reparteeCallback: import("./repartee-memory").ReparteeCallback | null;
@@ -1235,6 +1236,9 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "start-bell"; instanceId: string; locationId: string }
+  | { type: "roll-bell"; instanceId: string; turn: number }
+  | { type: "move-bell"; instanceId: string; turn: number; pace: "stride" | "steady"; route: number | null }
   | { type: "read-book"; bookId: string; locationId: string; buildingId: string }
   | { type: "start-repartee"; encounterId: string; residentId: string; locationId: string; buildingId: string }
   | { type: "repartee-action"; encounterId: string; roundIndex: number; responseId: string }

@@ -5,8 +5,9 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: D1 — The Borrowed Bell.** Scope the first original board expedition from [Adventure forms](docs/design/ADVENTURE_FORMS.md), then deliver one playable route/event/consequence loop. Optional first-person rendering remains separate.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **In implementation: D1a — The Borrowed Bell (v0.5.162).** One original nine-space expedition: committed dice, two forks, optional precision MP, landing-only rooms, finite delivery/late return, and saved Journal. No new maze or LLM dependency.
+2. **Next: D1b — Remember the delivery.** One later factual rest callback to the hero's exact board choices and result. This is separate from D1a's playable delivery loop. Optional first-person rendering remains a later D2 experiment.
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
@@ -36,7 +37,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Next: The Borrowed Bell; concrete playable slice before a general engine |
+| **D1a — The Borrowed Bell** | A compact original board with route decisions, event spaces and consequences | Implementing the playable delivery loop |
+| **D1b — Remember the delivery** | One later rest recollection grounded in the completed board's actual choices and result | Next; no invented companion witness |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
 
 This is a proposed delivery sequence, not a combined release gate. Each

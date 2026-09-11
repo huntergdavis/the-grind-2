@@ -249,6 +249,28 @@ function scoreCandidate(
     } else {
       reason = `the known answer is judged against the public claim: ${response.explanation}`;
     }
+  } else if (command.type === "move-bell") {
+    const board = state.depth.bellExpedition;
+    const curious = state.hero.values.includes("curiosity");
+    const urgent = (board?.turn ?? 1) >= 4;
+    score = command.pace === "stride" ? 30 : 10;
+    if (command.route === 2 || command.route === 7) score += urgent ? 60 : 12;
+    if (curious && !urgent && (command.route === 3 || command.route === 6)) score += 22;
+    const inspect = curious && !urgent && board !== null && board.pendingRoll !== null
+      && board.pendingRoll.value > 1 && board.mana >= 2
+      && (board.currentCell === 1 && command.route === 3 || board.currentCell === 4 && command.route === 6)
+      && !board.landedCells.includes(command.route!);
+    if (inspect && command.pace === "steady") score += 50;
+    reason = inspect && command.pace === "steady"
+      ? "curiosity spends one real MP to stop at the signed room instead of passing it; its unrevealed effect is not known, and the delivery deadline still applies"
+      : urgent ? "the fourth-turn closing deadline favors the shortest signed exit route using the already committed roll"
+        : curious && (command.route === 3 || command.route === 6)
+          ? "curiosity chooses a signed detour without knowing its unrevealed landing effect"
+          : "use the committed die and the public route signs to carry the bell toward the exit without spending precision mana";
+  } else if (command.type === "start-bell" || command.type === "roll-bell") {
+    score = 30;
+    reason = command.type === "start-bell" ? "one solo delivery board is available after the road oath; its four-turn bonus and landing-only effects are declared"
+      : "commit the current movement die before choosing a route or spending precision mana; no future roll informs the choice";
   } else if (command.type === "recall-repartee") {
     const witness = state.depth.companions.active.find((entry) => entry.identity.residentId === command.witnessId);
     score = 30;
@@ -473,6 +495,13 @@ function presentationLabels(
 ): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
+    case "start-bell": return { actionLabel: "accepts the Borrowed Bell delivery", targetLabel: "the storehouse board" };
+    case "roll-bell": return { actionLabel: "rolls before choosing a pace", targetLabel: `delivery turn ${command.turn}` };
+    case "move-bell": return {
+      actionLabel: command.pace === "steady" ? "spends 1 MP for one precise step" : "uses the committed movement roll",
+      targetLabel: command.route === 2 ? "short toll route" : command.route === 3 ? "inspection route"
+        : command.route === 6 ? "parcel counter detour" : command.route === 7 ? "direct exit route" : "the next marked space",
+    };
     case "recall-repartee": return {
       actionLabel: "shares a memory before parting",
       targetLabel: state.depth.companions.active.find((entry) => entry.identity.residentId === command.witnessId)?.identity.name ?? command.witnessId,

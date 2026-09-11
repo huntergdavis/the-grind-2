@@ -10,6 +10,7 @@ import type { EquipmentSlot, QuestObjective } from "../depth/types";
 import { reparteeBook } from "../depth/repartee";
 import { isValidReparteeWitnessReaction, reparteeWitnessPreference } from "../depth/repartee-witness";
 import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
+import { isValidCampaignBorrowedBell } from "../depth/borrowed-bell-campaign";
 
 export const maximumSpectatorMoments = 8;
 export const maximumSpectatorDetails = 8;
@@ -472,6 +473,31 @@ function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleE
   };
 }
 
+function borrowedBellDelta(before: WorldState, after: WorldState, source: ChronicleEntry) {
+  const board = after.depth.bellExpedition;
+  if (board === null || source.tick !== after.tick || !isValidCampaignBorrowedBell(after.depth)) return null;
+  const move = board.turns.at(-1), roll = board.pendingRoll;
+  const start = source.commandType === "start-bell" && before.depth.bellExpedition === null
+    && board.startedTick === source.tick && `${after.campaignId}:${board.sourceCommandId}` === source.commandId;
+  const rolled = source.commandType === "roll-bell" && roll !== null && roll.tick === source.tick
+    && before.depth.bellExpedition?.instanceId === board.instanceId && before.depth.bellExpedition.pendingRoll === null
+    && `${after.campaignId}:${roll.sourceCommandId}` === source.commandId;
+  const moved = source.commandType === "move-bell" && move !== undefined && move.tick === source.tick
+    && before.depth.bellExpedition?.instanceId === board.instanceId && before.depth.bellExpedition.pendingRoll?.turn === move.turn
+    && `${after.campaignId}:${move.sourceCommandId}` === source.commandId;
+  if (!start && !rolled && !moved) return null;
+  return {
+    episodeId: `bell:${board.instanceId}`,
+    title: board.completion === null ? "The Borrowed Bell" : board.completion.outcome === "delivered" ? "Borrowed Bell delivered" : "Borrowed Bell returned late",
+    status: board.completion === null ? "ongoing" as const : "resolved" as const,
+    details: start ? ["One storehouse delivery: forks stop movement; only landing triggers rooms. Return by turn 4 for 3 gold."]
+      : rolled ? [`Turn ${roll!.turn} · committed die ${roll!.value}; choose the rolled stride or spend 1 MP for one precise step.`]
+        : [`Turn ${move!.turn} · roll ${move!.roll.value} · ${move!.pace} · ${move!.path.join(" → ")}`,
+          move!.landing.text, `MP ${move!.manaBefore} → ${board.mana} · gold ${move!.goldBefore} → ${board.gold}`,
+          ...(board.completion === null ? [] : [`Delivery bonus +${board.completion.bonusGold} gold, once; no combat XP or unrelated quest credit.`])],
+  };
+}
+
 function projectMoment(before: WorldState, after: WorldState, cursorTick: number): SpectatorMoment | null {
   const sources = retainedSources(after, cursorTick);
   const latestSource = sources.at(-1);
@@ -505,7 +531,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
         details: [] as readonly string[],
       }
     : null);
-  const dungeon = dungeonDelta(before, after);
+  const dungeon = borrowedBellDelta(before, after, latestSource) ?? dungeonDelta(before, after);
   const discoveryChange = discoveryDelta(before, after);
   const discoveries = discoveryChange.details;
   const secretOutcomes = secretOutcomeDetails(before, after);

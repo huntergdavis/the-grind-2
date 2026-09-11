@@ -226,6 +226,38 @@ not to the rendering prototype below.
 
 ## Next candidate: one small Borrowed Bell board expedition
 
+### D1a implementation scope — v0.5.162, acceptance pending
+
+The first vertical slice below is the complete nine-space delivery loop and
+its saved Journal, not the later camp callback. D1b owns that separate follow-up.
+Admission is once per campaign at a real visited, discovered town, with a fit
+level-two-or-higher solo hero after at least one completed road oath. Existing
+recovery, supplies, first book/contest and companion journeys retain admission
+priority. The newly admitted storehouse board is its own authored expedition;
+it does not pretend an ordinary maze or unrelated quest was completed.
+
+One foreground command admits the board, then each turn commits its seeded die
+before a separate route/pace command. The public graph and signs allow informed
+choices; inspection/counter effects remain unrevealed until an actual landing.
+Curiosity can spend one MP for a deliberate stop; the known closing deadline
+favors direct routes. Passing a room grants nothing. The actual MP/gold receipts,
+paths, unused pips and outcome are saved; later commands cannot replay rewards.
+HP, combat XP, inventory, companion bond and unrelated quest progress are untouched.
+
+Depth 31 migrates missing boards to null and preserves old records exactly.
+The supported v1 graph always finishes within seven moves. Admission records
+the no-bonus return fallback and the reducer has an eight-turn defensive bound;
+unsupported or malformed saved rules are rejected without overwriting the save,
+not silently reconstructed as an invented settlement. A future rules-version
+release must define its own supported migration before admitting v2. The broader
+unavailable-ruleset settlement proposal below is not claimed implemented here.
+
+The native board shows one actual hero, code-drawn bell/die/route markers and
+known room information. A compact caption uses the existing visible-time spoken
+scene hold, global pause/Focus and foreground catch-up behavior. Journal keeps
+the exact transcript and the existing inbox coalesces the expedition. No new
+permanent dashboard, asset download, model or general adventure framework is added.
+
 The first implementation should answer one question: does an autonomous hero's
 route and resource choice create a legible, amusing story with a later factual
 callback? Build a single original board in the existing browser renderer, using
