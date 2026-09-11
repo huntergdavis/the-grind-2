@@ -2,7 +2,17 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Elsewhere: The Experimental Loaf — v0.5.179 in progress
+## Elsewhere: The Experimental Loaf — v0.5.179 verified release
+
+**Live and publicly source-verified 2026-09-11 16:11:17 PDT.** Feature
+`9e836345f02fcf55996abe6089f333f852407096` is pushed to `origin/main`.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34656637066)
+passes **3,819 tests in 293 files**, with two optional audits skipped.
+The main suite takes **314.59s**, canonical replay **4/4 in 25.761s** and forward
+motion **8/8 in 9.131s**. Deployment completes in **6m12s**. Complete public HTML,
+three public assets and eight runtime source entries match the exact feature
+commit. Both LLM workers are unchanged. The local replay timeout below remains
+recorded as a timeout; CI passes without increasing its existing limit.
 
 Reuses the V04.9c2 calling and the previous council's narrow proposal,
 recovered with `deja "Experimental Loaf"` on 2026-09-11. Rules, presentation
@@ -27,7 +37,7 @@ Presentation uses one finite existing-controller cutaway and collapsed Company
 history, with the actual baker and oven but no hero. Delayed playback says
 “Earlier, elsewhere.” Public admission does not leak the committed oven result.
 No hero resources, XP, knowledge, relationship score, new scheduler or model.
-Old saves are not backfilled during load. Verification and deployment pending.
+Old saves are not backfilled during load. Initial verification findings follow.
 
 Initial integration checks found the released town-visit candidate's actual
 `town:location:8` source at golden:0 T518, not a `depth:T` source. The narrow fix
@@ -60,7 +70,7 @@ bread prop, plus a bounded knead/admire gesture. Ordinary hero overlays hide
 during the temporary cutaway. Playback follows live committed transitions;
 reload retains Company history and shows the hero's actual scene, without a
 new missed-event queue or automatic replay. Older retained packets receive the
-“Earlier, elsewhere” label if presented. Browser and public verification pending.
+“Earlier, elsewhere” label if presented. Final browser/public results follow.
 
 The short independent integration review found no blocking source, privacy,
 actor, lifecycle or history issue. Nearby regressions initially found one
@@ -76,7 +86,7 @@ reload/Company history, ordinary T75, and no errors or model/external requests.
 All three captures were inspected. Desktop and 320px/Focus layouts are clear,
 but visual inspection caught a staging mismatch not caught by unobstructed-bounds
 checks: the baker stood too far from the dough for the kneading gesture.
-A narrow actor/hand-position correction is underway; the first passing run
+A narrow actor/hand-position correction followed; the first passing run
 does not serve as final acceptance for that later presentation change.
 
 The final staging moves Ada beside the table and places the actual front hand
@@ -88,8 +98,14 @@ containment, live receipts, exact reload, ordinary continuation and no errors
 or model/external requests. All three final desktop/320px/Focus captures were
 visually inspected by **2026-09-11 16:03:28 PDT**; the original captures remain
 separate. The corrected scene no longer kneads empty air. Final local build
-and complete HTML/asset/source checks pass; GitHub CI and public verification
-remain pending.
+and complete HTML/asset/source checks pass. The successful GitHub CI and public
+verification above close the release.
+
+Next proposal: **News from the oven**. The read-only council recommends a
+separate source-bound report only on a newly earned matching reunion, retaining
+the exact completed loaf while preserving earlier dialogue and old greetings.
+The contract is in [Lifetime stories](docs/design/LIFETIME_STORIES.md#next-proposal-news-from-the-oven).
+This is a proposal, not an implemented or retrospectively invented report.
 
 ## An old line returns — v0.5.178 verified release
 

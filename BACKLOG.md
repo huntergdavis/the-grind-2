@@ -35,10 +35,11 @@ equipped gear and earned weapon history. Browser, CI and public-source checks
 pass; it adds no panel or LLM request. **An old line returns (v0.5.178)** is live:
 new matching reunions recall an actual witnessed reply and its original reaction.
 Browser acceptance, CI and public-source verification pass; old greetings remain
-unchanged. **Elsewhere: The Experimental Loaf (v0.5.179)** is in progress:
-one recorded former-baker activity at a supplied inn worksite, with current
-T73 away eligibility established. Release verification is pending. A later
-**News from the oven** reunion report is a separate unimplemented proposal.
+unchanged. **Elsewhere: The Experimental Loaf (v0.5.179)** is live: one
+recorded former-baker activity at a supplied inn worksite, a compact NPC-only
+cutaway and permanent Company history. Browser, CI and public-source
+verification pass. **News from the oven**, a source-bound reunion report,
+is the next separate, unimplemented proposal.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.
@@ -55,7 +56,23 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest verified release — An old line returns (v0.5.178)
+## Latest verified release — Elsewhere: The Experimental Loaf (v0.5.179)
+
+Publicly source-verified **2026-09-11 16:11:17 PDT**. Feature `9e83634`
+adds one independent baker's attempt and outcome while the hero is away.
+One supplied dough batch becomes a plain, delightful or bricklike loaf.
+Actual actor/hand/product staging and a temporary caption keep Watch clear;
+Company retains exact admission/completion history without granting hero
+food, money, XP, knowledge or relationship changes.
+
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34656637066):
+**3,819 passing tests / 293 files / 2 optional skips**. Forty-six focused
+checks, final 56.5-second production browser, three inspected layouts and
+complete public HTML/asset/source verification pass. Canonical CI passes
+without extending its existing limit; the local timeout and initial visual
+correction are preserved in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+
+## Previous verified release — An old line returns (v0.5.178)
 
 Publicly source-verified **2026-09-11 14:55:31 PDT**. Feature `ceb83b6` adds one
 optional witnessed memory to a newly earned matching reunion: an exact earlier

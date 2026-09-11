@@ -5,16 +5,35 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Release candidate: Elsewhere — The Experimental Loaf, v0.5.179.** A former
-   baker attempts one recorded task while the hero is away. Implementation,
-   focused tests and final desktop/mobile/Focus browser acceptance pass.
-   GitHub CI and public deployment verification are next.
+1. **Next proposal: News from the oven.** On a newly earned matching reunion,
+   the former baker reports the exact completed bake. Preserve existing dialogue,
+   witnessed memory and old completed greetings; no invented delivery or reward.
+   Establish the actual source journey before implementing the report.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
 <details>
-<summary>Latest verified release: An old line returns, v0.5.178</summary>
+<summary>Latest verified release: Elsewhere — The Experimental Loaf, v0.5.179</summary>
+
+Publicly source-verified **2026-09-11 16:11:17 PDT**. One healthy former baker
+undertakes an inn-supplied trial while the hero is away. A steady or experimental
+choice yields a plain, delightful or bricklike loaf. The actual baker/oven scene
+uses a short existing-controller cutaway, while Company retains both receipts.
+The hero's commands, scene, resources and knowledge remain unchanged.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34656637066)
+passes **3,819 tests in 293 files**, with two optional skips. Forty-six focused
+checks, the final 56.5-second production browser and three inspected
+desktop/mobile/Focus captures pass. Complete public HTML, three assets and
+eight source entries match the release. The corrected hand/dough staging,
+initial source-ID finding and local replay timeout remain in the
+[council record](COUNCIL_REVIEW.md). No LLM work or new permanent panel.
+[Scope](docs/design/LIFETIME_STORIES.md#elsewhere-the-experimental-loaf--v05179).
+</details>
+
+<details>
+<summary>Previous release: An old line returns, v0.5.178</summary>
 
 Publicly source-verified **2026-09-11 14:55:31 PDT**. Newly earned matching
 reunions recall an exact flyting line the same former companion witnessed.
@@ -153,8 +172,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Elsewhere: The Experimental Loaf** | A former baker makes an actual cautious or experimental attempt, with an edible or bricklike outcome | v0.5.179 in progress; actual T73 away boundary established |
-| **News from the oven** | On a real later reunion, the same baker can tell the hero how the recorded bake turned out | Next proposal after the loaf ships; preserve earlier dialogue and old completed greetings, no invented delivery or reward |
+| **News from the oven** | On a real later reunion, the same baker can tell the hero how the recorded bake turned out | Next proposal; preserve earlier dialogue and old completed greetings, no invented delivery or reward |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 

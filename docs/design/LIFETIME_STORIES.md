@@ -1,13 +1,13 @@
 # Lifetime stories: regard, humor and consequences
 
-Latest: [An old line returns](#an-old-line-returns--v05178) shipped in v0.5.178,
-publicly source-verified 2026-09-11 14:55:31 PDT. Earlier explicitly delivered
+Latest: [Elsewhere: The Experimental Loaf](#elsewhere-the-experimental-loaf--v05179)
+shipped in v0.5.179, publicly source-verified 2026-09-11 16:11:17 PDT. Earlier explicitly delivered
 scopes remain shipped; broader systems below remain proposals.
 Owner: gameplay/story roadmap. LLM work remains paused.
 
 ## Elsewhere: The Experimental Loaf — v0.5.179
 
-Implementation in progress; not yet a verified release. One healthy, fulfilled
+Shipped and publicly source-verified. One healthy, fulfilled
 former baker can take up a new trial worksite at a known inn in the recorded
 farewell town once the hero is actually elsewhere. The inn explicitly supplies
 one batch of dough. A fixed-seed independent choice commits steady or
@@ -25,6 +25,15 @@ Automatic playback follows live committed transitions. Reload preserves the
 Company record and underlying hero scene; this slice adds no missed-event queue
 or automatic replay of historical bakes.
 
+Actual acceptance records Ada's steady T73 admission and plain-loaf completion
+at T74 alongside unchanged hero travel and route planning. Exact old hero-world
+hashes remain equal when only the new NPC receipt is excluded for comparison.
+The final 56.5-second browser and three inspected desktop/mobile/Focus captures
+pass, including real transformed hand/dough contact. Forty-six focused tests
+pass; [CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34656637066)
+passes 3,819 tests in 293 files with two optional skips. Complete public HTML,
+three assets and eight source entries match `9e83634`. No new model or scheduler.
+
 ### Next proposal: News from the oven
 
 A later actual reunion could let this same baker report the exact completed
@@ -33,6 +42,18 @@ the earlier attempt and outcome, not automatic hero knowledge from a cutaway.
 Preserve earlier witnessed-memory dialogue and old completed greetings. Do not
 invent bread delivery, eating, admiration, reward or a journey home. This
 follow-on is not implemented by v0.5.179.
+
+The 2026-09-11 read-only council recommends an optional versioned
+`completed.ovenReport` created only by the existing newly committed reunion.
+It references the exact loaf ID and completed event/command/tick, outcome and
+one short authored report line. The reunion and loaf must agree on resident,
+oath, farewell and town; the bake must precede the actual reunion arrival.
+Keep existing `heroLine`, `companionLine` and witnessed `memory` unchanged,
+appending the report separately in the existing caption and Company details.
+Do not expose the private oven roll or modify the loaf. Loading old completed
+greetings must leave report absence intact, and durable proof must survive
+Chronicle pruning. The next slice still needs its own actual source journey
+and verification; this review adds no report or new runtime behavior.
 
 ## F2b shipped scope — a shared memory before parting
 
