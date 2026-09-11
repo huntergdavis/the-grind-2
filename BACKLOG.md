@@ -14,9 +14,10 @@ F3b's later scored public challenge shipped in v0.5.166, using the learned frame
 without forcing every character to choose the winning answer. R1, a genuine
 former-companion reunion on a later return, shipped in v0.5.167. D3's dungeon
 field medicine is live in v0.5.168 with natural-use, browser, CI and public-source
-verification passed. R2 — Share the credit is implemented for v0.5.169;
-browser acceptance passed and live release verification is in progress. Further
-playable features follow one at a time.
+verification passed. R2 — Share the credit is live in v0.5.169 with browser,
+CI and public-source verification passed. D4 — A draught in the wall is the
+next scoped proposal, not yet implemented. Further playable features follow
+one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
@@ -28,7 +29,31 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Dungeon field medicine (v0.5.168)
+## Latest delivery — Share the credit (v0.5.169)
+
+Publicly source-verified 2026-09-11 05:24:24 PDT. Actual positive companion
+damage in a shared victory earns one autonomous acknowledgement or boast.
+A warm or dry response records companion-to-hero regard, without changing bond,
+loot, XP or resources. Their later fulfilled farewell recalls the actual words.
+Journal → Company retains the conversation and its battle/command sources;
+the shared two-person scene stays clear in normal, mobile and Focus views.
+
+Feature `6e312b10924730ae8af489b173e53bb39738d33b` and source-instance repair
+`e8d087747264a11ee4bc6498d5f08a0ff77914a2` are on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34598199598):
+258 release files and 3,645 tests passed, two long audits opt-in/skipped.
+Canonical replay passed in 18.555 seconds; all eight forward-motion tests
+passed in 6.396 seconds, with unchanged limits. Main suite 281.54 seconds;
+deployment job 5 minutes 35 seconds. The final production browser scenario
+passed (1.6-minute runner); three native desktop/mobile/Focus captures were
+inspected. Three public assets and nine runtime source-map entries match the
+repair commit. LLM workers and optional dungeon chunks are unchanged.
+The initial CI failure and narrow fix are retained in
+[COUNCIL_REVIEW.md](COUNCIL_REVIEW.md): a later party on the same route must not
+be confused with the original contributor. R2 is complete; D4's secret passage
+is the next proposal. LLM work remains paused.
+
+## Prior delivery — Dungeon field medicine (v0.5.168)
 
 Publicly source-verified 2026-09-11 04:03:48 PDT. A living solo explorer
 at or below half health automatically spends one actually owned Ember Tonic

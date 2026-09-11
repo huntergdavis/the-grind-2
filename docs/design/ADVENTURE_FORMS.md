@@ -516,6 +516,40 @@ transfers. Keep that larger proposal in the roadmap; do not disguise it as a
 cosmetic chest. This smaller medicine slice reuses the established item effect
 and creates a useful choice without those additional systems.
 
+## D4 proposed next slice — A draught in the wall
+
+Council recommendation, 2026-09-11. Not implemented; reachability has not yet
+been measured. This narrows the roadmap's secret-passage idea to one useful
+shortcut in an ordinary solo dungeon, without another adventure engine.
+
+A public draught cue in the current room admits one stationary investigation.
+An eligible hidden latch connects two already visited, physically adjacent
+rooms whose ordinary route is longer. Opening commits a real bidirectional
+passage; a later ordinary move uses it. No teleport, loot, XP, resource change,
+automatic dungeon completion or claim that a companion discovered it. An
+original brief line can frame the surprise: “For a wall, it had a suspicious
+amount of weather.” Keep the doorway and actual movement more prominent than
+the text, in both the existing 2D and optional first-person views.
+
+Existing hooks are `generateDungeon`, `isDungeonPassageOpen` and
+`projectDungeonWayfinding` in `src/depth/dungeon.ts`, the dungeon command lane
+in `src/depth/state.ts`, and the public packet in
+`src/ui/dungeon-perspective-view.ts`. These are implementation leads, not proof
+that an eligible journey exists. The current validator checks the original
+maze's tree after removing its key-gate edge. Any new version must explicitly
+account for the secret edge before that same base-tree check; do not weaken
+connectivity, reciprocity, key ordering or the existing gate shortcut. The
+new connection must not bypass an unearned gate or reveal an unvisited room.
+
+Keep one versioned passage and its exact reveal/open receipt per eligible new
+expedition. Old expeditions remain unchanged. Public rendering sees only the
+current disclosed cue or an opened connection, never the hidden target.
+First acceptance is one bounded existing journey or clearly labeled fixture:
+cue → investigation/open → actual shortcut traversal, exact reload before and
+after, once-only opening and unchanged resources. No new long-run matrix or
+seed search is a prerequisite. Wider secret networks and changing passages
+remain later backlog items.
+
 ## Make the adventures accumulate into a life
 
 Each authored adventure should leave at most a small number of useful facts:

@@ -5,26 +5,27 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: R2 — Share the credit (v0.5.169).** After a real shared victory,
-   acknowledge a companion's actual contribution or take undue credit. Their
-   warm or dry response leaves one directional regard record and can change
-   their eventual farewell. No books, Bell, flyting or reunion prerequisites.
-   [Council scope](docs/design/LIFETIME_STORIES.md#r2-proposed-next-slice--share-the-credit).
+1. **Next: D4 — A draught in the wall.** A disclosed clue admits one stationary
+   investigation that opens a real shortcut between already visited rooms.
+   Show the doorway in 2D/first-person, then use ordinary movement through it.
+   Proposed, not implemented; reachability is not yet measured.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#d4-proposed-next-slice--a-draught-in-the-wall).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**D3 — Dungeon field medicine is live in v0.5.168**, publicly source-verified
-2026-09-11 04:03:48 PDT. A wounded solo explorer uses an owned tonic
-between dungeon actions: the real journey heals HP11→22/42 and spends tonic3→2,
-then resumes movement. Same room, exact reload, portrait health and existing
-Status history; no new panel. Desktop/320px/Focus captures were inspected.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34591703971)
-passed 3,627 tests; two long audits stay opt-in. Three public assets and nine
-runtime source-map entries match the final release. Earlier CI failures and
-their test-only repairs remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+**R2 — Share the credit is live in v0.5.169**, publicly source-verified
+2026-09-11 05:24:24 PDT. A companion reacts to acknowledgement or an
+undue boast after their actual damaging contribution to a shared victory.
+Their words return at a real farewell and remain in Journal → Company.
+Battle rewards and bond stay unchanged; one shared caption keeps actors clear
+in desktop/320px/Focus. No new panel or LLM requirement.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34598199598)
+passed 3,645 tests; two long audits stay opt-in. Three public assets and nine
+runtime source-map entries match the final release. The initial replay failure
+and original-contributor repair remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1 and D3 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3 and R2 are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -44,7 +45,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **R2 — Share the credit** | A companion reacts to acknowledgement or credit-grabbing after their actual contribution | In progress for v0.5.169; real contribution required, release pending |
+| **D4 — A draught in the wall** | Investigate a disclosed clue, open a real secret passage, then traverse the shortcut | Scoped proposal; no implementation or reachability claim yet |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

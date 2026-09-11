@@ -2,7 +2,32 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Share the credit — v0.5.169 implementation checkpoint
+## Share the credit — v0.5.169 final delivery
+
+**Live and publicly source-verified 2026-09-11 05:24:24 PDT.** Feature
+`6e312b10924730ae8af489b173e53bb39738d33b` and original-contributor repair
+`e8d087747264a11ee4bc6498d5f08a0ff77914a2` are pushed to `origin/main`.
+[Pages run 34598199598](https://github.com/huntergdavis/the-grind-2/actions/runs/34598199598)
+passed all 258 release files and 3,645 tests; two long audits remain opt-in.
+Canonical: four tests, 18.555 seconds. Forward motion: eight tests, 6.396 seconds.
+Main suite: 281.54 seconds; deployment job: 5m35s. All limits remain unchanged.
+
+The final production browser scenario passes (1.6-minute runner), including
+the actual T94 victory, T95 acknowledgement, exact Company sources/reloads,
+ordinary next travel and T149 earned farewell/callback. Three final-build
+native desktop/320px/Focus captures were inspected. The two actors remain clear,
+with readable dialogue below the stage. No additional panel, external request
+or model activity is introduced. Both authored choices and retained-source
+tampering are separately checked, including the exact later replay regression.
+
+Public entry `index-O1pERro5.js`, CSS `index-B9m_5Qf5.css` and simulation worker
+`simulation.worker-CScIVieB.js` match the build byte-for-byte. Nine emitted
+runtime source-map entries match the repair commit; protected ledger sources
+are absent. LLM workers and optional dungeon chunks remain unchanged. Local
+test/build/browser processes are closed. R2 is complete. D4 — A draught in the
+wall is separately scoped next, not implemented in this release.
+
+## Share the credit — implementation and CI history
 
 Reuse: [R2's committed scope](docs/design/LIFETIME_STORIES.md#r2-proposed-next-slice--share-the-credit)
 and the council's 2026-09-11 03:48:45 recommendation recovered by
@@ -116,8 +141,19 @@ depth reloads. The first local regression run spent 5.591 seconds rebuilding
 its real journey inside the five-second test; that unchanged setup now runs
 in a scoped fixture hook, with all existing hook/test limits retained. The
 final focused run took 16.58 seconds. Production build, boundaries and exact
-working-source bundle checks pass. The repaired-build browser and next clean
-Pages run remain pending.
+working-source bundle checks pass. Repair
+`e8d087747264a11ee4bc6498d5f08a0ff77914a2` is pushed. Its exact committed bundle
+passes local source verification, and the full production browser scenario
+passes again (1.6-minute runner). All three final-build native captures were
+inspected; no UI/runtime errors, model requests or external activity occurred.
+The new clean Pages run and public verification remain pending.
+
+Council follow-up recommends [D4 — A draught in the wall](docs/design/ADVENTURE_FORMS.md#d4-proposed-next-slice--a-draught-in-the-wall)
+from the existing secret-passage backlog: a disclosed clue, actual stationary
+opening and later movement through one useful shortcut. Root confirms the
+current base-tree/key-gate validator must be preserved explicitly, not weakened.
+The proposal is recorded separately; no D4 mechanic or natural reachability
+claim is included in this R2 release. LLM work stays paused.
 
 ## Dungeon field medicine — v0.5.168 final delivery
 

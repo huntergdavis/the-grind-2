@@ -63,7 +63,9 @@ and a general relationship system are not implemented by this slice.
 
 ## R2 proposed next slice — Share the credit
 
-Council recommendation, 2026-09-11; implementation in progress for v0.5.169. Turn the existing
+Council scope, 2026-09-11; **shipped in v0.5.169**, publicly source-verified
+2026-09-11 05:24:24 PDT. The retained scope below describes the shipped slice.
+Turn the existing
 shared-success/credited-assist idea into one autonomous post-battle exchange.
 An actual, still-present and healthy companion must have dealt positive damage
 to an opponent in a retained shared victory. Roster membership or a victory
@@ -98,6 +100,13 @@ boundary does supply an actual contribution at T93 and healthy shared victory
 at T94 (13 damage by Dima Vale). Only the generated second-town/visited-town start
 is staged, not the recruitment, fight or outcome. Keep that distinction explicit
 in acceptance; do not turn a roster member into an invented contributor.
+
+The actual exchange commits T95, followed by ordinary travel and an earned
+fulfilled farewell at T149. Both choices, source tampering, exact reload,
+once-only resolution and history retention pass. A later same-route battle
+with a different companion is not mistaken for the original source. The final
+browser scenario and three native captures pass; clean CI passes 3,645 tests
+with unchanged replay limits. D4 is proposed next in the adventure track.
 
 ## R1 proposed next slice — A familiar face
 
