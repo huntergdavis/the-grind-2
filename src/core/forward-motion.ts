@@ -1,5 +1,6 @@
 import { edgeBetween } from "../depth";
 import type { DepthCommand, DepthCommandCandidate, DepthState } from "../depth";
+import { selectCompanionReturn } from "../depth/companion-reunion";
 import type {
   DirectedJourneyLeg,
   ForwardMotionReason,
@@ -46,6 +47,17 @@ export function constrainForwardMotion(
     if (promised.length === 1) return { candidates: promised, reason: "companion-oath" };
   }
 
+  // A purposeful return may retrace a road even at a junction. Its exact
+  // producer ID distinguishes it from a quest or ordinary route to this town.
+  if (candidates.length === 1) {
+    const returning = selectCompanionReturn(state.depth), candidate = candidates[0]!;
+    if (returning !== null && candidate.deciderId === state.depth.hero.id
+      && routeDestination(candidate) === returning.locationId
+      && candidate.id === `depth:${state.depth.tick + 1}:companion:return:${returning.residentId}:${returning.joinedTick}:${returning.locationId}`) {
+      return { candidates, reason: "companion-return" };
+    }
+  }
+
   const currentLocationId = state.depth.atlas.currentLocationId;
   const lastLeg = state.forwardMotion.recentLegs.at(-1);
   const reverseLocationId = lastLeg?.toLocationId === currentLocationId
@@ -85,6 +97,7 @@ export function describeForwardMotionReason(reason: ForwardMotionReason, destina
     case "only-open-road": return `${destinationName} lies along the only open road out`;
     case "least-recent": return `${destinationName} is the least recently traveled way forward`;
     case "companion-oath": return `${destinationName} is the destination promised to the road companion`;
+    case "companion-return": return `${destinationName} is the recorded farewell town of a former companion the hero is returning to greet`;
   }
 }
 
@@ -96,6 +109,7 @@ export function forwardMotionLabel(directive: RouteDirective | null): string {
     case "only-open-road": return "Backtrack · only open road";
     case "least-recent": return "Roam · least-recent road";
     case "companion-oath": return "Oath · promised destination";
+    case "companion-return": return "Return · familiar face";
   }
 }
 
@@ -223,7 +237,7 @@ export function assertForwardMotionReferences(state: WorldState): boolean {
       leg.plannedTick > leg.arrivedTick ||
       leg.arrivedTick < previousArrivalTick ||
       leg.arrivedTick > state.tick ||
-      !["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"].includes(leg.reason) ||
+      !["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath", "companion-return"].includes(leg.reason) ||
       (previousDestinationId !== null && previousDestinationId !== leg.fromLocationId)
     ) return false;
     try {
@@ -244,7 +258,7 @@ export function assertForwardMotionReferences(state: WorldState): boolean {
     atlas.route !== null &&
     atlas.route.destinationId === directive.destinationId &&
     locationIds.has(directive.destinationId) &&
-    ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"].includes(directive.reason) &&
+    ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath", "companion-return"].includes(directive.reason) &&
     Number.isSafeInteger(directive.plannedTick) &&
     directive.plannedTick >= 0 &&
     directive.plannedTick <= state.tick

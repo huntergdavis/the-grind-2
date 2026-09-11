@@ -157,6 +157,7 @@ test("a genuine return meets one former companion without reopening the oath or 
   };
   try {
     expect(beforeArrival.depth.companionReunion).toBeNull();
+    expect(beforeArrival.forwardMotion.activeDirective?.reason).toBe("companion-return");
     expect(arrived.chronicle.at(-1)?.commandType).toBe("travel");
     expect(arrived.depth.atlas.route).toBeNull();
     expect(beforeArrival.depth.atlas.currentLocationId).not.toBe(arrived.depth.atlas.currentLocationId);

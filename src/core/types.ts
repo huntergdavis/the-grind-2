@@ -140,7 +140,8 @@ export type ForwardMotionReason =
   | "avoid-immediate-reverse"
   | "only-open-road"
   | "least-recent"
-  | "companion-oath";
+  | "companion-oath"
+  | "companion-return";
 
 export interface DirectedJourneyLeg {
   fromLocationId: string;

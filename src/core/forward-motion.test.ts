@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { edgeBetween, neighboringLocationIds, projectSuccessorQuestLead } from "../depth";
+import { selectCompanionReturn } from "../depth/companion-reunion";
+import { naturalCompanionReunionArrivalFixture } from "../../tests/companion-reunion-fixtures";
 import { actorPolicy } from "./actor-policy";
-import { maximumRecentJourneyEntries } from "./forward-motion";
+import { constrainForwardMotion, forwardMotionLabel, maximumRecentJourneyEntries } from "./forward-motion";
 import { advanceWorld, campaignDirector, createWorld, rulesEngine, upgradeWorldState } from "./simulation";
 import type { DirectedJourneyLeg, WorldState } from "./types";
 
@@ -88,7 +90,26 @@ describe("Game Master forward motion", () => {
     expect(opportunity.forwardMotionReason).toBe("only-open-road");
   });
 
-  it("keeps journey memory bounded and prevents available immediate reversals", () => {
+  it("labels only the exact earned return candidate as a familiar-face journey", () => {
+    const earned = naturalCompanionReunionArrivalFixture();
+    // Isolated route-admission boundary using the earned former companion;
+    // the browser separately proves the actual recorded return directive.
+    const world = { ...earned, depth: { ...earned.depth, atlas: { ...earned.depth.atlas, route: null } },
+      forwardMotion: { ...earned.forwardMotion, activeDirective: null } };
+    const returning = selectCompanionReturn(world.depth)!;
+    expect(returning).not.toBeNull();
+    const candidate = { id: `depth:${world.tick + 1}:companion:return:${returning.residentId}:${returning.joinedTick}:${returning.locationId}`,
+      deciderId: world.depth.hero.id, label: "return to the recorded companion",
+      command: { type: "plan-route" as const, destinationId: returning.locationId } };
+    expect(constrainForwardMotion(world, [candidate])).toEqual({ candidates: [candidate], reason: "companion-return" });
+    expect(forwardMotionLabel({ reason: "companion-return", destinationId: returning.locationId, plannedTick: world.tick + 1 })).toBe("Return · familiar face");
+    expect(constrainForwardMotion(world, [{ ...candidate, id: "different-route-source" }]).reason).not.toBe("companion-return");
+    expect(constrainForwardMotion(world, [{ ...candidate, deciderId: "different-hero" }]).reason).not.toBe("companion-return");
+    expect(constrainForwardMotion({ ...world, depth: { ...world.depth,
+      companions: { ...world.depth.companions, former: [] } } }, [candidate]).reason).not.toBe("companion-return");
+  });
+
+  it("keeps journey memory bounded and prevents aimless available immediate reversals", () => {
     for (let campaign = 0; campaign < 12; campaign += 1) {
       let world = createWorld(`forward-soak:${campaign}`, `campaign:${campaign}`);
       for (let step = 0; step < 400; step += 1) {
@@ -105,7 +126,15 @@ describe("Game Master forward motion", () => {
               destinations.length === 1 &&
               destinations[0] === lead.locationId &&
               lead.locationId === lastLeg.fromLocationId;
-            if (storyRequiresBacktrack) {
+            if (opportunity.forwardMotionReason === "companion-return") {
+              const returning = selectCompanionReturn(world.depth);
+              expect(returning).not.toBeNull();
+              expect(destinations).toEqual([returning!.locationId]);
+              expect(world.depth.companionReunion).toBeNull();
+              expect(world.depth.companions.active).toEqual([]);
+              expect(opportunity.candidates[0]?.id).toBe(`depth:${world.tick + 1}:companion:return:${returning!.residentId}:${returning!.joinedTick}:${returning!.locationId}`);
+              expect(opportunity.candidates[0]?.deciderId).toBe(world.depth.hero.id);
+            } else if (storyRequiresBacktrack) {
               expect(opportunity.goal).toBe(`Follow the lead to ${lead.locationName}`);
             } else {
               expect(destinations).not.toContain(lastLeg.fromLocationId);

@@ -63,6 +63,33 @@ are unchanged. Ten existing full-state canonical anchors are regenerated for
 Depth35 and actual new turns; no normalization or timeout expansion. Clean CI
 replay and public delivery remain pending.
 
+Initial hosted run [34586494793](https://github.com/huntergdavis/the-grind-2/actions/runs/34586494793)
+stopped deployment: 3,611 tests passed and one old forward-motion assertion
+failed, with two long audits skipped. All four canonical tests passed in
+18.739 seconds; the main suite took 277.86 seconds. The new purposeful return
+violated the old blanket multi-road anti-reversal assertion and exposed an
+inaccurate “only open road” label. The recall query found no prior matching fix.
+
+The repair adds `companion-return` only for the exact sole canonical return
+candidate: eligible former companion, matching destination, decider and source
+ID. Save/history/decision-trace allowlists and the visible route label agree.
+Ordinary anti-backtracking and active-oath behavior remain unchanged. The soak
+test now permits only that independently source-checked return exception; its
+12 campaigns, 400 turns, history bounds and 40-second cap are unchanged. Three
+focused route regressions pass (14.86-second runner); the corrected production
+build passes (Vite 20.40 seconds) and boundaries are clean. Rechecking the same
+natural browser journey and full-state anchors before the repair push. The
+public site remains at the prior release until a successful deployment.
+
+The corrected browser interaction sequence passes in 54.6 seconds (1.3-minute
+runner), including the actual saved `companion-return` directive, T154/T155,
+exact reloads and normal continuation. Three final-build captures were directly
+inspected; no new overlap or text clipping. Three assets and ten runtime sources
+match the corrected build. Recomputing all ten existing 1,000-turn campaigns
+produces the same final golden hashes: the transient reason change has aged out
+of those bounded histories. No anchor or test-limit changes are needed for this
+repair. Hosted CI is rerun after the dedicated correction commit.
+
 ## Let the room answer — v0.5.166 final delivery
 
 **Live and publicly source-verified 2026-09-11 at 02:02:19 PDT.** Feature

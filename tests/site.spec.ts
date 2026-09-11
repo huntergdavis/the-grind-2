@@ -1544,7 +1544,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(traversalDirective).not.toBeEmpty();
   await expect(traversalDirective).toHaveAttribute(
     "data-reason",
-    /^(planning|companion-oath|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|shrine|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
+    /^(planning|companion-oath|companion-return|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|shrine|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
   );
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-layout", /.+/);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
