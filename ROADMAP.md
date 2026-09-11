@@ -5,27 +5,33 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Road Supper, v0.5.175 — implemented; release validation pending.**
-   Buy two actual Road Rations for two gold at a later market, after owed
-   obligations; consume both at a real solo roadside camp. The next bound road
-   fight's first direct incoming hit receives 25% reduction before HP clamping;
-   stronger 50% Guard takes precedence, never stacks. One use, or expiry at the
-   fight's end. Existing caption, inventory, Status and combat rails tell the
-   story; no immediate healing, extra panel or LLM. The actual source journey
-   still loses: 65→48 damage against 42 HP saves **zero HP**, not 17.
-   Focused checks, build, exact local sources, canonical replay and the
-   78.7-second browser scenario pass; three captures are inspected.
-   CI and public verification remain pending.
-   [Scope and evidence](docs/design/ADVENTURE_FORMS.md#road-supper--v05175).
-2. **Next proposal: known-danger detour.** Inspect whether an actually revealed
+1. **Next proposal: known-danger detour.** Inspect whether an actually revealed
    armed trap has an already-known safe alternate path. No new passage, hidden
    knowledge, free disarm or promised natural admission; scope only, not runtime.
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
 <details>
-<summary>Latest verified release: D5 — The Room Is Taken, v0.5.174</summary>
+<summary>Latest verified release: Road Supper, v0.5.175</summary>
+
+Publicly source-verified **2026-09-11 11:32:37 PDT**. Two gold buys two actual
+rations at a later market; one solo camp consumes both for the next road
+battle's first direct incoming hit. Damage is reduced 25% before HP clamping;
+stronger Guard wins without stacking. No immediate healing or extra panel.
+The actual acceptance battle still loses, truthfully recording zero HP saved.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34633233091)
+passes **3,758 tests in 281 files**, with two optional audits skipped. The
+78.7-second browser scenario and three inspected desktop/mobile/Focus captures
+pass. Three public assets and sixteen source entries match the pushed release.
+The mobile layout correction and test-only guardian/bell fixture repairs remain
+in [the council record](COUNCIL_REVIEW.md). LLM work is unchanged and paused.
+[Scope and evidence](docs/design/ADVENTURE_FORMS.md#road-supper--v05175).
+</details>
+
+<details>
+<summary>Previous release: D5 — The Room Is Taken, v0.5.174</summary>
 
 Publicly source-verified **2026-09-11 10:22:06 PDT**. One actual entered lair
 admits one guardian; victory clears the room, while defeat or stalemate leaves
@@ -71,7 +77,7 @@ in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 T1's ferry is deferred: the bounded known journey and all 14 roads on its map
 have no recorded river crossings. That negative evidence is preserved.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2, W1, B1 and D5 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4, T2, W1, B1, D5 and Road Supper are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -91,7 +97,6 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Road Supper** | Buy two rations, share one pot with nobody, then spend one first-hit preparation effect | Implemented in v0.5.175; release validation pending |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Next bounded read-only proposal; admission and implementation unproven |
 
 This is an individual delivery sequence, not a combined release gate. Each

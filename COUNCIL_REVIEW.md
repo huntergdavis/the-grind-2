@@ -2,6 +2,31 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Road Supper — v0.5.175 verified release
+
+**Live and publicly source-verified 2026-09-11 11:32:37 PDT.** Feature
+`ee699c1ab0e20d14eb7860fe35057cb840759359` and test-only correction
+`f29ea3f2265cff64615cff8185d74a790f8ca8ce` are pushed to `origin/main`.
+[Corrected release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34633233091)
+passes **3,758 tests in 281 files**, with only the two existing optional audits
+skipped. Main tests take **248.90s**, canonical replay **4/4 in 18.786s**, and
+forward motion **8/8 in 6.640s**; the complete job takes **5m9s**.
+
+The public `version.json`, service-worker cache version, main JavaScript
+`index-BhpVUkkr.js`, stylesheet `index-DHdBcD1H.css`, simulation worker
+`simulation.worker-CuF0UUmg.js` and their sixteen emitted source entries match
+the exact release commit/local build. Protected ledger sources remain absent.
+The source journey, 78.7-second browser acceptance and three inspected captures
+pass; its actual defeat is retained, not replaced by a manufactured payoff.
+The first direct hit's raw reduction does not falsely claim saved HP after
+overkill. No external/model request or runtime error occurs in acceptance.
+
+Next is the scoped known-danger detour proposal. Existing trap/pathfinding
+hooks are mapped, but no actual eligible alternate route is yet proven.
+
+<details>
+<summary>Road Supper implementation checkpoints, browser retries and initial CI repair</summary>
+
 ## Road Supper — v0.5.175 release checkpoint
 
 **Implemented; release validation pending, not shipped or publicly verified.**
@@ -136,6 +161,8 @@ safe alternate route. Neither admission nor a policy change is proven here.
 If that boundary is absent, retain the negative result rather than generating
 a shortcut, disarming for free or sweeping new seeds. No implementation or
 additional release gate is attached to this proposal.
+
+</details>
 
 <details>
 <summary>Earlier shipped releases, review history and held proposals</summary>

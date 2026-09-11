@@ -25,8 +25,8 @@ sequences, source-preserving saves, native browser, CI and public verification
 pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
 browser, CI and public-source verification pass. D5's inhabited dungeon lair
 is live in v0.5.174, with browser, CI and public-source verification passed.
-Road Supper is implemented for v0.5.175; release validation is pending, not
-claimed live. The next bounded proposal is known-danger detours, with actual
+Road Supper is live in v0.5.175; browser, CI and public-source verification pass.
+The next bounded proposal is known-danger detours, with actual
 safe-route admission still unproven. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
@@ -39,9 +39,9 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Current implementation — Road Supper (v0.5.175)
+## Latest verified release — Road Supper (v0.5.175)
 
-**Implemented; release validation pending.** One later-market purchase spends
+**Live and source-verified 2026-09-11 11:32:37 PDT.** One later-market purchase spends
 two actual gold for two canonical Road Rations, after existing owed story and
 training lanes. A solo camp on the actual upcoming road encounter consumes
 both units, with no immediate HP, MP, XP or bond reward. One campaign receipt
@@ -65,8 +65,10 @@ panel, model or reading clock.
 Focused results: presentation 27/27, producer 8/8, combat effect 5/5 and narrator
 evaluation 8/8 pass; final TypeScript passes and narrator fingerprints are
 unchanged. Build, local source verification and the original ten 1,000-command
-canonical journeys pass. Production browser, CI and public-source verification
-remain pending. Ordering and test-authoring corrections are
+canonical journeys pass. The 78.7-second production browser passes with three
+inspected captures. [CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34633233091)
+passes 3,758 tests in 281 files, with two optional skips; public assets and sixteen
+source entries match the pushed release. Ordering and test-authoring corrections are
 recorded in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md), not hidden as successful
 first attempts. [Current design](docs/design/ADVENTURE_FORMS.md#road-supper--v05175)
 supersedes the historical `Guarding 25/1`/20–40-second proposal below.

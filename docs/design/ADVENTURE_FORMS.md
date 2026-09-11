@@ -6,9 +6,9 @@ is one small board expedition; the project-wide order lives in
 [ROADMAP.md](../../ROADMAP.md). The broader collection is a direction for authored
 adventures, not a request to build five engines together.
 
-Current slice: [Road Supper](#road-supper--v05175) is implemented for v0.5.175,
-with release validation pending. D5 and earlier explicitly marked deliveries
-are shipped; unimplemented proposals retain their separate status.
+Latest release: [Road Supper](#road-supper--v05175) is live in v0.5.175,
+publicly source-verified 2026-09-11 11:32:37 PDT. D5 and earlier explicitly
+marked deliveries are shipped; unimplemented proposals retain their separate status.
 
 The promise is a familiar hero entering an unfamiliar situation: carrying a
 ridiculous responsibility, needing someone else's expertise, making a choice
@@ -838,7 +838,7 @@ scoping action. The subsequent finite implementation is recorded below.
 
 ## Road Supper — v0.5.175
 
-**Implemented; release validation pending, not claimed live.** This is the
+**Live and source-verified 2026-09-11 11:32:37 PDT.** This is the
 finite meal premise from [V04.12a](../../BACKLOG.md#v0412a-original-road-supper-preparation-vignette-a1a2a3a4a5a6),
 which already cites the official Monster Hunter manuals as design inspiration.
 The rules, props and line here are original: “Two rations, one pot. A feast,
@@ -885,7 +885,10 @@ Presentation 27/27, producer 8/8, combat effect 5/5, narrator evaluation 8/8 and
 final TypeScript pass. Build, local source verification and the original ten
 1,000-command canonical journeys pass. The production browser passes in 78.7s
 with three inspected captures, exact saves and no errors/model/external requests.
-CI and public-source verification remain pending; final evidence belongs in
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34633233091) passes
+3,758 tests in 281 files with two optional skips; three public assets and sixteen
+source entries match release commit `f29ea3f2265cff64615cff8185d74a790f8ca8ce`.
+The actual failures and corrections remain in
 [the council record](../../COUNCIL_REVIEW.md).
 
 ### Next proposal only — Known-danger detour
