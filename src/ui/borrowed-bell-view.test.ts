@@ -206,8 +206,8 @@ describe("Borrowed Bell presentation", () => {
 
   it("presents the naturally reached roadside recovery as a private memory without inventing an inn or charging gold", () => {
     const before = naturalBorrowedBellMemoryFixture(), after = advanceWorld(before);
-    expect(before.tick).toBe(252);
-    expect(after.tick).toBe(253);
+    expect(before.tick).toBeGreaterThan(before.depth.bellExpedition!.completion!.tick);
+    expect(after.tick).toBe(before.tick + 1);
     const scene = projectBorrowedBellScene(after), memory = after.depth.bellMemory!;
     expect(scene?.phase).toBe("memory");
     if (scene?.phase !== "memory" || memory.rest.kind !== "roadside") throw new Error("Missing natural roadside memory");
@@ -215,8 +215,13 @@ describe("Borrowed Bell presentation", () => {
     const name = (id: string) => after.depth.atlas.locations.find(location => location.id === id)!.name;
     expect(scene.title).toBe(`Roadside camp · ${name(rest.route.path[rest.route.legIndex]!)} → ${name(rest.route.path[rest.route.legIndex + 1]!)}`);
     expect(scene.narrative).toBe(memory.line);
-    expect(scene.commandId).toBe(`${after.campaignId}:depth:253:critical-roadside-recovery`);
-    expect(scene.consequence).toBe("Camp recovery: HP 11 → 42 · MP 28 → 28 · gold 20, unchanged.");
+    expect(memory.sourceCommandId).toBe(`depth:${after.tick}:critical-roadside-recovery`);
+    expect(scene.commandId).toBe(`${after.campaignId}:${memory.sourceCommandId}`);
+    expect(scene.consequence).toBe(`Camp recovery: HP ${rest.healthBefore} → ${rest.healthAfter} · MP ${rest.manaBefore} → ${rest.manaAfter} · gold ${rest.goldAfter}, unchanged.`);
+    expect(rest.healthBefore).toBeGreaterThan(0);
+    expect(rest.healthBefore * 2).toBeLessThanOrEqual(before.depth.hero.resources.maxHealth);
+    expect(rest.goldSpent).toBe(0);
+    expect(rest.goldAfter).toBe(rest.goldBefore);
     expect(scene.title).not.toMatch(/inn/iu);
     expect(scene).not.toHaveProperty("board");
     expect(scene).not.toHaveProperty("roll");

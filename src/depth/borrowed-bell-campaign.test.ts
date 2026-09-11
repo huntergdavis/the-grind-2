@@ -134,13 +134,21 @@ describe("the Borrowed Bell in the actual campaign", () => {
     expect(late.hero.gold).toBe(ready.depth.hero.gold + 1);
     expect(late.hero.resources.health).toBe(ready.depth.hero.resources.health);
     expect(late.quest).toEqual(ready.depth.quest);
-    const emptyMana = { ...ready.depth, hero: { ...ready.depth.hero,
-      resources: { ...ready.depth.hero.resources, mana: 0 } } };
+    // As in explicitInnBoundary, first commit an ordinary turn so staging a
+    // resource edge case does not rewrite the current lesson's creation facts.
+    // This remains a labelled direct-command fixture, not natural zero-MP travel.
+    const ordinary = stepDepth(ready.depth, { type: "wait" });
+    const lessonBytes = canonicalStringify(ready.depth.usefulReply);
+    expect(ordinary.tick).toBe(ready.depth.tick + 1);
+    expect(canonicalStringify(ordinary.usefulReply)).toBe(lessonBytes);
+    const emptyMana = reload({ ...ordinary, hero: { ...ordinary.hero,
+      resources: { ...ordinary.hero.resources, mana: 0 } } });
     const zero = explicitRun(emptyMana, false);
     expect(zero.hero.resources.mana).toBe(0);
     expect(zero.bellExpedition!.turns.every(turn => turn.steadyCost === 0 && turn.landing.manaSpent === 0)).toBe(true);
     expect(zero.bellExpedition!.completion!.cell).toBe(8);
     expect(zero.companions).toEqual(ready.depth.companions);
+    expect(canonicalStringify(zero.usefulReply)).toBe(lessonBytes);
   });
 
   it("rejects competing, stale, duplicate and foreign-instance commands atomically", () => {

@@ -34,26 +34,32 @@ describe("one delivery memory at an existing real rest", () => {
   let ready: WorldState, after: WorldState;
   beforeAll(() => { ready = naturalBorrowedBellMemoryFixture(); after = advanceWorld(ready); });
 
-  it("adds one private memory to the actual T253 roadside recovery without adding costs, XP or quest credit", () => {
+  it("adds one private memory to an actual later roadside recovery without adding costs, XP or quest credit", () => {
     const before = ready.depth, memory = after.depth.bellMemory!, plan = selectCriticalRoadsideRest(before)!;
-    expect(ready.tick).toBe(252);
-    expect(after.tick).toBe(253);
+    const completion = before.bellExpedition!.completion!, evidence = before.bellExpedition!.turns.at(-1)!;
+    expect(ready.tick).toBeGreaterThan(completion.tick);
+    expect(after.tick).toBe(ready.tick + 1);
+    expect(plan).not.toBeNull();
+    expect(before.hero.resources.health).toBeGreaterThan(0);
+    expect(before.hero.resources.health * 2).toBeLessThanOrEqual(before.hero.resources.maxHealth);
+    expect(plan).toMatchObject({ healthAfter: before.hero.resources.maxHealth, manaAfter: before.hero.resources.maxMana,
+      goldSpent: 0, goldBefore: before.hero.gold, goldAfter: before.hero.gold });
     expect(selectPaidInnRest(before)).toBeNull();
     expect(before.companions.active).toEqual([]);
-    expect(before.hero.resources).toMatchObject({ health: 11, maxHealth: 42, mana: 28, maxMana: 28 });
+    expect(before.hero.resources).toMatchObject({ health: 11, maxHealth: 42, mana: 24, maxMana: 24 });
     expect(memory).toEqual(selectBellDeliveryMemory(before));
     expect(memory).toMatchObject({ schemaVersion: 1, rulesVersion: "bell-delivery-memory-v1", kind: "delivery",
       instanceId: before.bellExpedition!.instanceId, heroId: before.hero.id,
-      completedTick: 49, completionSourceCommandId: before.bellExpedition!.completion!.sourceCommandId,
-      evidenceSourceCommandId: before.bellExpedition!.turns.at(-1)!.sourceCommandId, evidenceTick: 49, evidenceTurn: 4,
-      sourceCommandId: "depth:253:critical-roadside-recovery", tick: 253, rest: { kind: "roadside", ...plan } });
+      completedTick: completion.tick, completionSourceCommandId: completion.sourceCommandId,
+      evidenceSourceCommandId: evidence.sourceCommandId, evidenceTick: evidence.tick, evidenceTurn: 4,
+      sourceCommandId: `depth:${after.tick}:critical-roadside-recovery`, tick: after.tick, rest: { kind: "roadside", ...plan } });
     expect(memory.line).toContain("before the doors closed");
     expect(after.depth.hero).toEqual({ ...before.hero, resources: { ...before.hero.resources,
       health: plan.healthAfter, mana: plan.manaAfter } });
     expect(after.hero.experience).toBe(ready.hero.experience);
     expect(after.hero.gold).toBe(ready.hero.gold);
     expect(after.depth.hero.gold).toBe(20);
-    expect(after.depth.hero.experience).toBe(486);
+    expect(after.depth.hero.experience).toBe(before.hero.experience);
     expect(after.depth.atlas.route).toEqual(before.atlas.route);
     expect(after.depth.bellExpedition).toEqual(before.bellExpedition);
     expect(after.depth.quest).toEqual(before.quest);
@@ -61,7 +67,7 @@ describe("one delivery memory at an existing real rest", () => {
     expect(after.depth.pendingQuestReward).toEqual(before.pendingQuestReward);
     expect(after.depth.companions).toEqual(before.companions);
     expect(after.depth.reparteeWitness).toEqual(before.reparteeWitness);
-    expect(after.chronicle.at(-1)).toMatchObject({ commandType: "wait", mode: "chronicle", tick: 253,
+    expect(after.chronicle.at(-1)).toMatchObject({ commandType: "wait", mode: "chronicle", tick: after.tick,
       commandId: `${after.campaignId}:${memory.sourceCommandId}` });
     expect(after.chronicle.at(-1)!.action).toContain(memory.line);
     expect(reload(after.depth)).toEqual(after.depth);
@@ -70,13 +76,16 @@ describe("one delivery memory at an existing real rest", () => {
 
   it("preserves the same waiting encounter and cannot repeat the memory or reward at the next normal step", () => {
     const memory = after.depth.bellMemory!, board = after.depth.bellExpedition!;
+    if (memory.rest.kind !== "roadside") throw new Error("The natural memory must preserve its actual roadside encounter");
+    const encounterId = `encounter:route:${ready.depth.atlas.route!.path.join(">")}`;
+    expect(memory.rest.encounterId).toBe(encounterId);
     expect(selectBellDeliveryMemory(after.depth)).toBeNull();
     expect(campaignDirector(after).candidates.map(candidate => candidate.command)).toEqual([
-      { type: "start-combat", encounterId: "encounter:route:location:9>location:1", enemyCount: 2 },
+      { type: "start-combat", encounterId, enemyCount: 2 },
     ]);
     const continued = advanceWorld(after);
     expect(continued.chronicle.at(-1)?.commandType).toBe("start-combat");
-    expect(continued.depth.combat?.id).toBe("encounter:route:location:9>location:1");
+    expect(continued.depth.combat?.id).toBe(encounterId);
     expect(continued.depth.bellMemory).toEqual(memory);
     expect(continued.depth.bellExpedition).toEqual(board);
     expect(continued.depth.hero.gold).toBe(after.depth.hero.gold);

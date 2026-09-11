@@ -69,6 +69,41 @@ and clear controls, with no extra panel or contest marks. The browser journey
 uses explicit fixture-fast mode; the existing source-keyed normal dwell is
 reused, not a newly measured normal-speed timing claim. CI/public delivery remain pending.
 
+Initial [CI run 34576340016](https://github.com/huntergdavis/the-grind-2/actions/runs/34576340016)
+stopped before deployment: 3,576 tests passed and four older Bell-fixture
+assertions failed in three files (two opt-in audits skipped). All four canonical
+tests passed in 14.799 seconds with the unchanged limits. Main suite 281.45
+seconds; job 5 minutes 16 seconds. Two new story turns legitimately change the
+later natural route/rest, so the old fixed T252/T253 and waiting-encounter
+expectations need current source evidence. The zero-MP direct-command fixture
+also stages resources on the just-completed lesson tick, contradicting that
+current receipt; move its labelled boundary beyond a genuine ordinary command.
+These repairs must preserve lesson history and existing rest/board checks,
+without weakening runtime invariants. The live site remains on the prior release.
+
+The zero-MP fixture correction passed all ten Borrowed Bell campaign tests
+(15.96-second runner). It follows the existing explicit-inn-boundary pattern:
+commit one genuine ordinary wait, then stage and reload the explicitly labelled
+zero-MP state. The exact lesson bytes survive both that boundary and the finite
+board run. No production rule, source binding or validation was relaxed.
+
+One bounded source probe of the unchanged natural seed found the current
+delivery at T51 and the actual later roadside rest at T73 (ready T72), followed
+by the same queued fight at T74 on location:5→location:4, Elderrest→Briarrest.
+Recovery is HP 11/42→42; MP 24/24, gold 20 and XP 78 are unchanged. The ordinary
+combat entry then grants its existing eight XP. The four Bell paths and actual
+on-time bonus are intact. Memory tests are being rebound to those real source
+receipts rather than obsolete fixed global ticks. The older Bell-memory browser
+test already derives these facts and needed no such edit; it is not claimed
+rerun as part of this correction.
+
+The repaired memory campaign/presentation suites passed 16/16 across two files
+(15.39-second runner), alongside the ten passing board campaign tests. Current
+critical-health/full-recovery, zero-award, source/reload/catch-up and same-next-
+encounter assertions remain intact. The follow-up changes only three test files,
+fixture commentary and this receipt; v0.5.165 runtime/build/browser evidence is
+unchanged. A clean deployment rerun is still required.
+
 ## Dungeon-search browser receipt — bounded maintenance, 2026-09-11
 
 Reused `deja "dungeon-search mana-siphon"`: Codex session 10 recovered the

@@ -4,8 +4,10 @@ import { needsCriticalRoadsideRecovery } from "../src/depth/roadside-rest";
 
 export const borrowedBellMemoryCampaignId = "campaign:browser-repartee-memory";
 
-/** The original earned book/oath/delivery journey continues to its actual T252
- * roadside recovery. No staged injury, route, board, resource or memory history.
+/** The earned book/oath/delivery journey continues to its first actual solo
+ * roadside recovery. After the useful-reply lesson this is T72, not the older
+ * T252 route; the event condition, seed and bounded ceiling remain unchanged.
+ * No staged injury, route, board, resource or memory history.
  */
 export function naturalBorrowedBellMemoryFixture(): WorldState {
   let world = createWorld("shared-road-playful:7", borrowedBellMemoryCampaignId);
