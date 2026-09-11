@@ -147,6 +147,7 @@ import { dungeonGuardianCommandId, dungeonGuardianResolutionCommandId, isValidCa
 import { isValidCampaignRoadSupper, recordRoadRationPurchase, recordRoadSupperMeal, recordRoadSupperAssignment, recordRoadSupperTerminal, roadSupperCommandId, selectRoadRationPurchase, selectRoadSupperCamp } from "./road-supper";
 import { createRoadRations } from "./road-rations";
 import { createCombatSupperPreparation } from "./supper-preparation";
+import { isValidCampaignSpareGearTrade, selectSpareGearTrade, stepSpareGearTrade } from "./spare-gear-trade";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -963,7 +964,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) || !isValidCampaignSpareGearTrade(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -1569,6 +1570,18 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "sell-spare-gear": {
+      // Use the same prioritized opportunity as autoplay: no direct sale can
+      // jump an owed town service, story, quest or recovery command.
+      const admitted = depthCommandCandidates(input);
+      if (admitted.length !== 1 || admitted[0]!.command.type !== "sell-spare-gear"
+        || admitted[0]!.command.marketId !== command.marketId || admitted[0]!.command.itemId !== command.itemId) {
+        throw new Error("Resolve the existing obligation before selling spare gear");
+      }
+      const next = stepSpareGearTrade(input, command), trade = next.spareGearTrade;
+      return appendLog({ ...state, ...next }, "item", `${state.hero.name} sells the unused ${trade.soldItem.name} at ${trade.marketName}. `
+        + `Pack ×1→×0; gold ${trade.goldBefore}→${trade.goldAfter}. ${trade.keptWeapon.name} stays equipped, its history intact. A lighter pack, not a stronger arm.`);
+    }
     case "buy-road-rations": {
       const plan = selectRoadRationPurchase(input);
       if (plan === null || plan.marketId !== command.marketId) throw new Error("No matching Road Rations purchase is available");
@@ -2651,6 +2664,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (!isValidCampaignSpareGearTrade(input)) throw new TypeError("Campaign state violates spare-gear-trade invariants");
   if (!isValidCampaignDungeonLair(input)) throw new TypeError("Campaign state violates dungeon-lair invariants");
   if (!isValidCampaignRoadSupper(input)) throw new TypeError("Campaign state violates road-supper invariants");
   if (!isValidCampaignInnBluff(input)) throw new TypeError("Campaign state violates inn-bluff invariants");
@@ -2669,6 +2683,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     throw new TypeError("Campaign state violates schema invariants");
   }
   let output = reduceDepth(input, command);
+  if (!isValidCampaignSpareGearTrade(output)) throw new TypeError("Campaign state violates spare-gear-trade invariants");
   if (!isValidCampaignDungeonLair(output)) throw new TypeError("Campaign state violates dungeon-lair invariants");
   if (!isValidCampaignRoadSupper(output)) throw new TypeError("Campaign state violates road-supper invariants");
   if (!isValidCampaignInnBluff(output)) throw new TypeError("Campaign state violates inn-bluff invariants");
@@ -3299,6 +3314,10 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     return [{ id: roadSupperCommandId(state.tick + 1, command), deciderId: state.hero.id,
       label: `buy two Road Rations at ${rations.marketName} for two gold`, command }];
   }
+  const trade = selectSpareGearTrade(state);
+  if (trade !== null) return [{ id: trade.sourceCommandId, deciderId: state.hero.id,
+    label: `sell unused ${trade.soldItem.name} at ${trade.marketName} for one gold; keep ${trade.keptWeapon.name}`,
+    command: { type: "sell-spare-gear", marketId: trade.marketId, itemId: trade.soldItem.id } }];
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);
   if (neighbors.length === 0) return [commandCandidate(state, "wait", "watch and recover", { type: "wait" })];
   return neighbors.map((destinationId) => {

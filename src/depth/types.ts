@@ -1247,6 +1247,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** Established only by this campaign's actual one spare-weapon sale. */
+  spareGearTrade?: import("./spare-gear-trade").SpareGearTrade;
   /** Present only after this campaign's actual later-market ration purchase. */
   roadSupper?: import("./road-supper").RoadSupperState;
   /** Absent until the actual once-per-campaign inn wager seats both actors. */
@@ -1292,6 +1294,7 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "sell-spare-gear"; marketId: string; itemId: string }
   | { type: "buy-road-rations"; marketId: string }
   | { type: "prepare-road-supper"; encounterId: string }
   | { type: "start-inn-bluff"; bluffId: string; locationId: string; innId: string; residentId: string }

@@ -5,9 +5,9 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: A thought in a bottle.** One purchased mana draught and
-   visible, stationary use at a real low-MP dungeon boundary. Check the actual
-   acquisition-to-use path; no free bottle, forced spell or new panel.
+1. **In progress: Spare change, v0.5.177.** Trade one genuinely unused,
+   outclassed spare weapon at a real market for one gold. Keep the equipped
+   weapon and its history; show the sale in the existing scene and Status.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -115,7 +115,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Next scoped proposal; acquisition/use path not yet checked |
+| **Spare change** | One outclassed, unused spare leaves the pack for one gold; the proven weapon stays | In progress; actual T60 market and eligible Ashen Spear confirmed |
+| **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 
 The detour probe completed 160 actual commands in 4,640 ms. Its only two
@@ -124,13 +125,17 @@ correctly required disarming. No remote armed trap or known alternate route
 was observed. This is a negative result for that journey, not proof that
 detours are impossible; no seed sweep or larger test gate was added.
 
-The next mana-restorative proposal is one purchased dose (proposed cost: three
+The deferred mana-restorative proposal is one purchased dose (proposed cost: three
 gold), consumed between dungeon actions by a living solo hero at half MP or
 below. Restore a quarter of maximum MP, rounded up and clamped; no healing,
 movement, XP or bond reward. Reuse the existing drink gesture, caption and MP
 bar. Give the item an explicit mana capability and truthful inventory label;
 do not route it through the current health-only combat consumable path. The
-actual purchase-to-use journey is not established yet. No free starter bottle,
+actual purchase-to-use journey is not established. The unchanged known campaign
+completed 160 commands in 5,152 ms: T60 provided a real market, but all 45 living
+solo dungeon observations had full MP (24/24). No seed, route, resource or item
+was altered to create a need. Evidence is retained locally in ignored
+`scratch/mana-draught-baseline-evidence.json`. No free starter bottle,
 new vendor panel, crafting system or forced successful spell belongs to this slice.
 
 This is an individual delivery sequence, not a combined release gate. Each

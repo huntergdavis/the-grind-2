@@ -2,6 +2,93 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Spare change — v0.5.177 in progress
+
+After the negative mana-use check, the council selected one bounded adaptation
+of the existing vendor-economy and weapon-removal/history backlog: trade one
+unused common/uncommon spare weapon for one gold at a real later market.
+The equipped weapon must cover every modifier of the spare and improve at
+least one. Equipped gear, used weapons, quest grants, consumables, keys and
+items referenced by retained combat weapon-use records are ineligible. One
+optional receipt keeps the exact sold item, kept weapon, venue, cost and source.
+No HP/MP, XP, equipment, companion, or mastery change; no new model or panel.
+
+The unchanged current `naturalRoadSupperPurchasedFixture()` was inspected at
+T60, hash **`82baa77aba72378e`**. Kettle Market has 18 gold available. The equipped
+Roadworn Blade has power 2, strength 1, mastery level 2 / XP 1 and its actual T35
+use receipt. The carried Ashen Spear has power 2, uncommon rarity, mastery level
+1 / XP 0 and no use receipts. The retained battle references only the Blade;
+there are no completed quest grants. No inventory or world fields were edited
+to create that opportunity. The sale will add a real command before subsequent
+travel, so later timing may shift rather than being forced to old tick numbers.
+
+Rules, presentation and acceptance are independently assigned. The three core,
+eight rules and seven presentation checks pass (**18 new focused tests**), with
+TypeScript clean. The initial rules-test failure was a test-only mistake:
+JSON round-trip removes a present `undefined` optional property. The corrected
+test checks that malformed property directly at the loader boundary while
+retaining JSON tests for representable malformed values. Runtime was unchanged.
+
+The existing ten-seed / 1,000-command replay workload completed all ten results
+in **190.297s locally**, but the one-off runner correctly reports an **80s timeout**.
+This is not recorded as a passing local replay test. Four campaigns actually
+trade: seeds 0/T592, 2/T429, 7/T107 and 8/T700. Their full-state anchors change;
+the other six retain their exact v176 hashes. No state was normalized, seed
+changed or test limit enlarged. CI will validate these anchors under the
+unchanged existing 80s gate. No additional replay matrix was introduced.
+
+The first boundary check identified the new gameplay module missing from two
+existing narrator-evaluation source-closure lists. Those metadata lists were
+updated and the boundary check passes; no narrator behavior was changed.
+The first production browser attempt passed the desktop sale and inventory
+checks, then failed at 320px: the 37-character quote exceeded the existing
+214px compact monospace text budget, so the renderer intentionally hid it.
+This was a presentation defect, not a completed browser pass. The narrow fix
+uses the existing Inter/sans-serif face for that spoken sentence, retaining its
+exact words, 11px minimum, rail bounds and strict browser assertions. The first
+failure and desktop capture remain in ignored local artifacts.
+
+The new command genuinely changes later travel, not just tick labels. The
+current journey reaches its next meal at T75, first prepared hit at T78
+(10→7 damage; HP37→30, **three HP saved**), victory at T79 and ordinary travel
+at T80. Existing supper/recap assumptions were therefore checked explicitly.
+A byte-exact released v176 T64 checkpoint was recovered from all-historical
+source at `703d5eb` in 1,868 ms, preserving its T65 fatal-overkill defeat and
+T66 recovery under current code. This is old-save compatibility, not a fresh
+v177 reachability claim. Nineteen focused supper/recap checks pass; twelve
+preparation/UI checks also pass, retaining Guard, rounding, non-stacking,
+single consumption and the old **zero HP saved** overkill case.
+
+The production browser retry passes in **91.6s**, within the unchanged 100s
+scenario limit. All three desktop/320px/Focus captures were inspected at
+**2026-09-11 14:05:20 PDT**: the complete quote fits and the actual hero, worn
+blade, sold spear and one coin remain clear. T60→T61 sale→T62 route saves are
+exact, Inventory and Status are read-only, reload does not repay the sale, and
+there are no page/console errors, model workers/requests or external requests.
+The production build and local asset/source verification pass. The updated
+existing supper browser is a separate bounded compatibility run: its fourteen
+intervening turns are source-executed, then the same earned T74 save is restored
+explicitly; it does not claim browser playback of those turns. Full CI and
+public-source verification remain pending.
+
+## Mana draught — negative use-path evidence
+
+On unchanged v176 commit `703d5eb`, one `shared-road-playful:7` /
+`campaign:browser-repartee-memory` journey completed 160 commands in **5,152 ms**,
+within the original T160/ten-second-post-import limit. T60 Kettle Market had two
+visited towns and 18 gold after owed training/rations, but all **45 living solo
+dungeon observations had full MP (24/24)**. No low-MP purchase-to-use pair was
+established; final hash remains `24220f5131aa7f34`. The later proposed post-supper
+purchase gate was not retrospectively claimed as proven by that first-market
+record. No repeat probe, seed sweep, state edits or runtime change followed.
+Ignored local evidence: `scratch/mana-draught-baseline-evidence.json`.
+
+The older mana-siphon browser fixture was inspected, not replayed: it explicitly
+stages the hero's location and therefore does not establish this natural supply
+journey. The draught is deferred rather than shipped as an unused bottle or
+tested using fabricated need. The council is selecting an existing equipment
+or reward opportunity for the next vertical slice.
+
 ## Last exchange — v0.5.176 verified release
 
 **Live and publicly source-verified 2026-09-11 12:58:54 PDT.** Feature

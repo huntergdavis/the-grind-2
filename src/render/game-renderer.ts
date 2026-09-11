@@ -112,6 +112,8 @@ import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } 
 import { projectDungeonGuardianScene, projectDungeonLairMark, type DungeonGuardianScene } from "../ui/dungeon-guardian-view";
 import { projectRoadSupperCombat, projectRoadSupperScene, type RoadSupperScene } from "../ui/road-supper-view";
 import { drawRoadSupper, projectRoadSupperSteam, roadSupperTableau } from "./road-supper";
+import { projectSpareGearTradeScene, type SpareGearTradeScene } from "../ui/spare-gear-trade-view";
+import { drawSpareGearTrade, spareGearTradeTableau } from "./spare-gear-trade";
 import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennywise-gate-view";
 import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
 import { projectSmithyJobScene, type SmithyJobScene } from "../ui/smithy-job-view";
@@ -1230,6 +1232,9 @@ export class GameRenderer {
     this.smithyBinding = null;
     this.innBluffBinding = null;
     this.supperSteam = null;
+    for (const key of ["spareGearPhase", "spareGearCommand", "spareGearHero", "spareGearLocation", "spareGearMarket",
+      "spareGearItem", "spareGearKeptWeapon", "spareGearQuantity", "spareGearGold", "spareGearSilhouette",
+      "spareGearHeroPosition", "spareGearItemPosition", "spareGearCoinPosition", "spareGearVisual"]) delete this.host.dataset[key];
     for (const key of ["supperPhase", "supperCommand", "supperHero", "supperLocation", "supperMarket", "supperEncounter",
       "supperQuantity", "supperGold", "supperVisual", "supperHeroPosition", "supperBowlPosition", "supperSteamProgress",
       "combatSupperPhase", "combatSupperSource", "combatSupperEvent", "combatSupperPrevented", "combatSupperGuarded"]) delete this.host.dataset[key];
@@ -5222,7 +5227,35 @@ export class GameRenderer {
     this.host.dataset.supperSteamProgress = pose.progress.toFixed(3);
   }
 
+  private drawSpareGearTradeScene(state: WorldState, scene: SpareGearTradeScene, palette: readonly [number, number, number]): void {
+    this.worldLayer.addChild(rect(0, 145, designWidth, 35, 0x385347), drawSpareGearTrade(scene.appearance));
+    this.host.dataset.spareGearPhase = scene.phase;
+    this.host.dataset.spareGearCommand = scene.commandId;
+    this.host.dataset.spareGearHero = scene.heroId;
+    this.host.dataset.spareGearLocation = scene.locationId;
+    this.host.dataset.spareGearMarket = scene.marketId;
+    this.host.dataset.spareGearItem = scene.itemId;
+    this.host.dataset.spareGearKeptWeapon = scene.keptWeaponId;
+    this.host.dataset.spareGearQuantity = `${scene.quantityBefore}/${scene.quantityAfter}`;
+    this.host.dataset.spareGearGold = `${scene.goldBefore}/${scene.goldAfter}`;
+    this.host.dataset.spareGearSilhouette = scene.appearance.silhouette;
+    this.host.dataset.spareGearHeroPosition = `${spareGearTradeTableau.heroX},${spareGearTradeTableau.heroY}`;
+    this.host.dataset.spareGearItemPosition = `${spareGearTradeTableau.itemX},${spareGearTradeTableau.itemY}`;
+    this.host.dataset.spareGearCoinPosition = `${spareGearTradeTableau.coinX},${spareGearTradeTableau.coinY}`;
+    this.host.dataset.spareGearVisual = "actual-market|actual-sold-weapon|one-gold|kept-equipment|no-merchant";
+    this.drawHero(state, spareGearTradeTableau.heroX, spareGearTradeTableau.heroY, palette, 1.7, scene.heroId, true);
+    // One settled exchange pose, not a loop that repeatedly sells the item.
+    const rig = this.heroRigs.pop();
+    if (rig !== undefined) rig.rearArm.rotation = -0.25;
+    const [, detail] = this.drawDungeonCaption(scene.headline, scene.detail, scene.compactDetail, 0x6a573b);
+    // This is a complete spoken sentence, not a fixed-width mechanical receipt.
+    // Preserve its words and the 11px minimum inside the same narrow rail.
+    detail.style.fontFamily = "Inter, sans-serif";
+  }
+
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
+    const sale = projectSpareGearTradeScene(state);
+    if (sale !== null) { this.drawSpareGearTradeScene(state, sale, palette); return; }
     const supper = projectRoadSupperScene(state);
     if (supper !== null) { this.drawRoadSupperScene(state, supper, palette); return; }
     const innBluff = projectInnBluffScene(state);

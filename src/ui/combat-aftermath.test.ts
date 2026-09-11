@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { naturalRoadSupperJourneyFixture } from "../../tests/road-supper-fixtures";
+import { releasedCombatAftermathFixture } from "../../tests/combat-aftermath-fixtures";
 import { canonicalHash, canonicalStringify } from "../core/canonical";
 import type { WorldState } from "../core/types";
 import { createCombat, isValidCombatState, resolveCombatTurn } from "../depth/combat";
@@ -9,7 +9,7 @@ import { projectCombatAftermath, projectCombatAftermathEntry, projectCombatAfter
 
 type Damage = Extract<CombatTurnEvent, { kind: "damage" }>;
 function actual() {
-  const journey = naturalRoadSupperJourneyFixture();
+  const journey = releasedCombatAftermathFixture();
   return { ...journey, combat: journey.resolved.depth.roadSupper!.terminal!.combat, entry: journey.resolved.chronicle.at(-1)! };
 }
 
@@ -30,7 +30,7 @@ function heroTurnUnit(poisoned = false): CombatState {
 }
 
 describe("source-bound Last exchange presentation", () => {
-  it("uses the actual consecutive attacks, different targets and applied HP loss, not raw overkill or a tactical claim", () => {
+  it("preserves the released save's actual consecutive attacks, different targets and applied HP loss, not raw overkill or a tactical claim", () => {
     const { combat } = actual(), recap = projectCombatAftermath(combat)!;
     const damage = combat.eventStream.events.filter((event): event is Damage => event.kind === "damage");
     const preceding = damage.find(event => event.turn === combat.turn - 1)!, closing = damage.find(event => event.turn === combat.turn)!;
@@ -60,7 +60,7 @@ describe("source-bound Last exchange presentation", () => {
   });
 
   it("rejects wrong scene, campaign, command, tick, missing current ring and active combat sources", () => {
-    const { resolved, entry, started } = actual();
+    const { resolved, entry, before } = actual();
     const variants: WorldState[] = [
       { ...resolved, campaignId: "campaign:foreign" },
       { ...resolved, hero: { ...resolved.hero, id: "hero:foreign" },
@@ -72,7 +72,7 @@ describe("source-bound Last exchange presentation", () => {
       { ...resolved, chronicle: [{ ...entry, id: "foreign-entry" }] },
       { ...resolved, chronicle: [{ ...entry, commandType: "wait" }] },
       { ...resolved, depth: { ...resolved.depth, completedCombats: [] } },
-      { ...resolved, depth: { ...resolved.depth, combat: started.depth.combat } },
+      { ...resolved, depth: { ...resolved.depth, combat: before.depth.combat } },
     ];
     for (const world of variants) expect(projectCombatAftermathScene(world)).toBeNull();
     expect(projectCombatAftermathEntry(resolved, { ...entry, action: "Not the retained row" })).toBeNull();

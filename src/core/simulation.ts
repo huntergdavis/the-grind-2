@@ -388,6 +388,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "restock-tonic":
     case "buy-disarming-kit":
     case "buy-road-rations":
+    case "sell-spare-gear":
     case "start-smithy-job":
     case "smithy-stroke":
     case "start-inn-bluff":
@@ -458,6 +459,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "restock-tonic":
     case "buy-disarming-kit":
     case "buy-road-rations":
+    case "sell-spare-gear":
     case "prepare-road-supper":
     case "invoke-dungeon-shrine":
       return 0;
@@ -500,6 +502,12 @@ function describeBeat(
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
   const supper = depth.roadSupper;
+  const trade = depth.spareGearTrade;
+  if (trade?.tick === depth.tick && choice.command.type === "sell-spare-gear") {
+    return { mode: "town", location: trade.marketName, goal: "Keep the stronger weapon; lighten the pack",
+      headline: "A lighter pack", action: `${state.hero.name} trades the unused ${trade.soldItem.name} at ${trade.marketName}. “At last, a weapon against my luggage.”`,
+      consequence: `${trade.soldItem.name} ×1→×0; gold ${trade.goldBefore}→${trade.goldAfter} (+${trade.goldEarned}). ${trade.keptWeapon.name} stays equipped; its mastery, HP, MP and XP are unchanged.`, sensoryIntensity: 0 };
+  }
   if (supper?.purchase.tick === depth.tick && choice.command.type === "buy-road-rations") {
     const purchase = supper.purchase;
     return { mode: "town", location: purchase.marketName, goal: "Carry real supplies for the road",

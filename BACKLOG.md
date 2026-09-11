@@ -29,7 +29,12 @@ Road Supper is live in v0.5.175; browser, CI and public-source verification pass
 Last exchange is live in v0.5.176: 23 focused tests, the 51.5-second production
 browser scenario, full CI and public-source verification pass. It adds a factual
 terminal recap to the existing Watch ribbon and source notes to Status; no
-canonical or LLM changes. The next scoped proposal is one purchased mana draught.
+canonical or LLM changes. **Spare change (v0.5.177) is in progress:** sell one
+actual unused, outclassed spare weapon at a later market for one gold, preserving
+equipped gear and earned weapon history. It adds no panel or LLM request.
+The mana-draught proposal is deferred: the bounded unchanged journey found
+45 living solo dungeon observations with full MP, not a genuine purchase-to-use
+opportunity. No need, inventory, or route was fabricated to force that feature.
 Known-danger detours are deferred: the unchanged T160 bounded journey found
 only current-room traps requiring disarming, not an eligible bypass. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.

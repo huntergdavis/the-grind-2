@@ -31,6 +31,7 @@ import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-vi
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
 import { projectDungeonGuardianScene } from "./ui/dungeon-guardian-view";
 import { projectRoadSupperCombat, projectRoadSupperScene } from "./ui/road-supper-view";
+import { projectSpareGearTradeScene } from "./ui/spare-gear-trade-view";
 import { projectCombatAftermathScene } from "./ui/combat-aftermath";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { projectSmithyJobScene } from "./ui/smithy-job-view";
@@ -4183,7 +4184,7 @@ function checkpointKey(campaignId: string): string {
 
 async function catchUp(world: WorldState): Promise<WorldState> {
   // Foreground conversations, jobs and board turns resume from saved facts, never hidden-time debt.
-  if (projectRoadSupperScene(world) !== null || projectDungeonGuardianScene(world) !== null
+  if (projectSpareGearTradeScene(world) !== null || projectRoadSupperScene(world) !== null || projectDungeonGuardianScene(world) !== null
     || world.depth.repartee.active !== null || projectReparteeScene(world) !== null
     || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.roomChallenge !== null && world.depth.roomChallenge.result === null
@@ -4486,6 +4487,7 @@ function present(): void {
   const dungeonPassage = projectDungeonSecretPassageScene(state);
   const dungeonGuardian = projectDungeonGuardianScene(state);
   const roadSupper = projectRoadSupperScene(state);
+  const spareGearTrade = projectSpareGearTradeScene(state);
   const pennywiseGate = projectPennywiseGateScene(state);
   const smithyJob = projectSmithyJobScene(state);
   const innBluff = projectInnBluffScene(state);
@@ -4798,7 +4800,14 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (roadSupper !== null) {
+  if (spareGearTrade !== null) {
+    elements.traversalDirective.textContent = `${spareGearTrade.headline} · ${spareGearTrade.detail}`;
+    elements.traversalDirective.title = `${spareGearTrade.marketName}, ${spareGearTrade.locationName} · ${spareGearTrade.itemName} 1→0 · Gold ${spareGearTrade.goldBefore}→${spareGearTrade.goldAfter}. ${state.scene.consequence}`;
+    elements.traversalDirective.dataset.reason = "spare-gear-sold";
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = "";
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (roadSupper !== null) {
     elements.traversalDirective.textContent = `${roadSupper.headline} · ${roadSupper.detail}`;
     elements.traversalDirective.title = `${roadSupper.routeLabel ?? roadSupper.marketName ?? roadSupper.locationName}. ${state.scene.consequence}`;
     elements.traversalDirective.dataset.reason = `road-supper-${roadSupper.phase}`;

@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { advanceWorld, campaignDirector, upgradeWorldState } from "../src/core/simulation";
-import { canonicalStringify } from "../src/core/canonical";
+import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import type { WorldState } from "../src/core/types";
 import { createRoadRations, roadRationId } from "../src/depth/road-rations";
+import { generateLoot } from "../src/depth/rpg";
 import { projectRoadSupperCombat, projectRoadSupperScene } from "../src/ui/road-supper-view";
 import { projectCombatEnemyFormation } from "../src/render/combat-roster-layout";
 import { naturalRoadSupperJourneyFixture, roadSupperCampaignId } from "./road-supper-fixtures";
@@ -41,6 +42,31 @@ async function pausedSave(page: Page, afterTick?: number): Promise<string> {
     }, 20);
     if (tick !== undefined) button.click();
   }), { id: roadSupperCampaignId, tick: afterTick });
+}
+
+/** Browser resumes the exact checkpoint already earned by the unchanged
+ * source fixture. The intervening T61–T74 journey is source-executed, not
+ * claimed as browser playback; no route, health, actors or result is staged.
+ */
+async function resumeEarnedCheckpoint(page: Page, world: WorldState): Promise<void> {
+  await page.evaluate(async state => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2", 2);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("campaigns", "readwrite");
+      transaction.objectStore("campaigns").put(state);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    database.close();
+    sessionStorage.setItem(`the-grind-2:campaign:${state.campaignId}`, JSON.stringify(state));
+  }, world);
+  await page.reload({ timeout: 25_000 });
+  expect(JSON.parse(await pausedSave(page))).toEqual(world);
 }
 
 function priorStories(world: WorldState): string {
@@ -175,7 +201,13 @@ test("actual bought rations become one road supper, one source-bound preparation
   };
   try {
     expect([beforePurchase.tick, purchased.tick, beforeMeal.tick, meal.tick, started.tick, resolved.tick, next.tick])
-      .toEqual([59, 60, 61, 62, 63, 65, 66]);
+      .toEqual([59, 60, 74, 75, 76, 79, 80]);
+    expect([canonicalHash(purchased), canonicalHash(beforeMeal), canonicalHash(meal), canonicalHash(resolved)])
+      .toEqual(["82baa77aba72378e", "6452ad3327e971a7", "5934800e8fab7bd7", "a7a0797ff5540c77"]);
+    expect(advanceWorld(beforePurchase)).toEqual(purchased);
+    expect(advanceWorld(beforeMeal)).toEqual(meal);
+    expect(advanceWorld(meal)).toEqual(started);
+    expect(advanceWorld(resolved)).toEqual(next);
     expect(beforePurchase.chronicle.at(-1)?.commandType).toBe("train-ability");
     expect(beforePurchase.depth).not.toHaveProperty("roadSupper");
     expect(Object.values(beforePurchase.depth.towns).filter(town => town.visits > 0).length).toBeGreaterThanOrEqual(2);
@@ -211,15 +243,23 @@ test("actual bought rations become one road supper, one source-bound preparation
     expect(spent!.damageAfter).toBe(spent!.guarded ? spent!.damageBefore : Math.max(1, Math.floor(spent!.damageBefore * 0.75)));
     expect(spent!.prevented).toBe(Math.min(hit.healthBefore, spent!.damageBefore) - Math.min(hit.healthBefore, spent!.damageAfter));
     expect(hit.amount).toBe(Math.min(hit.healthBefore, spent!.damageAfter));
-    // The real first hit still exceeds Aster's health. Do not turn a17-point
-    // raw reduction into a fabricated17HP save or substitute a victory.
-    expect(spent).toMatchObject({ damageBefore: 65, damageAfter: 48, healthBefore: 42, prevented: 0, guarded: false });
-    expect(combat.outcome).toBe("defeat");
-    expect(resolved.depth.hero.resources).toMatchObject({ health: 0, mana: 19 });
-    expect(resolved.depth.hero.gold).toBe(meal.depth.hero.gold);
-    expect(resolved.depth.hero.inventory).toEqual(meal.depth.hero.inventory);
+    // This current campaign really saves3HP and wins. The released v176
+    // fatal65→48 hit/zeroHPsaved remains in combat-aftermath.spec.ts.
+    expect(spent).toMatchObject({ damageBefore: 10, damageAfter: 7, healthBefore: 37, prevented: 3, guarded: false });
+    expect(combat.outcome).toBe("victory");
+    expect(resolved.depth.hero.resources).toMatchObject({ health: 30, mana: 22 });
+    expect(resolved.depth.hero.gold).toBe(meal.depth.hero.gold + 5); // Existing victory gold, not a meal reward.
+    const loot = generateLoot(resolved.seed, combat.id);
+    expect(loot.name).toBe("Ashen Lantern");
+    expect(resolved.depth.hero.inventory.find(item => item.id === loot.id)).toEqual(loot);
+    expect(resolved.depth.hero.inventory.map(item => item.id)).toEqual([...meal.depth.hero.inventory.map(item => item.id), loot.id]);
+    for (const item of meal.depth.hero.inventory.filter(item => item.id !== meal.depth.hero.equipment.weapon)) {
+      expect(resolved.depth.hero.inventory.find(retained => retained.id === item.id)).toEqual(item);
+    }
+    expect(resolved.depth.hero.equipment.weapon).toBe(meal.depth.hero.equipment.weapon);
+    expect(resolved.depth.spareGearTrade).toEqual(beforeMeal.depth.spareGearTrade);
     expect([meal.hero.experience, started.hero.experience, turns[0]!.hero.experience, resolved.hero.experience, next.hero.experience])
-      .toEqual([45, 53, 61, 61, 62]); // Only existing battle entry/hero action/recovery XP.
+      .toEqual([52, 60, 68, 76, 77]); // Only existing battle entry/hero actions/travel XP.
     expect(combat.eventStream.events.filter(event => event.kind === "damage" && event.supper !== undefined)).toHaveLength(1);
     expect(resolved.chronicle.at(-1)?.commandId).toBe(`${resolved.campaignId}:${terminal.sourceCommandId}`);
     for (const state of [beforePurchase, purchased, beforeMeal, meal, started, ...turns, next]) {
@@ -229,8 +269,10 @@ test("actual bought rations become one road supper, one source-bound preparation
     expect(next.depth.roadSupper).toEqual(story);
     expect(next.depth.completedCombats.filter(entry => entry.id === combat.id)).toEqual([combat]);
     expect(next.depth.hero.inventory.some(item => item.id === roadRationId(next.hero.id))).toBe(false);
-    expect(next.depth.hero.resources).toMatchObject({ health: 11, mana: 24 });
+    expect(next.depth.hero.resources).toMatchObject({ health: 30, mana: 22 });
     expect(next.depth.hero.gold).toBe(resolved.depth.hero.gold);
+    expect(next.depth.hero.inventory).toEqual(resolved.depth.hero.inventory);
+    expect(next.chronicle.at(-1)?.commandType).toBe("travel");
     expect(projectRoadSupperScene(next)).toBeNull();
 
     await installFixture(page, beforePurchase);
@@ -248,13 +290,10 @@ test("actual bought rations become one road supper, one source-bound preparation
     await proveStatus(page, purchased);
     milestone(`T${purchased.tick} actual market purchase: two owned rations, exactly2gold, no replay on reload`);
 
-    let current = purchased;
-    while (current.tick < beforeMeal.tick) {
-      const expected = advanceWorld(current);
-      expect(JSON.parse(await pausedSave(page, current.tick))).toEqual(expected);
-      current = expected;
-    }
-    expect(current).toEqual(beforeMeal);
+    // Same uninterrupted source campaign, restored at its actual later camp
+    // boundary. No claim that this browser traversed the fourteen turns.
+    await resumeEarnedCheckpoint(page, beforeMeal);
+    milestone("same source-executed journey resumed at exact T74; intervening travel was not browser playback");
     const mealRaw = await pausedSave(page, beforeMeal.tick);
     expect(JSON.parse(mealRaw)).toEqual(meal);
     await page.setViewportSize({ width: 320, height: 568 });
@@ -267,29 +306,14 @@ test("actual bought rations become one road supper, one source-bound preparation
 
     const startedRaw = await pausedSave(page, meal.tick);
     expect(JSON.parse(startedRaw)).toEqual(started);
-    // Existing earned-level presentation owns this entry beat (45 + 8 = 53).
-    // Use its real outcome button, as in site.spec.ts, while keeping play paused.
-    const earnedLevel = page.locator("#level-up-cutaway");
-    await expect(earnedLevel).toBeVisible();
-    expect(await earnedLevel.evaluate(node => ({ kind: (node as HTMLElement).dataset.montageKind,
-      event: (node as HTMLElement).dataset.eventId,
-      threshold: node.querySelector("#level-up-cutaway-threshold")?.textContent,
-      level: node.querySelector("#level-up-cutaway-level")?.textContent })))
-      .toEqual({ kind: "level", event: started.chronicle.at(-1)!.id,
-        threshold: "45 + 8 = 53 XP · threshold 48", level: "LEVEL 2 → 3" });
-    await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
-    await expect(page.locator("#level-up-cutaway-outcome")).toHaveText("Show level");
-    await page.locator("#level-up-cutaway-outcome").press("Enter");
-    await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
-    await expect(earnedLevel).toHaveAttribute("data-active", "false");
-    await expect(earnedLevel).toHaveAttribute("data-phase", "final");
-    await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+    // The actual resumed hero already earned level3 before this camp. Battle
+    // entry52→60XP does not cross a level threshold or invent a montage.
+    expect([meal.hero.level, started.hero.level]).toEqual([3, 3]);
+    await expect(page.locator("#level-up-cutaway")).toBeHidden();
     expect(await pausedSave(page)).toBe(startedRaw);
-    // Its final pose owns the paused beat. Existing site acceptance reloads
-    // the exact save to inspect the restored battle without replaying the award.
     await page.reload({ timeout: 25_000 });
     expect(await pausedSave(page)).toBe(startedRaw);
-    await expect(earnedLevel).toBeHidden();
+    await expect(page.locator("#level-up-cutaway")).toBeHidden();
     await proveSupperBattle(page, started);
     let previous = started, terminalRaw = "", capturedHit = false;
     for (const state of turns) {

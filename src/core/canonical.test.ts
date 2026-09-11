@@ -28,20 +28,20 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v175 keeps Depth 35 and adds one purchased road supper where actually eligible.
+      // v177 keeps Depth 35 and adds one actual spare-weapon sale where eligible.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "a1fcaa462f4dc726",
+      "37694f222044664d",
       "3256bc49b3e70d86",
-      "4b03710e37a40e64",
+      "5e0218c92d99d63c",
       "7754231a8353130c",
       "8bac901b35842e9d",
       "29eb1a0b46b87125",
       "24c5ca86e03e5490",
-      "0050f9912a3a7aef",
-      "73d856087780ce09",
+      "9420c028217d80ed",
+      "42ca01e818bbe89f",
       "3131f7ca8a1fa3b9",
     ]);
   }, 80_000);

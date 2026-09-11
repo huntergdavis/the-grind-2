@@ -157,6 +157,7 @@ export const narratorBrowserFullRunSourcePathsV3 = Object.freeze([
   "src/depth/rpg.ts",
   "src/depth/shared-opening.ts",
   "src/depth/smithy-job.ts",
+  "src/depth/spare-gear-trade.ts",
   "src/depth/supper-preparation.ts",
   "src/depth/terrain.ts",
   "src/depth/threat.ts",

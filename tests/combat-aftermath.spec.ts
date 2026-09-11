@@ -4,11 +4,11 @@ import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
 import { projectCombatEnemyFormation } from "../src/render/combat-roster-layout";
 import { projectCombatAftermathScene, projectCombatAftermathEntry } from "../src/ui/combat-aftermath";
-import { naturalRoadSupperJourneyFixture, roadSupperCampaignId } from "./road-supper-fixtures";
+import { releasedCombatAftermathFixture, aftermathCampaignId } from "./combat-aftermath-fixtures";
 
 async function installDurableFixture(page: Page, world: WorldState): Promise<void> {
-  // Existing IndexedDB save seam, not a staged battle. Restore the actual T64
-  // checkpoint so its already-earned T63 level intermission is not replayed.
+  // Existing IndexedDB save seam, not a staged battle. Restore the exact
+  // released v176 T64 checkpoint, not a fresh v177 campaign claim.
   await page.goto("./version.json", { timeout: 20_000 });
   await page.evaluate(async state => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -56,7 +56,7 @@ async function durableSave(page: Page): Promise<WorldState> {
       transaction.oncomplete = () => { database.close(); resolve(saved.result as WorldState); };
       transaction.onerror = () => { database.close(); reject(transaction.error); };
     };
-  }), roadSupperCampaignId);
+  }), aftermathCampaignId);
 }
 
 async function pausedSave(page: Page, afterTick?: number): Promise<string> {
@@ -73,7 +73,7 @@ async function pausedSave(page: Page, afterTick?: number): Promise<string> {
       window.clearInterval(poll); window.clearTimeout(timeout); resolve(raw);
     }, 20);
     if (tick !== undefined) button.click();
-  }), { id: roadSupperCampaignId, tick: afterTick });
+  }), { id: aftermathCampaignId, tick: afterTick });
 }
 
 async function proveBattleGeometry(page: Page, enemyCount: number): Promise<void> {
@@ -150,10 +150,10 @@ async function proveStatusRecap(page: Page, current: WorldState, terminal: World
   await page.evaluate(() => document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="watch"]')!.click());
 }
 
-test("the actual last exchange survives reload and remains in Status after ordinary recovery", async ({ page }, testInfo) => {
+test("the released save's actual last exchange survives reload and remains in Status after ordinary recovery", async ({ page }, testInfo) => {
   test.setTimeout(100_000);
-  const startedAt = Date.now(), journey = naturalRoadSupperJourneyFixture();
-  const before = journey.turns[0]!, terminal = journey.resolved, next = journey.next;
+  const startedAt = Date.now(), journey = releasedCombatAftermathFixture();
+  const before = journey.before, terminal = journey.resolved, next = journey.next;
   const combat = terminal.depth.roadSupper!.terminal!.combat, source = terminal.chronicle.at(-1)!;
   const heroDamage = [...combat.eventStream.events].reverse().find(event => event.kind === "damage" && event.actorId === before.hero.id);
   const finalDamage = combat.eventStream.events.find(event => event.kind === "damage" && event.id === combat.supper!.spent!.damageEventId);
@@ -206,7 +206,7 @@ test("the actual last exchange survives reload and remains in Status after ordin
     expect(canonicalStringify(await durableSave(page))).toBe(canonicalStringify(before));
     await expect(page.locator("#level-up-cutaway")).toBeHidden();
     await expect(page.locator("#stage-focus-headline")).not.toHaveAttribute("data-aftermath-command");
-    milestone("actual T64 restored from IndexedDB; no staged result or repeated level intermission");
+    milestone("exact released v176 T64 restored from IndexedDB; no staged result or repeated level intermission");
 
     const terminalRaw = await pausedSave(page, before.tick);
     expect(JSON.parse(terminalRaw)).toEqual(terminal);

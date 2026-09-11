@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { releasedCombatAftermathFixture } from "../../tests/combat-aftermath-fixtures";
 import { naturalRoadSupperJourneyFixture } from "../../tests/road-supper-fixtures";
 import { projectCombatActionForecast } from "../core/combat-action-forecast";
 import { actorPolicy, campaignDirector } from "../core/simulation";
@@ -19,10 +20,11 @@ describe("one first-hit Road Supper preparation", () => {
     expect([1, 4, 32].map(damage => resolveSupperDamage(damage, true))).toEqual([1, 4, 32]);
   });
 
-  it("matches the natural battle forecast and reports zero saved HP for fatal overkill", () => {
-    const journey = naturalRoadSupperJourneyFixture();
-    const before = journey.turns[0]!.depth.combat!, terminal = journey.resolved.depth.roadSupper!.terminal!.combat;
-    const choice = actorPolicy(journey.turns[0]!, campaignDirector(journey.turns[0]!));
+  it("matches the released-v176 incoming-hit forecast and reports zero saved HP for fatal overkill", () => {
+    // Actual released T64 save, advanced by current rules; not the new sale-aware campaign.
+    const journey = releasedCombatAftermathFixture();
+    const before = journey.before.depth.combat!, terminal = journey.resolved.depth.roadSupper!.terminal!.combat;
+    const choice = actorPolicy(journey.before, campaignDirector(journey.before));
     if (choice.command.type !== "combat-action") throw new Error("Expected the actual incoming combat action");
     const forecast = projectCombatActionForecast(before, choice.command.action);
     const spent = terminal.supper!.spent!;
@@ -34,6 +36,33 @@ describe("one first-hit Road Supper preparation", () => {
     expect(terminal.eventStream.events.filter(event => event.kind === "damage" && event.supper !== undefined)).toHaveLength(1);
     expect(isValidCombatSupper({ ...terminal, supper: { ...terminal.supper!, spent: { ...spent, prevented: 17 } } })).toBe(false);
     expect(isValidCombatSupper({ ...terminal, supper: { ...terminal.supper!, spent: { ...spent, damageEventId: "foreign:0" } } })).toBe(false);
+  });
+
+  it("matches the current prepared encounter's actual first incoming hit without assuming its terminal turn", () => {
+    const journey = naturalRoadSupperJourneyFixture(), states = [journey.started, ...journey.turns];
+    const firstSpent = states.findIndex(world => (world.depth.combat ?? world.depth.roadSupper?.terminal?.combat)?.supper?.spent != null);
+    expect(firstSpent).toBeGreaterThan(0);
+    const beforeWorld = states[firstSpent - 1]!, afterWorld = states[firstSpent]!;
+    const before = beforeWorld.depth.combat!, after = afterWorld.depth.combat ?? afterWorld.depth.roadSupper!.terminal!.combat;
+    const choice = actorPolicy(beforeWorld, campaignDirector(beforeWorld));
+    if (choice.command.type !== "combat-action") throw new Error("Expected the actual first incoming combat action");
+    const heroId = before.supper!.heroId, forecast = projectCombatActionForecast(before, choice.command.action), spent = after.supper!.spent!;
+    expect(before.supper!.spent).toBeNull();
+    expect(choice.command.action.targetId).toBe(heroId);
+    expect(spent.healthBefore).toBe(before.combatants.find(actor => actor.id === heroId)!.health);
+    expect(spent.damageAfter).toBe(spent.guarded ? spent.damageBefore : Math.max(1, Math.floor(spent.damageBefore * 0.75)));
+    expect(spent.prevented).toBe(Math.min(spent.healthBefore, spent.damageBefore) - Math.min(spent.healthBefore, spent.damageAfter));
+    expect(spent.damageAfter).toBeGreaterThanOrEqual(forecast.minimumDamage);
+    expect(spent.damageAfter).toBeLessThanOrEqual(forecast.maximumDamage);
+    const hits = after.eventStream.events.filter(event => event.kind === "damage" && event.supper !== undefined);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ id: spent.damageEventId, targetId: heroId, turn: spent.turn,
+      amount: Math.min(spent.healthBefore, spent.damageAfter), supper: spent });
+    expect(isValidCombatState(after)).toBe(true);
+    expect(hasReadySupper(after, heroId)).toBe(false);
+    for (const world of states.slice(firstSpent)) {
+      expect((world.depth.combat ?? world.depth.roadSupper!.terminal!.combat).supper!.spent).toEqual(spent);
+    }
   });
 
   it("leaves preparation ready after the hero's outgoing action and preserves ordinary forecasts", () => {

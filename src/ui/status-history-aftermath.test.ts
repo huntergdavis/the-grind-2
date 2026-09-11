@@ -1,16 +1,16 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { canonicalStringify } from "../core/canonical";
-import { naturalRoadSupperJourneyFixture, type NaturalRoadSupperJourney } from "../../tests/road-supper-fixtures";
+import { releasedCombatAftermathFixture, type ReleasedCombatAftermathJourney } from "../../tests/combat-aftermath-fixtures";
 import { projectCombatAftermathEntry, projectCombatAftermathScene, type BoundCombatAftermath } from "./combat-aftermath";
 import { projectStatusHistory, type ChronicleStatusHistoryRow } from "./status-history";
 
-describe("Last exchange in existing Status history", () => {
-  let journey: NaturalRoadSupperJourney;
+describe("released Last exchange in existing Status history", () => {
+  let journey: ReleasedCombatAftermathJourney;
   let recap: BoundCombatAftermath;
   beforeAll(() => {
-    // Reuse the actual bounded market→camp→battle fixture, without changing
-    // equipment, enemies, choices or the recorded defeat to obtain a recap.
-    journey = naturalRoadSupperJourneyFixture();
+    // Preserve the exact released T64 save and execute its two real next
+    // commands. This is old-save compatibility, not a fresh-campaign claim.
+    journey = releasedCombatAftermathFixture();
     recap = projectCombatAftermathScene(journey.resolved)!;
   });
 
@@ -68,7 +68,8 @@ describe("Last exchange in existing Status history", () => {
   });
 
   it("leaves ongoing and legacy no-evidence history in its previous shape", () => {
-    const ongoing = journey.turns.find((state) => state.depth.combat?.outcome === "ongoing")!;
+    const ongoing = journey.before;
+    expect(ongoing.depth.combat?.outcome).toBe("ongoing");
     expect(projectCombatAftermathScene(ongoing)).toBeNull();
     const source = { campaignId: ongoing.campaignId, chronicle: ongoing.chronicle, depth: { log: ongoing.depth.log } };
     const base = projectStatusHistory(source);

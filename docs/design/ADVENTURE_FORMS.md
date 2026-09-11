@@ -950,6 +950,29 @@ and source maps match feature commit `03f4ff6`.
 Wider turning-point analysis, unused alternatives and Chronicle
 Plates remain future backlog items.
 
+## Spare change — v0.5.177
+
+**In progress, not yet released.** “At last, a weapon against my luggage.”
+One real market trade turns an unused, outclassed spare weapon into one gold.
+The hero keeps the equipped weapon, its mastery and all current stats. A small
+gear silhouette and coin use the existing market staging; the item disappears
+from inventory and the exact transaction enters Status without another panel.
+
+This first slice is once per campaign. Only an unequipped common/uncommon weapon
+with no use history, no quest-grant obligation and no retained combat reference
+can qualify. The worn weapon must be at least as good in every modifier and
+strictly better in one. The canonical receipt archives the sold item's exact
+snapshot, the kept weapon comparison and the actual market/tick/command, with
+one item removed and one gold added atomically. No healing, XP, affinity, extra
+reward, invented merchant or forced future purchase. Absence in older saves is
+inert; malformed present receipts are not silently accepted.
+
+The existing T60 Kettle Market save supplies a genuine unused Ashen Spear and
+a stronger, actually used Roadworn Blade. This is a new small adaptation of the
+vendor economy / weapon removal backlog, not a claim that a full trading or
+salvage economy already exists. Mana restoratives remain deferred after their
+bounded known journey had no low-MP dungeon use.
+
 ## Make the adventures accumulate into a life
 
 Each authored adventure should leave at most a small number of useful facts:

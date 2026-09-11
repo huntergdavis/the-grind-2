@@ -25,6 +25,7 @@ import { selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStroke
 import { innBluffCommandId, projectInnBluffDecision, selectInnBluffVenue } from "../depth/inn-bluff";
 import { selectDungeonLairEncounter } from "../depth/dungeon-lair";
 import { roadSupperCommandId, selectRoadRationPurchase, selectRoadSupperCamp } from "../depth/road-supper";
+import { selectSpareGearTrade, spareGearTradeCommandId } from "../depth/spare-gear-trade";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -486,6 +487,14 @@ function scoreCandidate(
     reason = restock === null
       ? "the safe-town supply receipt is unavailable"
       : `${restock.townName} safely renews ${restock.itemName} ×${restock.quantityBefore}→×${restock.quantityAfter} for ${restock.goldSpent} gold`;
+  } else if (command.type === "sell-spare-gear") {
+    const trade = selectSpareGearTrade(state.depth);
+    if (trade === null || trade.marketId !== command.marketId || trade.soldItem.id !== command.itemId
+      || candidate.id !== spareGearTradeCommandId(state.tick + 1, command) || candidate.deciderId !== state.hero.id) {
+      throw new Error("Actor Policy cannot invent a spare-weapon trade");
+    }
+    score = 90;
+    reason = `${trade.keptWeapon.name} covers every modifier of the unused ${trade.soldItem.name}; ${trade.marketName} offers one gold while the equipped weapon and its history stay intact`;
   } else if (command.type === "buy-road-rations") {
     const purchase = selectRoadRationPurchase(state.depth);
     if (purchase === null || purchase.marketId !== command.marketId || candidate.id !== roadSupperCommandId(state.tick + 1, command)
@@ -778,6 +787,7 @@ function presentationLabels(
       return { actionLabel: "buys a Disarming Kit", targetLabel: purchase === null ? command.smithId
         : `${purchase.smithName} · gold ${purchase.goldBefore}→${purchase.goldAfter}` };
     }
+    case "sell-spare-gear": return { actionLabel: "trades one unused spare weapon", targetLabel: selectSpareGearTrade(state.depth)?.soldItem.name ?? command.itemId };
     case "buy-road-rations": return { actionLabel: "buys two Road Rations", targetLabel: selectRoadRationPurchase(state.depth)?.marketName ?? command.marketId };
     case "prepare-road-supper": return { actionLabel: "makes one Road Supper", targetLabel: "two owned rations for the coming encounter" };
     case "enter-dungeon": return { actionLabel: "enters the maze", targetLabel: state.scene.location };

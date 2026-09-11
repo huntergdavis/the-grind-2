@@ -427,6 +427,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "restock-tonic",
   "buy-disarming-kit",
   "buy-road-rations",
+  "sell-spare-gear",
   "prepare-road-supper",
   "plan-route",
   "travel",
