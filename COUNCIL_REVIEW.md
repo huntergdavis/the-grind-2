@@ -64,17 +64,17 @@ geometry only if its new mechanism is actually verified. A staged location or
 resource handoff must be identified, not called uninterrupted natural travel.
 Acceptance uses focused tests, one desktop/mobile browser journey and existing
 release CI, without another model run or expanded long-duration matrix.
-Local acceptance is complete. Engine/search/kit tests pass49, presentation61,
+Local acceptance is complete. Engine/search/kit tests pass 49, presentation 61,
 and six new Depth tests cover real generated loss, purchased-kit success/failure,
 zero/low MP, exact reload and legacy rules. Final canonical/narrator checks pass
-14 tests in71.12s. The updated mentor regression passes in52.86s with unchanged
+14 tests in 71.12s. The updated mentor regression passes in 52.86s with unchanged
 T7921/visit22 and finite promise/return/farewell behavior. An independent single
 replay proves the old normalized hash is reproduced exactly by removing only
 the new dungeon rules field and restoring three still-hidden legacy trap kinds;
 the new fixture retains those intentional facts rather than normalizing them away.
 
 Browser acceptance caught one test assumption and one real presentation gap.
-Ordinary first-visit movement already grants4XP; the test now asserts that exact
+Ordinary first-visit movement already grants 4XP; the test now asserts that exact
 unchanged reward instead of claiming no XP. The normal scene classified traps
 only through HP loss, suppressing the mana hazard rail after cutscene dismissal.
 The correction recognizes a fresh rules2 trigger through command, prior phase
@@ -82,14 +82,31 @@ and exact resource facts, including zero-MP outcomes. Two new scene tests pass
 and prove the following ordinary move does not replay the alert. Old HP paths
 remain unchanged; the exact browser rail assertion was not weakened.
 
-Final browser acceptance against the rebuilt runtime passes in29.8s (48.1s
-runner, unchanged120s budget): real sole south move, MP26→19/HP45, unchanged
-inventory/gold/quest, readable source-bound V3 and native proof at1280/320,
+Final browser acceptance against the rebuilt runtime passes in 29.8s (48.1s
+runner, unchanged 120s budget): real sole south move, MP26→19/HP45, unchanged
+inventory/gold/quest, readable source-bound V3 and native proof at 1280/320,
 exact Status, the normal blue spent-trap rail and exact reload without another
 drain. Zero browser errors, inference or external requests. Root reviewed both
 cutscene sizes and the final mobile spent view. Version, boundaries, TypeScript
-and production build pass. Owned preview19880 is closed;4174 is untouched.
-Protected ledger work is unchanged and excluded. Public deployment is pending.
+and production build pass. Owned preview 19880 is closed; 4174 is untouched.
+Protected ledger work is unchanged and excluded.
+
+Feature commit `74ac8be315a5fcf0793d01c577a1ebe31b256cb6` passed local
+committed-source verification and was pushed to `origin/main`. The first Pages
+run `34543886154` passed 3,423/3,424 release tests (231 files, 268.03s), stopping
+before publication on a stale Copperhorn test that hard-coded 27 as an unsupported
+future Depth version. Current Depth27 is correctly supported. Test-only commit
+`eb545ccb03a0bce3e3fc33b20b9f4c38cf47ab47` now checks current-save acceptance
+and rejection of `current.schemaVersion + 1`; all three migration tests pass
+locally in 8.66s. The production runtime and accepted browser build are unchanged.
+
+Corrected Pages run `34544399897` succeeds: all 3,424 release tests across 231
+files pass in 270.59s; deployment completes in 5m26s. Public verification at
+2026-09-10 17:03 PDT passes against release commit `eb545cc`: v0.5.158
+manifest/cache, exact entry `index-C8p6hPSq.js`, CSS `index-DjMkgq3A.css`,
+simulation worker `simulation.worker-gu4MCRtk.js`, unchanged narrator workers,
+and all eight changed browser/worker source-map files. This slice is complete
+and live; the clean roadmap now starts with Books & Flyting.
 
 ## Gameplay-first council — smith supplies and assisted disarming (v0.5.157)
 

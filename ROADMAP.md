@@ -5,15 +5,14 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. Publish the locally accepted **mana-siphon dungeon trap (v0.5.158)** to
-   `origin/main` and verify the public deployment.
-2. Start **F1 — Books & Flyting**: one book, learned language and a real solo duel.
-3. Continue the larger gameplay/UI inventory below, one playable vertical slice
-   and feature commit at a time.
+1. Start **F1 — Books & Flyting**: one book, learned language and a real solo duel.
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+   and feature commit at a time. Verify gameplay, saves and presentation, push
+   to `origin/main`, then verify the public deployment.
 
-Mana-siphon implementation, targeted tests, production build and desktop/mobile
-browser acceptance are complete; public deployment verification is pending.
-The latest verified public release is v0.5.157. Shipped features, explicitly held work and
+The mana-siphon dungeon trap is delivered in **v0.5.158**, verified on the public
+site on 2026-09-10 at 17:03 PDT. All 3,424 release tests pass; desktop/mobile
+acceptance and exact deployed-source checks pass. Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
 Dependencies are not evidence of implementation. No model is required to play.
