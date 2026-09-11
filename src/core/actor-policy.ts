@@ -16,6 +16,7 @@ import { selectDisarmingKit } from "../depth/disarming-kit";
 import { reparteeBook, reparteeResponses, type ReparteeResponse } from "../depth/repartee";
 import { isValidCampaignRepartee } from "../depth/repartee-campaign";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCommandId, usefulReplyResponses } from "../depth/useful-reply";
+import { isValidCampaignRoomChallenge, roomChallengeCommandId, roomChallengeResponses } from "../depth/room-challenge";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -170,6 +171,14 @@ function knownUsefulReply(state: WorldState, candidate: DepthCommandCandidate) {
   return usefulReplyResponses(lesson).find((response) => response.id === command.responseId);
 }
 
+function knownRoomChallengeReply(state: WorldState, candidate: DepthCommandCandidate) {
+  const command = candidate.command, challenge = state.depth.roomChallenge;
+  if (command.type !== "answer-room-challenge" || challenge === null || challenge.result !== null
+    || command.encounterId !== challenge.encounterId || candidate.deciderId !== state.depth.hero.id
+    || candidate.id !== roomChallengeCommandId(state.depth.tick + 1, command) || !isValidCampaignRoomChallenge(state.depth)) return undefined;
+  return roomChallengeResponses(state.depth).find((response) => response.id === command.responseId);
+}
+
 function scoreCandidate(
   state: WorldState,
   candidate: DepthCommandCandidate,
@@ -239,6 +248,26 @@ function scoreCandidate(
     if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
     if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
     reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
+  } else if (command.type === "start-room-challenge") {
+    score = 60;
+    reason = "the lesson and Bell delivery are complete; this real resident offers one public claim with one declared, bounded reputation stake";
+  } else if (command.type === "answer-room-challenge") {
+    const response = knownRoomChallengeReply(state, candidate);
+    if (response === undefined) throw new Error("Actor Policy cannot score an unknown or foreign room reply");
+    const curious = state.hero.values.includes("curiosity"), merciful = state.hero.values.includes("mercy");
+    score = 20 + response.delta * 20;
+    if (curious && response.classification === "direct") {
+      score += 60;
+      reason = `curiosity tests the constructive frame actually learned from ${usefulReplyBook.title}; ${response.explanation}`;
+    } else if (!curious && merciful && response.classification === "near") {
+      score += 60;
+      reason = `mercy gives the room its moment instead of insisting on winning the point; the hero knowingly accepts a draw and no reputation award; ${response.explanation}`;
+    } else if (!curious && !merciful && state.hero.values.includes("courage") && response.classification === "category") {
+      score += 80;
+      reason = `courage favors a defiant answer over the sounder learned counter; the hero knowingly sacrifices this single point; ${response.explanation}`;
+    } else {
+      reason = `the known reply is judged against this public claim, not the size of a vocabulary; ${response.explanation}`;
+    }
   } else if (command.type === "read-useful-book") {
     score = 60;
     reason = `the prior road oath is complete; a real public copy of ${usefulReplyBook.title} offers a new way to answer without turning the room into a contest`;
@@ -528,6 +557,8 @@ function presentationLabels(
       actionLabel: "shares a memory before parting",
       targetLabel: state.depth.companions.active.find((entry) => entry.identity.residentId === command.witnessId)?.identity.name ?? command.witnessId,
     };
+    case "start-room-challenge": return { actionLabel: "accepts a one-point public challenge", targetLabel: state.depth.towns[command.locationId]?.residents.find((resident) => resident.id === command.residentId)?.name ?? "the recorded resident" };
+    case "answer-room-challenge": return { actionLabel: knownRoomChallengeReply(state, candidate)?.text ?? "the unavailable answer", targetLabel: state.depth.roomChallenge?.residentName ?? "the recorded resident" };
     case "read-useful-book": return { actionLabel: "reads a new public book", targetLabel: usefulReplyBook.title };
     case "practice-useful-reply": return { actionLabel: knownUsefulReply(state, candidate)?.text ?? "the unavailable practice reply", targetLabel: state.depth.usefulReply?.residentName ?? "the recorded resident" };
     case "read-book": return { actionLabel: "reads a public copy", targetLabel: reparteeBook.title };
@@ -638,7 +669,9 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
     ? candidate.command.type !== "repartee-action"
     : knownReparteeResponse(state, candidate, knowledge) !== undefined)
     .filter((candidate) => state.depth.usefulReply !== null && state.depth.usefulReply.reply === null
-      ? knownUsefulReply(state, candidate) !== undefined : candidate.command.type !== "practice-useful-reply");
+      ? knownUsefulReply(state, candidate) !== undefined : candidate.command.type !== "practice-useful-reply")
+    .filter((candidate) => state.depth.roomChallenge !== null && state.depth.roomChallenge.result === null
+      ? knownRoomChallengeReply(state, candidate) !== undefined : candidate.command.type !== "answer-room-challenge");
   const context = contextFor(state, candidates);
   const profile = actorInstinctProfiles[context];
   const ranked = candidates
@@ -696,7 +729,7 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
     : `${combatFacts(state, guardedAlternative.candidate).target?.name ?? "The foe"}'s Guard prevents a guaranteed finish; ${selected.reason}`;
   const reasons = [forwardReason ?? selectedReason];
   const rationale = forwardReason === null
-    ? selectedCommand.type === "repartee-action" || selectedCommand.type === "practice-useful-reply"
+    ? selectedCommand.type === "repartee-action" || selectedCommand.type === "practice-useful-reply" || selectedCommand.type === "answer-room-challenge"
       ? `${actor.name} chose the reply “${selected.candidate.label}” because ${selectedReason.replace(/[.!?]+$/u, "")}.`
       : `${actor.name} chose to ${selected.candidate.label} because ${selectedReason}.`
     : `${actor.name} chose to ${selected.candidate.label} because ${forwardReason}.`;

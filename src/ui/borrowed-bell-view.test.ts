@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { advanceWorld } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
-import { naturalBorrowedBellMemoryFixture } from "../../tests/borrowed-bell-memory-fixtures";
+import { borrowedBellMemoryRecoveryBoundaryFixture } from "../../tests/borrowed-bell-memory-fixtures";
 import { selectBellDeliveryMemory } from "../depth/borrowed-bell-memory";
 import { bellDeadlineMarks, projectBorrowedBellScene, type BorrowedBellBoardSceneView } from "./borrowed-bell-view";
 
@@ -27,10 +27,17 @@ function boardScene(state: WorldState): BorrowedBellBoardSceneView {
 
 /** Explicit service-boundary scenario, not a claimed natural autonomous rest.
  * The hero, visited inn, completed board and delivery receipts are actual. Only
- * the quiet low-mana boundary is staged; the paid wait and memory are real commands.
+ * the quiet low-mana/route-null boundary is staged after the actual challenge
+ * and next ordinary route command; the paid wait and memory are real commands.
  */
 function innMemoryScenario(locationId?: string): { before: WorldState; after: WorldState } {
-  const next = advanceWorld(journey().at(-1)!);
+  const started = advanceWorld(journey().at(-1)!);
+  expect(started.chronicle.at(-1)?.commandType).toBe("start-room-challenge");
+  const answered = advanceWorld(started);
+  expect(answered.chronicle.at(-1)?.commandType).toBe("answer-room-challenge");
+  const next = advanceWorld(answered);
+  expect(next.chronicle.at(-1)?.commandType).toBe("plan-route");
+  expect(next.depth.roomChallenge).toEqual(answered.depth.roomChallenge);
   const before: WorldState = { ...next, depth: { ...next.depth,
     atlas: { ...next.depth.atlas, currentLocationId: locationId ?? next.depth.atlas.currentLocationId, route: null },
     hero: { ...next.depth.hero, resources: { ...next.depth.hero.resources,
@@ -40,6 +47,7 @@ function innMemoryScenario(locationId?: string): { before: WorldState; after: Wo
   if (selectBellDeliveryMemory(before.depth) === null) throw new Error("Explicit paid-rest memory scenario is not eligible");
   const after = advanceWorld(before);
   if (after.depth.bellMemory === null) throw new Error("Actual wait did not commit the eligible inn memory");
+  expect(after.depth.roomChallenge).toEqual(answered.depth.roomChallenge);
   return { before, after };
 }
 
@@ -204,13 +212,13 @@ describe("Borrowed Bell presentation", () => {
     expect(scene.title).toBe(`${scene.memory.rest.innName} · ${location.name}`);
   });
 
-  it("presents the naturally reached roadside recovery as a private memory without inventing an inn or charging gold", () => {
-    const before = naturalBorrowedBellMemoryFixture(), after = advanceWorld(before);
+  it("presents the earned route's explicit low-HP recovery boundary without inventing an inn or charging gold", () => {
+    const before = borrowedBellMemoryRecoveryBoundaryFixture(), after = advanceWorld(before);
     expect(before.tick).toBeGreaterThan(before.depth.bellExpedition!.completion!.tick);
     expect(after.tick).toBe(before.tick + 1);
     const scene = projectBorrowedBellScene(after), memory = after.depth.bellMemory!;
     expect(scene?.phase).toBe("memory");
-    if (scene?.phase !== "memory" || memory.rest.kind !== "roadside") throw new Error("Missing natural roadside memory");
+    if (scene?.phase !== "memory" || memory.rest.kind !== "roadside") throw new Error("Missing actual recovery memory at the explicit boundary");
     const rest = memory.rest;
     const name = (id: string) => after.depth.atlas.locations.find(location => location.id === id)!.name;
     expect(scene.title).toBe(`Roadside camp · ${name(rest.route.path[rest.route.legIndex]!)} → ${name(rest.route.path[rest.route.legIndex + 1]!)}`);

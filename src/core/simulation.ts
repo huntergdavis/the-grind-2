@@ -1,4 +1,5 @@
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCall } from "../depth/useful-reply";
+import { isValidCampaignRoomChallenge } from "../depth/room-challenge";
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
@@ -346,6 +347,8 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "start-room-challenge":
+    case "answer-room-challenge":
     case "read-useful-book":
     case "practice-useful-reply":
     case "start-bell":
@@ -398,6 +401,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "start-room-challenge":
+    case "answer-room-challenge":
     case "read-useful-book":
     case "practice-useful-reply":
     case "start-bell":
@@ -487,6 +492,18 @@ function describeBeat(
       consequence: "The exchange is remembered, not rewarded again. Regard, bond and resources unchanged.",
       sensoryIntensity: 0,
     };
+  }
+  if ((choice.command.type === "start-room-challenge" || choice.command.type === "answer-room-challenge") && depth.roomChallenge !== null) {
+    const challenge = depth.roomChallenge, result = challenge.result;
+    const location = depth.atlas.locations.find((entry) => entry.id === challenge.locationId);
+    return { mode: "chronicle", location: location?.name ?? opportunity.location,
+      goal: "One public point about listening and leadership",
+      headline: result === null ? "Let the room answer" : `One point: ${result.outcome}`,
+      action: result === null ? `${challenge.residentName}: “${challenge.claim}”`
+        : `${challenge.residentName}: “${challenge.claim}” ${state.hero.name}: “${result.reply}”`,
+      consequence: result === null ? "One reply. A direct counter earns one town reputation, capped at 100; no other reward is at stake."
+        : `${result.explanation} ${result.delta > 0 ? "+" : ""}${result.delta} point; reputation ${result.reputationBefore}→${result.reputationAfter}. Resources and relationships unchanged.`,
+      sensoryIntensity: 1 };
   }
   if ((choice.command.type === "read-useful-book" || choice.command.type === "practice-useful-reply") && depth.usefulReply !== null) {
     const lesson = depth.usefulReply;
@@ -1515,8 +1532,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 33 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) ||
+    state.depth.schemaVersion !== 34 ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

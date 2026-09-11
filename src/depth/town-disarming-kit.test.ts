@@ -75,7 +75,7 @@ describe("smith disarming-kit supplies", () => {
     const { latestDisarmingKitPurchase: _receipt, ...oldDepth } = before.depth;
     const old = { ...before, depth: { ...oldDepth, schemaVersion: 25 } };
     const loaded = upgradeWorldState(old);
-    expect(loaded.depth.schemaVersion).toBe(33);
+    expect(loaded.depth.schemaVersion).toBe(34);
     expect(loaded.depth.latestDisarmingKitPurchase).toBeNull();
     expect(loaded.depth.hero.inventory.some((item) => item.id === disarmingKitId(before.hero.id))).toBe(false);
     expect(loaded.depth.hero.inventory).toEqual(before.depth.hero.inventory);

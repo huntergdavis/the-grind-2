@@ -6,6 +6,7 @@ import {
 } from "../depth/repartee-witness";
 import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyResponses } from "../depth/useful-reply";
+import { isValidCampaignRoomChallenge, roomChallengeResponses } from "../depth/room-challenge";
 
 export interface ReparteeContestSceneView {
   readonly phase: "reading" | "challenge" | "round" | "result";
@@ -59,7 +60,18 @@ export interface ReparteeLessonSceneView extends Omit<ReparteeContestSceneView, 
   readonly encore: false;
 }
 
-export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView;
+export interface ReparteeRoomSceneView extends Omit<ReparteeContestSceneView, "phase" | "momentum"> {
+  readonly phase: "room-challenge" | "room-result";
+  readonly challengeId: string;
+  readonly classification: "direct" | "near" | "category" | null;
+  readonly readingSourceCommandId: string;
+  readonly score: -1 | 0 | 1 | null;
+  readonly momentum: null;
+  readonly witness: null;
+  readonly encore: false;
+}
+
+export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView;
 
 export interface ReparteeWitnessView {
   readonly id: string;
@@ -186,7 +198,42 @@ export function projectUsefulReplyScene(state: WorldState): ReparteeLessonSceneV
 }
 
 /** The current command must own the receipt; revisiting town cannot replay a duel. */
+export function projectRoomChallengeScene(state: WorldState): ReparteeRoomSceneView | null {
+  const challenge = state.depth.roomChallenge;
+  const source = state.chronicle.at(-1);
+  if (challenge === null || !isValidCampaignRoomChallenge(state.depth) || source === undefined
+    || source.tick !== state.tick || state.depth.tick !== state.tick
+    || source.mode !== "chronicle" || state.scene.mode !== "chronicle"
+    || challenge.heroId !== state.depth.hero.id || challenge.locationId !== state.depth.atlas.currentLocationId) return null;
+  const result = challenge.result;
+  const answering = source.commandType === "answer-room-challenge";
+  const sourceId = answering ? result?.sourceCommandId : source.commandType === "start-room-challenge" && result === null ? challenge.sourceCommandId : null;
+  const sourceTick = answering ? result?.tick : challenge.startedTick;
+  if (sourceId === null || sourceId === undefined || sourceTick !== state.tick
+    || source.commandId !== `${state.campaignId}:${sourceId}`) return null;
+  const town = state.depth.towns[challenge.locationId];
+  const building = town?.buildings.find((entry) => entry.id === challenge.buildingId);
+  const resident = town?.residents.find((entry) => entry.id === challenge.residentId && entry.name === challenge.residentName);
+  if (town === undefined || building === undefined || resident === undefined) return null;
+  const outcome = result?.outcome ?? null;
+  return Object.freeze({
+    phase: answering ? "room-result" : "room-challenge", commandId: source.commandId, tick: source.tick,
+    heroId: challenge.heroId, heroName: state.hero.name, residentId: resident.id, residentName: resident.name,
+    buildingId: building.id, buildingName: building.name, bookId: usefulReplyBook.id,
+    challengeId: challenge.encounterId, classification: result?.classification ?? null,
+    readingSourceCommandId: challenge.readingSourceCommandId,
+    title: result === null ? "Let the room answer" : `${outcome!.charAt(0).toUpperCase()}${outcome!.slice(1)} · ${signedReparteeMomentum(result.delta)} counter`,
+    call: challenge.claim, reply: result?.reply ?? null,
+    marks: Object.freeze(result === null ? [] : [result.delta]), score: result?.delta ?? null,
+    momentum: null, outcome, witness: null, encore: false,
+    consequence: result === null ? `One answer. Victory: +1 town reputation, capped at ${challenge.reputationCap}.`
+      : `Town reputation ${result.reputationBefore} → ${result.reputationAfter}${result.reputationAward === 1 ? " · +1, once only." : result.outcome === "victory" ? " · already at the cap." : " · no award."}`,
+  });
+}
+
+/** The current command must own the receipt; revisiting town cannot replay a duel. */
 export function projectReparteeScene(state: WorldState): ReparteeSceneView | null {
+  if (["start-room-challenge", "answer-room-challenge"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectRoomChallengeScene(state);
   if (["read-useful-book", "practice-useful-reply"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectUsefulReplyScene(state);
   if (state.chronicle.at(-1)?.commandType === "recall-repartee") return projectReparteeMemory(state);
   const source = state.chronicle.at(-1);
@@ -303,7 +350,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     }
     if (scene === null) {
       caption.replaceChildren();
-      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource"]) delete caption.dataset[key];
+      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score"]) delete caption.dataset[key];
       return;
     }
     caption.dataset.phase = scene.phase;
@@ -324,8 +371,25 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     delete caption.dataset.lesson;
     delete caption.dataset.classification;
     delete caption.dataset.readingSource;
+    delete caption.dataset.challenge;
+    delete caption.dataset.score;
     const title = doc.createElement("h2");
     title.textContent = scene.title;
+    if ("challengeId" in scene) {
+      for (const key of ["round", "momentum", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
+      caption.dataset.challenge = scene.challengeId;
+      caption.dataset.classification = scene.classification ?? "pending";
+      caption.dataset.readingSource = scene.readingSourceCommandId;
+      if (scene.score !== null) {
+        caption.dataset.score = String(scene.score);
+        title.dataset.resultMarker = String(scene.score);
+      }
+      const children = [title, dialogue(scene.residentName!, scene.call, "repartee-call")];
+      if (scene.reply !== null) children.push(dialogue(scene.heroName, scene.reply, "repartee-reply"));
+      children.push(paragraph(scene.consequence, "repartee-note"));
+      caption.replaceChildren(...children);
+      return;
+    }
     if ("lessonId" in scene) {
       for (const key of ["round", "momentum", "outcome", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
       caption.dataset.lesson = scene.lessonId;
@@ -368,7 +432,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     if (latest === null) return;
     const state = latest;
     const progress = state.depth.repartee;
-    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}:${JSON.stringify(state.depth.usefulReply)}`;
+    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}:${JSON.stringify(state.depth.usefulReply)}:${JSON.stringify(state.depth.roomChallenge)}`;
     if (key === shownKey || (!force && journal.open && shownCampaign === state.campaignId)) return;
     shownKey = key;
     shownCampaign = state.campaignId;
@@ -531,6 +595,51 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
       }
       choices.append(choiceSummary, list);
       record.append(choices);
+      nodes.push(record);
+    }
+    const challenge = state.depth.roomChallenge;
+    if (challenge !== null && isValidCampaignRoomChallenge(state.depth)) {
+      const challengeTown = state.depth.towns[challenge.locationId];
+      const challengeLocation = state.depth.atlas.locations.find((entry) => entry.id === challenge.locationId);
+      const challengeBuilding = challengeTown?.buildings.find((entry) => entry.id === challenge.buildingId);
+      const record = doc.createElement("details");
+      record.dataset.roomChallenge = challenge.encounterId;
+      const summary = doc.createElement("summary");
+      summary.textContent = `Let the room answer · ${challenge.result?.outcome ?? "public challenge"}`;
+      const admission = doc.createElement("div");
+      admission.dataset.startSource = challenge.sourceCommandId;
+      admission.append(heading(`${state.hero.name} & ${challenge.residentName} · one public claim`),
+        dialogue(challenge.residentName, challenge.claim, "repartee-call"),
+        paragraph(`One answer: a direct counter wins (+1); a concession draws (0); a claim-missing boast loses (-1). A victory awards +1 town reputation once, capped at ${challenge.reputationCap}; no other rewards.`),
+        paragraph(`${challengeBuilding?.name ?? challenge.buildingId}, ${challengeLocation?.name ?? challenge.locationId} · T${challenge.startedTick}. Start source: ${challenge.sourceCommandId}. Resident: ${challenge.residentId}. Rules ${challenge.rulesVersion}; content v${challenge.contentVersion}.`, "journal-repartee-source"),
+        paragraph(`Learned “${usefulReplyBook.expression}”, frame ${challenge.frameId}. Reading: ${challenge.readingSourceCommandId}, T${challenge.readingTick}. Practice: ${challenge.lessonSourceCommandId}, T${challenge.lessonTick}.`, "journal-repartee-source"),
+        paragraph(`Earlier Bell completion: ${challenge.bellSourceCommandId}, T${challenge.bellTick}. This establishes the earlier adventure, not a claim that this resident witnessed it.`, "journal-repartee-source"));
+      record.append(summary, admission);
+      const result = challenge.result;
+      if (result !== null) {
+        const answer = doc.createElement("div");
+        answer.dataset.answerSource = result.sourceCommandId;
+        answer.dataset.classification = result.classification;
+        answer.dataset.score = String(result.delta);
+        answer.dataset.outcome = result.outcome;
+        answer.append(dialogue(state.hero.name, result.reply, "repartee-reply"),
+          paragraph(`${result.outcome} · ${signedReparteeMomentum(result.delta)} counter · ${result.explanation}`),
+          paragraph(`Town reputation ${result.reputationBefore} → ${result.reputationAfter}; award ${signedReparteeMomentum(result.reputationAward)}, once only. HP, MP, gold, XP, quest state, bonds and regard unchanged.`),
+          paragraph(`T${result.tick} · Answer source: ${result.sourceCommandId}. ${result.readingSourceCommandId === null ? "Starter response; no learned frame used." : `Reading source: ${result.readingSourceCommandId}. Expression: ${result.expressionId}; frame: ${result.frameId}.`}`, "journal-repartee-source"));
+        record.append(answer);
+      }
+      const alternatives = doc.createElement("details");
+      const alternativeSummary = doc.createElement("summary");
+      alternativeSummary.textContent = "Known answers and their meaning";
+      const list = doc.createElement("ul");
+      for (const choice of roomChallengeResponses(state.depth)) {
+        const item = doc.createElement("li");
+        item.dataset.response = choice.id;
+        item.textContent = `${choice.id === result?.responseId ? "Chosen: " : "Known: "}${choice.text} — ${signedReparteeMomentum(choice.delta)} counter; ${choice.explanation} ${choice.frameId === null ? "Starter response." : `Learned from ${challenge.readingSourceCommandId}.`}`;
+        list.append(item);
+      }
+      alternatives.append(alternativeSummary, list);
+      record.append(alternatives);
       nodes.push(record);
     }
     content.replaceChildren(...nodes);

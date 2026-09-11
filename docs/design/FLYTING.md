@@ -71,9 +71,40 @@ source-map entries match release commit `e6266d2c76cce2fc0f5861f22fcf9fbf5ef9bbc
 The initial older Bell-fixture failures and test-only follow-up are preserved
 in the council receipt. F3b below remains a separate proposal.
 
+## F3b implementation — Let the room answer (v0.5.166)
+
+Implemented with focused rules/presentation and natural browser checks; public
+delivery remains pending. After the lesson and Bell expedition settle, a real resident
+offers one public claim: “If you ask the room what it needs, the room is leading
+you.” The learned answer distinguishes listening for needs from choosing how
+to help. Two starter alternatives concede the point or jokingly order the ceiling.
+
+Two foreground commands retain admission and answer separately. Exact semantic
+scores +1/0/−1 produce victory/draw/defeat. Only victory increases the existing
+town reputation by one, capped at 100, once; no other resources, progression or
+relationships change. Curiosity favors the learned counter, mercy can knowingly
+draw, and defiance can sacrifice the point. Learning opens options without
+forcing every hero to win. The earlier practice need not have used the frame.
+
+Depth 34 adds one nullable versioned `roomChallenge` receipt, binding the actual
+reading, practice, Bell completion, venue/resident and both new commands. Old
+F1/F2/F3a and Bell records remain unchanged. The active reply owns its next
+foreground turn; save/reload or catch-up cannot replay the reward. Later rival
+recruitment does not erase the valid historical exchange.
+
+The existing two-person stage shows the claim, full answer and one result mark;
+the caption gives the actual capped reputation change. No book prop, invented
+witness, extra panel or LLM is added. Existing Journal → Adventure → Books &
+Flyting retains all sources, known alternatives and the semantic explanations.
+One actual continuation proves ready T51 → admission T52 → reply T53, with Cato
+Ash at Candle Inn, Elderwatch. This hero chooses mercy: a draw, reputation 1→1,
+no award. The learned direct counter remains available. Production/browser and
+delivery evidence is recorded in [COUNCIL_REVIEW.md](../../COUNCIL_REVIEW.md).
+
 ## F3b proposed next slice — Let the room answer
 
-Read-only council scope, 2026-09-11; not implemented or a v0.5.165 release gate.
+Original read-only council scope, 2026-09-11, retained for recovery. Current
+implementation and delivery status are recorded above; this was not part of v0.5.165.
 After the existing Bell expedition settles, a real resident offers one scored
 public claim: “If you ask the room what it needs, the room is leading you.”
 This tests listening as leadership, rather than repeating the earlier loudness

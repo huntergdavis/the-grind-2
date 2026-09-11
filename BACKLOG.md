@@ -10,8 +10,9 @@ delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
 shipped in v0.5.163. D2's optional first-person dungeon view shipped in v0.5.164.
 F3a's second book and constructive practice exchange shipped in v0.5.165.
 The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
-Next: F3b, one later scored public challenge that uses the learned frame,
-followed by further playable features one at a time.
+Implementing v0.5.166: F3b, one later scored public challenge that uses the learned
+frame. Next proposal: R1, a genuine former-companion reunion on a later return;
+then further playable features one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

@@ -145,7 +145,7 @@ describe("one actually witnessed flyting encore", () => {
     const before = ready.depth, { reparteeWitness: _witness, ...prior } = before;
     const legacy = { ...prior, schemaVersion: 28 };
     const loaded = upgradeDepthState(legacy, before.seed, before.hero.id, before.hero.name);
-    expect(loaded.schemaVersion).toBe(33);
+    expect(loaded.schemaVersion).toBe(34);
     expect(loaded.reparteeWitness).toEqual(createReparteeWitnessState());
     expect(loaded.repartee).toEqual(before.repartee);
     expect(loaded.companions).toEqual(before.companions);

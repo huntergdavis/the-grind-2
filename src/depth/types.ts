@@ -1205,7 +1205,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 33;
+  schemaVersion: 34;
+  roomChallenge: import("./room-challenge").RoomChallenge | null;
   usefulReply: import("./useful-reply").UsefulReplyLesson | null;
   bellExpedition: import("./borrowed-bell").BellExpedition | null;
   bellMemory: import("./borrowed-bell-memory").BellDeliveryMemory | null;
@@ -1238,6 +1239,8 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "start-room-challenge"; encounterId: string; locationId: string; buildingId: string; residentId: string }
+  | { type: "answer-room-challenge"; encounterId: string; responseId: string }
   | { type: "read-useful-book"; lessonId: string; locationId: string; buildingId: string; residentId: string }
   | { type: "practice-useful-reply"; lessonId: string; responseId: string }
   | { type: "start-bell"; instanceId: string; locationId: string }

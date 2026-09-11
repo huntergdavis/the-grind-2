@@ -438,6 +438,8 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "read-book",
   "read-useful-book",
   "practice-useful-reply",
+  "start-room-challenge",
+  "answer-room-challenge",
   "start-repartee",
   "repartee-action",
   "recall-repartee",

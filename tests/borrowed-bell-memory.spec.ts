@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { advanceWorld, campaignDirector, upgradeWorldState } from "../src/core/simulation";
-import { borrowedBellMemoryCampaignId, naturalBorrowedBellMemoryFixture } from "./borrowed-bell-memory-fixtures";
+import { borrowedBellMemoryCampaignId, borrowedBellMemoryRecoveryBoundaryFixture } from "./borrowed-bell-memory-fixtures";
 
 async function pausedSave(page: Page, afterTick?: number): Promise<string> {
   return page.evaluate(async ({ id, tick }) => new Promise<string>((resolve, reject) => {
@@ -19,10 +19,12 @@ async function pausedSave(page: Page, afterTick?: number): Promise<string> {
   }), { id: borrowedBellMemoryCampaignId, tick: afterTick });
 }
 
-test("an earned roadside recovery remembers the delivered bell once before the same waiting encounter", async ({ page }, testInfo) => {
+test("an explicit low-HP boundary on the earned route remembers the delivered bell once before the same encounter", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
-  const ready = naturalBorrowedBellMemoryFixture(), expected = advanceWorld(ready), memory = expected.depth.bellMemory!;
-  if (memory.rest.kind !== "roadside") throw new Error("The natural acceptance journey must use its actual roadside recovery");
+  // HP alone is staged after the actual F1/F2/F3a/Bell/F3b journey and route command.
+  // This proves the real recovery/receipt/reload behavior, not natural rest reachability.
+  const ready = borrowedBellMemoryRecoveryBoundaryFixture(), expected = advanceWorld(ready), memory = expected.depth.bellMemory!;
+  if (memory.rest.kind !== "roadside") throw new Error("The explicit boundary must use its earned route's actual recovery");
   const rest = memory.rest, route = rest.route;
   const name = (id: string): string => ready.depth.atlas.locations.find(location => location.id === id)!.name;
   const routeName = `${name(route.path[route.legIndex]!)} → ${name(route.path[route.legIndex + 1]!)}`;

@@ -131,6 +131,7 @@ import { isValidCampaignReparteeCallback, selectReparteeCallback } from "./repar
 import { borrowedBellCommandCandidates, describeBorrowedBell, isValidCampaignBorrowedBell, stepCampaignBorrowedBell } from "./borrowed-bell-campaign";
 import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-bell-memory";
 import { isValidCampaignUsefulReply, stepCampaignUsefulReply, usefulReplyBook, usefulReplyCall, usefulReplyCommandCandidates } from "./useful-reply";
+import { isValidCampaignRoomChallenge, roomChallengeCommandCandidates, stepCampaignRoomChallenge } from "./room-challenge";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -842,9 +843,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -921,6 +922,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 33) {
+    // A learned response is not evidence that a later scored challenge happened.
+    return upgradeDepthState({ ...value, schemaVersion: 34,
+      roomChallenge: Object.hasOwn(value, "roomChallenge") ? value.roomChallenge : null,
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 34) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -934,7 +941,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) ||
+      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1419,7 +1426,8 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 33,
+    schemaVersion: 34,
+    roomChallenge: null,
     usefulReply: null,
     bellExpedition: null,
     bellMemory: null,
@@ -1499,6 +1507,7 @@ export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
 }
 
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (input.roomChallenge !== null && input.roomChallenge.result === null && command.type !== "answer-room-challenge") throw new Error("Answer the active room challenge before another command");
   if (input.usefulReply !== null && input.usefulReply.reply === null && command.type !== "practice-useful-reply") throw new Error("Finish the pending practice reply before another command");
   if (input.bellExpedition !== null && input.bellExpedition.completion === null
     && command.type !== "roll-bell" && command.type !== "move-bell") throw new Error("Finish the active Borrowed Bell expedition before another command");
@@ -1521,6 +1530,13 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "start-room-challenge":
+    case "answer-room-challenge": {
+      const next = stepCampaignRoomChallenge(input, command), challenge = next.roomChallenge, result = challenge.result;
+      return appendLog({ ...state, ...next }, "town", result === null
+        ? `${challenge.residentName} offers one public point: “${challenge.claim}” A sound counter earns one town reputation, capped at 100; no other reward is at stake.`
+        : `${challenge.residentName}: “${challenge.claim}” ${input.hero.name}: “${result.reply}” ${result.explanation} ${result.outcome.toUpperCase()} (${result.delta > 0 ? "+" : ""}${result.delta}); town reputation ${result.reputationBefore}→${result.reputationAfter}. This one-point challenge is settled.`);
+    }
     case "read-useful-book":
     case "practice-useful-reply": {
       const usefulReply = stepCampaignUsefulReply(input, command);
@@ -2470,7 +2486,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
-    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) ||
+    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
@@ -2482,7 +2498,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
-    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) ||
+    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
@@ -2682,6 +2698,11 @@ function selectedEmergencyRestorative(state: DepthState) {
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  if (state.roomChallenge !== null && state.roomChallenge.result === null) {
+    const candidates = roomChallengeCommandCandidates(state);
+    if (candidates === null || candidates.length === 0) throw new Error("The active room challenge has no legal answer");
+    return candidates;
+  }
   if (state.usefulReply !== null && state.usefulReply.reply === null) {
     const candidates = usefulReplyCommandCandidates(state);
     if (candidates === null || candidates.length === 0) throw new Error("The active lesson has no legal reply");
@@ -2931,6 +2952,8 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   if (lessonCandidates !== null) return lessonCandidates;
   const bellCandidates = borrowedBellCommandCandidates(state);
   if (bellCandidates !== null) return bellCandidates;
+  const roomCandidates = roomChallengeCommandCandidates(state);
+  if (roomCandidates !== null) return roomCandidates;
   const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
   if (
     questLead !== null &&

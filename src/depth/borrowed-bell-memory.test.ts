@@ -168,7 +168,7 @@ describe("one private Borrowed Bell memory at an actual paid rest", () => {
 
   it("recalls once during an already-required solo roadside recovery, preserving its real unresolved route", () => {
     const { state } = memoryOf("delivery");
-    // A small explicit route/resource boundary; natural campaign acceptance owns the actual journey.
+    // A small explicit route/resource boundary; campaign/browser checks separately earn the route and stage only HP.
     const candidates = state.atlas.locations.filter((location) => location.id !== state.atlas.currentLocationId)
       .map((location): DepthState => ({ ...state, atlas: planRoute(state.atlas, location.id),
         hero: { ...state.hero, resources: { ...state.hero.resources, health: Math.floor(state.hero.resources.maxHealth / 4) } } }));

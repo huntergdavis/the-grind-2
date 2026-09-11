@@ -5,12 +5,17 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: F3b — Let the room answer.** After the Bell expedition, one real
+1. **In implementation: F3b — Let the room answer (v0.5.166).** After the Bell expedition, one real
    resident's public challenge tests the learned constructive frame. One scored
    reply can earn +1 town reputation; old contests and learning stay intact.
    [Scoped proposal](docs/design/FLYTING.md#f3b-proposed-next-slice--let-the-room-answer),
-   not yet implemented or part of v0.5.165.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+   not yet delivered; the public release remains v0.5.165.
+2. **Next proposal: R1 — A familiar face.** A genuine return to a former
+   companion's farewell town can lead to one source-backed reunion, without
+   recruiting them again or resetting their history. No flyting/Bell prerequisite.
+   [Council scope](docs/design/LIFETIME_STORIES.md#r1-proposed-next-slice--a-familiar-face);
+   a natural return route remains unverified. Not part of v0.5.166.
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
@@ -49,7 +54,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F3b — Let the room answer** | Apply the learned frame to one later scored public challenge | Scoped proposal; +1 town reputation on victory, once; post-Bell admission unverified |
+| **F3b — Let the room answer** | Apply the learned frame to one later scored public challenge | Implementing v0.5.166; natural T52/T53 and browser verified; release CI/public delivery pending |
+| **R1 — A familiar face** | Reunite with a former companion and recall an actual shared experience | Scoped proposal; no re-recruitment or extra relationship meters; later return not yet verified |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
-import { naturalBorrowedBellMemoryFixture } from "../../tests/borrowed-bell-memory-fixtures";
+import { borrowedBellMemoryRecoveryBoundaryFixture } from "../../tests/borrowed-bell-memory-fixtures";
 import { canonicalStringify } from "../core/canonical";
 import { advanceWorld, campaignDirector, catchUpWorld, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
@@ -14,9 +14,9 @@ function reload(state: DepthState): DepthState {
   return upgradeDepthState(JSON.parse(canonicalStringify(state)), state.seed, state.hero.id, state.hero.name);
 }
 
-/** Explicit low-mana service boundary, NOT a natural inn journey. Board history
- * is earned normally; one legal ordinary wait moves beyond its completion tick
- * before this test sets the low-mana boundary for the existing paid service.
+/** Explicit low-mana service boundary, NOT a natural inn journey. Board and
+ * room-challenge history are earned normally; one legal ordinary wait moves
+ * beyond the answer tick before staging the existing paid service's boundary.
  */
 function explicitInnBoundary(): DepthState {
   let world = naturalBorrowedBellFixture();
@@ -25,16 +25,20 @@ function explicitInnBoundary(): DepthState {
     if (world.depth.bellExpedition?.completion !== null && world.depth.bellExpedition !== null) break;
   }
   expect(world.depth.bellExpedition!.completion).not.toBeNull();
+  expect(campaignDirector(world).candidates[0]?.command.type).toBe("start-room-challenge");
+  world = advanceWorld(advanceWorld(world));
+  expect(world.depth.roomChallenge?.result).not.toBeNull();
   const restedTick = stepDepth(world.depth, { type: "wait" });
+  expect(restedTick.roomChallenge).toEqual(world.depth.roomChallenge);
   return reload({ ...restedTick, hero: { ...restedTick.hero, resources: { ...restedTick.hero.resources,
     health: restedTick.hero.resources.maxHealth - 1, mana: Math.floor(restedTick.hero.resources.maxMana / 3) } } });
 }
 
 describe("one delivery memory at an existing real rest", () => {
   let ready: WorldState, after: WorldState;
-  beforeAll(() => { ready = naturalBorrowedBellMemoryFixture(); after = advanceWorld(ready); });
+  beforeAll(() => { ready = borrowedBellMemoryRecoveryBoundaryFixture(); after = advanceWorld(ready); });
 
-  it("adds one private memory to an actual later roadside recovery without adding costs, XP or quest credit", () => {
+  it("adds one private memory at an explicit low-HP boundary on the earned route without adding costs, XP or quest credit", () => {
     const before = ready.depth, memory = after.depth.bellMemory!, plan = selectCriticalRoadsideRest(before)!;
     const completion = before.bellExpedition!.completion!, evidence = before.bellExpedition!.turns.at(-1)!;
     expect(ready.tick).toBeGreaterThan(completion.tick);
@@ -46,7 +50,7 @@ describe("one delivery memory at an existing real rest", () => {
       goldSpent: 0, goldBefore: before.hero.gold, goldAfter: before.hero.gold });
     expect(selectPaidInnRest(before)).toBeNull();
     expect(before.companions.active).toEqual([]);
-    expect(before.hero.resources).toMatchObject({ health: 11, maxHealth: 42, mana: 24, maxMana: 24 });
+    expect(plan).toMatchObject({ healthBefore: before.hero.resources.health, manaBefore: before.hero.resources.mana });
     expect(memory).toEqual(selectBellDeliveryMemory(before));
     expect(memory).toMatchObject({ schemaVersion: 1, rulesVersion: "bell-delivery-memory-v1", kind: "delivery",
       instanceId: before.bellExpedition!.instanceId, heroId: before.hero.id,
@@ -58,7 +62,7 @@ describe("one delivery memory at an existing real rest", () => {
       health: plan.healthAfter, mana: plan.manaAfter } });
     expect(after.hero.experience).toBe(ready.hero.experience);
     expect(after.hero.gold).toBe(ready.hero.gold);
-    expect(after.depth.hero.gold).toBe(20);
+    expect(after.depth.hero.gold).toBe(before.hero.gold);
     expect(after.depth.hero.experience).toBe(before.hero.experience);
     expect(after.depth.atlas.route).toEqual(before.atlas.route);
     expect(after.depth.bellExpedition).toEqual(before.bellExpedition);
@@ -67,6 +71,7 @@ describe("one delivery memory at an existing real rest", () => {
     expect(after.depth.pendingQuestReward).toEqual(before.pendingQuestReward);
     expect(after.depth.companions).toEqual(before.companions);
     expect(after.depth.reparteeWitness).toEqual(before.reparteeWitness);
+    expect(after.depth.roomChallenge).toEqual(before.roomChallenge);
     expect(after.chronicle.at(-1)).toMatchObject({ commandType: "wait", mode: "chronicle", tick: after.tick,
       commandId: `${after.campaignId}:${memory.sourceCommandId}` });
     expect(after.chronicle.at(-1)!.action).toContain(memory.line);
@@ -76,7 +81,7 @@ describe("one delivery memory at an existing real rest", () => {
 
   it("preserves the same waiting encounter and cannot repeat the memory or reward at the next normal step", () => {
     const memory = after.depth.bellMemory!, board = after.depth.bellExpedition!;
-    if (memory.rest.kind !== "roadside") throw new Error("The natural memory must preserve its actual roadside encounter");
+    if (memory.rest.kind !== "roadside") throw new Error("The low-HP boundary must preserve its actual roadside encounter");
     const encounterId = `encounter:route:${ready.depth.atlas.route!.path.join(">")}`;
     expect(memory.rest.encounterId).toBe(encounterId);
     expect(selectBellDeliveryMemory(after.depth)).toBeNull();
@@ -109,6 +114,7 @@ describe("one delivery memory at an existing real rest", () => {
     expect(rested.quest).toEqual(before.quest);
     expect(rested.companions).toEqual(before.companions);
     expect(rested.bellExpedition).toEqual(before.bellExpedition);
+    expect(rested.roomChallenge).toEqual(before.roomChallenge);
     expect(rested.towns).toEqual(before.towns);
     expect(selectPaidInnRest(rested)).toBeNull();
     expect(selectBellDeliveryMemory(rested)).toBeNull();
@@ -171,7 +177,7 @@ describe("one delivery memory at an existing real rest", () => {
   it("migrates released v31 saves to no invented memory while rejecting malformed present receipts", () => {
     const before = ready.depth, { bellMemory: _memory, ...prior } = before, legacy = { ...prior, schemaVersion: 31 };
     const loaded = upgradeDepthState(legacy, before.seed, before.hero.id, before.hero.name);
-    expect(loaded.schemaVersion).toBe(33);
+    expect(loaded.schemaVersion).toBe(34);
     expect(loaded.bellMemory).toBeNull();
     expect(loaded.bellExpedition).toEqual(before.bellExpedition);
     expect(loaded.hero).toEqual(before.hero);

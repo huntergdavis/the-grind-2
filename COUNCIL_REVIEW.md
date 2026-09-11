@@ -2,6 +2,69 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Let the room answer — v0.5.166 implementation checkpoint
+
+Reusing the committed [F3b scope](docs/design/FLYTING.md#f3b-proposed-next-slice--let-the-room-answer)
+and F3a's verified actual reading/practice sources. The pre-implementation
+`deja "Let the room answer"` query rediscovered Herder session
+`7dc8bf11-9b0`; it did not recover an existing scored F3b implementation.
+The new claim/replies and scoring remain original Grind content.
+
+Rules, presentation and natural browser acceptance are independently owned;
+root handles integration and deployment. One actual resident's post-Bell
+challenge tests the learned frame with two foreground commands. A semantic
+counter, concession or missed claim yields victory, draw or defeat; only
+victory grants +1 existing town reputation, capped at 100, once. Preserve
+F1/F2/F3a and Bell history; no other resources or relationship changes.
+Reuse the existing dialogue/caption and collapsed Journal, without another
+panel, model dependency or protected-ledger edit. Admission, migration,
+once-only scoring, presentation and public delivery remain to be verified.
+
+The frozen implementation passed ten focused rules tests (13.70-second runner)
+and 28 presentation tests (24.53-second runner), plus TypeScript and boundaries.
+The real continuation is ready T51 → claim T52 → mercy's reply T53, with Cato
+Ash at Candle Inn, Elderwatch. Its actual outcome is a draw, reputation 1→1;
+the learned direct answer remains available. Alternate-response/cap checks
+prove victory and defeat separately, not by relabeling this natural outcome.
+
+Production build passed (Vite 19.35 seconds); eight emitted runtime sources
+match the frozen working files. The natural browser acceptance passed in
+52.4 seconds (1.2-minute runner), including exact admission/result reloads,
+old-history preservation, all Journal sources/known alternatives and the next
+ordinary route plan. Three desktop/320px/Focus captures were directly inspected:
+clear actors, readable complete dialogue and one native result mark. Zero
+page/console errors, external requests or model activity. This uses explicit
+fixture-fast mode, not a new timing claim about the existing eight-second hold.
+CSS, narrator workers and optional dungeon-view chunks remain unchanged.
+
+Local failures are preserved: root initially inserted the new dependency out
+of order in two source manifests; `deja "source manifest sorted unique"` found
+no match, and restoring the existing sorted contract made boundaries pass.
+Local canonical save/migrate/replay took 41.403 seconds and exceeded its unchanged
+20-second cap. The ten-campaign test took 127.750 seconds and failed its old
+hash expectations. Its full-state values are updated for Depth 34 and actual
+new story turns; no fields are normalized away and the 20/80-second caps remain.
+Clean CI must establish the final replay pass.
+
+The older natural Bell-memory fixture did not reach its rest within the existing
+320-turn ceiling after these new story turns. One approved same-seed diagnostic
+through that original ceiling confirmed no memory and no eligible critical wait
+(6.859 seconds of source execution). No seed search or longer gate was used.
+An explicitly labeled earned-history/low-health recovery boundary is replacing
+that stale natural-rest assumption; its actual route, queued encounter and wait
+must remain real. The new challenge's natural browser evidence is unaffected.
+The explicit boundary and paid-inn repairs passed 22 tests across three files
+(19.88-second runner). The renamed helper and all three callers clearly label
+the staged HP, preserving the actual earned route, queued encounter and all
+old story records. Its browser regression passed in 39.4 seconds (53.6-second
+runner) against the same production build. The actual route is Elderwatch →
+Hollowwatch; ready T54 → real recovery/memory T55 retains delivery T51. HP is
+explicitly staged to 10, then the real wait restores 42; MP 23→24, gold 20
+unchanged. Exact reload, stale-checkpoint resume and the same following encounter
+passed. Three more desktop/mobile/Focus captures were inspected. Both owned
+preview ports closed afterward. Final TypeScript, boundary, version and diff
+checks pass; public delivery and clean CI replay remain pending.
+
 ## A useful reply — v0.5.165 final delivery
 
 **Live and publicly source-verified 2026-09-11 at 01:10:32 PDT.** Feature

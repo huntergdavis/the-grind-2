@@ -61,6 +61,48 @@ All four encore commands remain foreground story beats; hidden catch-up stops
 before them. F2b's later safe-rest callback, trust, affection, more performances
 and a general relationship system are not implemented by this slice.
 
+## R1 proposed next slice — A familiar face
+
+Read-only council scope, 2026-09-11. Not implemented or a v0.5.166 release gate.
+This picks up the larger backlog's actual former-companion reunions; it does
+not require F3a, F3b or the Borrowed Bell. Existing code forbids re-recruiting a
+former companion. A short reunion must not bypass that rule or reset the oath.
+
+Admit one exchange after the solo hero genuinely returns from another location
+to a healthy fulfilled companion's recorded farewell town. The last proven
+place is `departure.locationId`, matching `destination.locationId`; their
+`identity.originLocationId` and `homeBuildingId` do not prove travel back home.
+Define retained presence at the farewell town explicitly for this slice; never
+infer an unrecorded journey or off-screen accomplishment. Recovery, encounters,
+quest settlement and current companion obligations retain priority.
+
+Capture the actual route-arrival transition, not a guessed elapsed interval or
+Chronicle prose. A small nullable `companionReunion` receipt can first retain
+the earned arrival, then its one completed exchange: resident and oath identity
+(`residentId`, `joinedTick`), departure tick/location, real arrival command/tick
+and source location, selected shared evidence, exact lines and reunion command.
+There is no durable general arrival history in the current atlas; this producer
+must exist before claiming a return. Staying in town after farewell is not one.
+
+One original exchange uses the fulfilled oath and recorded `victories`. A
+matching witnessed-repartee reaction may supply a specific remembered joke or
+disagreement, but is optional; preserve its actual speaker, evidence and meaning.
+Do not turn every past loss into praise or claim the companion witnessed later
+solo events. Leave bond, regard, resources, former roster and original oath
+records unchanged. Migration supplies no invented reunion or past arrival.
+
+Reuse the named companion drawing at the town threshold, two speakers and the
+existing foreground caption/hold. Keep the exact history in a collapsed entry
+under Journal → Company (`#journal-companion-former`), not another Watch panel.
+The known Fara Ash journey reaches arrival T38, memory T39 and farewell T40;
+a later autonomous return has not been verified. Inspect that continuation once.
+If routing never returns naturally, scope an explicit optional return opportunity
+before implementation rather than teleport either character or scan many seeds.
+
+Recovery: the council's `deja`/`rg` review found older recurring-companion
+proposals, not an existing reunion command. This scope is grounded in current
+`src/depth/companion.ts`, `src/depth/types.ts` and the named companion renderer.
+
 ## The point
 
 A screensaver can tell a story through what characters do, what happens to them,
