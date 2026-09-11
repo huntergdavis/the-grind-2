@@ -90,7 +90,7 @@ describe("mana-siphon gameplay and saved expeditions", () => {
     for (const dungeon of [oldDungeon, null]) {
       const old = { ...base, schemaVersion: 26, dungeon };
       const migrated = upgradeDepthState(structuredClone(old), seed, base.hero.id, base.hero.name);
-      expect(migrated).toEqual({ ...old, schemaVersion: 31,
+      expect(migrated).toEqual({ ...old, schemaVersion: 32,
         dungeon: dungeon === null ? null : { ...dungeon, trapRulesVersion: 1 } });
       expect(reload(migrated)).toEqual(migrated);
     }

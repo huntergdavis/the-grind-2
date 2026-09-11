@@ -28,21 +28,21 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v162 records Depth 31 and the once-only Borrowed Bell expedition.
+      // v163 records Depth 32 and the once-only source-bound delivery memory.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "337fc6e63a45b13a",
-      "650d5127e00eb584",
-      "109f0bcb545443d8",
-      "435eb1a2350de630",
-      "948169ad235a127d",
-      "c97a0954ebcea493",
-      "0a9252a2c7629274",
-      "8650a653258a2cc0",
-      "3895c7f582151662",
-      "524aa77c76e6268e",
+      "62035c3055535b45",
+      "eb7669b11bbed580",
+      "01bf601bde0ef66f",
+      "ac1c1faca2803c60",
+      "fdd1f8553ffb93d1",
+      "db9b5e55e75a0684",
+      "adad12f0397f5ec5",
+      "831925e2ced740dc",
+      "a31d3c57ef865f78",
+      "d1d72f57c6ffee28",
     ]);
   }, 80_000);
 });

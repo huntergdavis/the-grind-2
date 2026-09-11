@@ -129,6 +129,9 @@ import { isValidCampaignRepartee, reparteeCommandCandidates, stepCampaignReparte
 import { createReparteeWitnessState } from "./repartee-witness";
 import { isValidCampaignReparteeCallback, selectReparteeCallback } from "./repartee-memory";
 import { borrowedBellCommandCandidates, describeBorrowedBell, isValidCampaignBorrowedBell, stepCampaignBorrowedBell } from "./borrowed-bell-campaign";
+import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-bell-memory";
+import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
+export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
 export const maximumDepthLogEntries = 128;
 export const maximumCompletedCombats = 4;
@@ -838,9 +841,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -905,6 +908,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 31) {
+    // A completed delivery is not evidence that a later inn recollection happened.
+    return upgradeDepthState({ ...value, schemaVersion: 32,
+      bellMemory: Object.hasOwn(value, "bellMemory") ? value.bellMemory : null,
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 32) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -918,7 +927,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) ||
+      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1403,8 +1412,9 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 31,
+    schemaVersion: 32,
     bellExpedition: null,
+    bellMemory: null,
     repartee: createReparteeProgress(),
     reparteeWitness: createReparteeWitnessState(),
     reparteeCallback: null,
@@ -2349,25 +2359,28 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
     }
     case "wait": {
       const innRest = selectPaidInnRest(input);
+      const bellMemory = selectBellDeliveryMemory(input);
       if (innRest !== null) {
         return appendLog({
           ...state,
+          bellMemory: bellMemory ?? state.bellMemory,
           hero: {
             ...state.hero,
             gold: innRest.goldAfter,
             resources: { ...state.hero.resources, health: innRest.healthAfter, mana: innRest.manaAfter },
           },
-        }, "town", `Paid inn rest at ${innRest.innName}, ${innRest.townName}: gold ${innRest.goldBefore}→${innRest.goldAfter} (-${innRest.goldSpent}) · HP ${innRest.healthBefore}→${innRest.healthAfter} (+${innRest.healthAfter - innRest.healthBefore}) · MP ${innRest.manaBefore}→${innRest.manaAfter} (+${innRest.manaAfter - innRest.manaBefore}). Fully rested; no items or rewards gained.`);
+        }, "town", `Paid inn rest at ${innRest.innName}, ${innRest.townName}: gold ${innRest.goldBefore}→${innRest.goldAfter} (-${innRest.goldSpent}) · HP ${innRest.healthBefore}→${innRest.healthAfter} (+${innRest.healthAfter - innRest.healthBefore}) · MP ${innRest.manaBefore}→${innRest.manaAfter} (+${innRest.manaAfter - innRest.manaBefore}). Fully rested; no items or rewards gained.${bellMemory === null ? "" : ` ${input.hero.name} remembers: “${bellMemory.line}”`}`);
       }
       if (needsCriticalRoadsideRecovery(state)) {
         const { health, maxHealth, mana, maxMana } = state.hero.resources;
         return appendLog({
           ...state,
+          bellMemory: bellMemory ?? state.bellMemory,
           hero: {
             ...state.hero,
             resources: { ...state.hero.resources, health: maxHealth, mana: maxMana },
           },
-        }, "world", `Roadside camp: HP ${health}→${maxHealth} (+${maxHealth - health}) · MP ${mana}→${maxMana} (+${maxMana - mana}). Fully rested; ready for the road.`);
+        }, "world", `Roadside camp: HP ${health}→${maxHealth} (+${maxHealth - health}) · MP ${mana}→${maxMana} (+${maxMana - mana}). Fully rested; ready for the road.${bellMemory === null ? "" : ` ${input.hero.name} remembers: “${bellMemory.line}”`}`);
       }
       if (state.hero.resources.health > 0) {
         return appendLog(state, "world", "The party watches and listens; rest away from refuge restores nothing.");
@@ -2441,7 +2454,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
-    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) ||
+    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
@@ -2453,7 +2466,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
-    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) ||
+    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
@@ -2479,14 +2492,6 @@ function commandCandidate(
     deciderId,
     command,
   };
-}
-
-export function unresolvedRouteEncounterId(state: DepthState): string | null {
-  if (state.atlas.route === null) return null;
-  const encounterId = `encounter:route:${state.atlas.route.path.join(">")}`;
-  const completed = state.completedCombats.some((combat) => combat.id === encounterId)
-    || state.completedCounterDuels.some((duel) => duel.id === encounterId);
-  return completed ? null : encounterId;
 }
 
 export function projectRouteEncounterThreatContext(state: DepthState): EncounterThreatContext {
@@ -2641,14 +2646,6 @@ export function isValidDepthEncounterThreatState(state: DepthState): boolean {
   } catch {
     return false;
   }
-}
-
-export function needsCriticalRoadsideRecovery(state: DepthState): boolean {
-  return state.combat === null
-    && state.counterDuel === null
-    && (state.dungeon === null || state.dungeon.completed)
-    && unresolvedRouteEncounterId(state) !== null
-    && state.hero.resources.health * 2 <= state.hero.resources.maxHealth;
 }
 
 function selectedEmergencyRestorative(state: DepthState) {

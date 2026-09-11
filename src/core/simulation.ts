@@ -26,6 +26,9 @@ import {
   isValidCampaignRepartee,
   isValidCampaignReparteeCallback,
   isValidCampaignBorrowedBell,
+  isValidBellDeliveryMemory,
+  selectBellDeliveryMemory,
+  bellDeliveryRestName,
   describeBorrowedBell,
   isCanonicalQuestDefinition,
   isValidQuestState,
@@ -385,7 +388,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "admit-deferred-secret":
       return "discovery";
     case "wait":
-      return selectPaidInnRest(state.depth) === null ? "camp" : "town";
+      return selectBellDeliveryMemory(state.depth) !== null ? "chronicle"
+        : selectPaidInnRest(state.depth) === null ? "camp" : "town";
   }
 }
 
@@ -444,6 +448,18 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  if (choice.command.type === "wait" && previousDepth.bellMemory === null && depth.bellMemory?.tick === depth.tick) {
+    const memory = depth.bellMemory;
+    const location = depth.atlas.locations.find((entry) => entry.id === memory.rest.locationId);
+    return { mode: "chronicle", location: location?.name ?? opportunity.location,
+      goal: "A quiet thought after the delivery",
+      headline: memory.rest.kind === "inn" ? `The bell remembered at ${bellDeliveryRestName(memory.rest)}` : "A memory beside the road",
+      action: `${depth.hero.name}: “${memory.line}”`,
+      consequence: memory.rest.kind === "inn"
+        ? `An ordinary inn rest: ${memory.rest.goldSpent} gold; health and mana restored. The memory grants no extra reward.`
+        : "An ordinary roadside recovery: health and mana restored, no gold spent. The memory grants no extra reward.",
+      sensoryIntensity: 0 };
+  }
   if (choice.command.type === "start-bell" || choice.command.type === "roll-bell" || choice.command.type === "move-bell") {
     const board = depth.bellExpedition!;
     const location = depth.atlas.locations.find((entry) => entry.id === board.locationId);
@@ -1110,7 +1126,7 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
     !isValidSecretDiscoveryGraph(state.depth) ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth)
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -1481,8 +1497,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 31 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) ||
+    state.depth.schemaVersion !== 32 ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

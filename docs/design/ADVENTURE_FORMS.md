@@ -264,20 +264,33 @@ scene hold, global pause/Focus and foreground catch-up behavior. Journal keeps
 the exact transcript and the existing inbox coalesces the expedition. No new
 permanent dashboard, asset download, model or general adventure framework is added.
 
-### Next D1b slice — remember a real delivery at a real rest
+### D1b implementation scope — v0.5.163, acceptance pending
 
-Attach one private recollection to a later paid inn rest only when
-`selectPaidInnRest` already admits that rest. Preserve its ordinary five-gold
-cost and recovery exactly; the callback adds no XP, resources, bond or quest
-credit. Retain the actual board completion and chosen move sources, actual
-inn/location and new rest source. A passed-but-unlanded room cannot be recalled
+Attach one private recollection to a later rest only when `selectPaidInnRest`
+already admits an inn stay, or the existing `needsCriticalRoadsideRecovery`
+requires a solo, living hero's roadside recovery. Preserve the inn's ordinary
+five-gold cost or the camp's zero-gold recovery exactly; the callback adds no
+XP, resources, bond or quest credit. Retain the actual board completion and
+chosen move sources, actual inn or road position and new rest source.
+A passed-but-unlanded room cannot be recalled
 as an experienced event, and no absent companion becomes a witness.
 
 Show the hero's thought briefly and retain it under the existing board Journal.
 Only that memory-bearing rest needs a foreground presentation hold. Require
 once-only/reload protection, exact source validation and unchanged rest effects.
-This is a proposed follow-up, not shipped gameplay. Do not add a generic free
+Implementation is not yet a shipped claim. Do not add a generic free
 `wait`: ordinary non-recovery waits currently grant one XP.
+
+The initial inn-only proposal proved too rare in two bounded known journeys:
+the delivered `shared-road-playful:7` continuation found no inn through T800,
+and the older paid-inn reference `golden:7` now returned the bell late at T71
+and found no subsequent inn through T1000. Those are negative observations,
+not proof that all campaigns lack inns. The first journey instead provides an
+actual solo recovery at T253: HP 11→42, MP 28 unchanged, gold 20 unchanged,
+XP 486 unchanged, and the same waiting road encounter afterward. D1b therefore
+also decorates that existing recovery, without creating extra actions or
+loosening recovery eligibility. The shared roadside predicates are extracted
+unchanged; no seed sweep or fabricated low-mana history supplies this acceptance.
 
 ### Original wider proposal — remaining future scope
 

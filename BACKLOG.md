@@ -6,8 +6,8 @@ The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
 active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
 encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
-delivery loop shipped in v0.5.162; its later rest callback is
-the next D1b follow-up, followed by further playable features
+delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection is
+in implementation for v0.5.163, followed by further playable features
 one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

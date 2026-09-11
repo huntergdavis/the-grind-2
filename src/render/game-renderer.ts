@@ -1140,7 +1140,8 @@ export class GameRenderer {
       "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
       "reparteeHeroPosition", "reparteeWitnessPosition"]) delete this.host.dataset[key];
     for (const key of ["bellPhase", "bellCommand", "bellInstance", "bellCell", "bellTurn", "bellRoll", "bellOutcome",
-      "bellPath", "bellSafeRect", "bellVisual", "bellHeroPosition", "bellKnownEffects"]) delete this.host.dataset[key];
+      "bellPath", "bellSafeRect", "bellVisual", "bellHeroPosition", "bellKnownEffects", "bellMemorySource",
+      "bellMemoryLocation", "bellMemoryInn", "bellMemoryRestKind", "bellCarried"]) delete this.host.dataset[key];
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -4698,10 +4699,67 @@ export class GameRenderer {
   }
 
   private drawBorrowedBell(state: WorldState, scene: BorrowedBellSceneView, palette: readonly [number, number, number]): void {
-    const board = scene.board;
     this.host.dataset.bellPhase = scene.phase;
     this.host.dataset.bellCommand = scene.commandId;
     this.host.dataset.bellInstance = scene.instanceId;
+    if (scene.phase === "memory") {
+      this.host.dataset.bellMemorySource = scene.memory.evidenceSourceCommandId;
+      this.host.dataset.bellMemoryLocation = scene.memory.rest.locationId;
+      this.host.dataset.bellMemoryRestKind = scene.memory.rest.kind;
+      this.host.dataset.bellCarried = "false";
+      this.host.dataset.bellHeroPosition = "124,143";
+      if (scene.memory.rest.kind === "inn") {
+        this.host.dataset.bellMemoryInn = scene.memory.rest.innId;
+        this.host.dataset.bellVisual = "actual-hero|actual-inn|paid-rest|remembered-bell|thought-bubble|no-board|no-die|no-new-reward";
+        this.worldLayer.addChild(rect(0, 0, 320, 180, 0x25282f), rect(0, 135, 320, 45, 0x514235));
+        this.worldLayer.addChild(rect(16, 0, 8, 135, 0x634c3b), rect(300, 0, 8, 135, 0x634c3b),
+          rect(16, 15, 292, 8, 0x634c3b), rect(0, 134, 320, 4, 0x947251));
+        for (const y of [151, 169]) this.worldLayer.addChild(rect(0, y, 320, 1, 0x705744));
+        this.worldLayer.addChild(new Graphics().roundRect(233, 33, 58, 67, 5).fill(0x9c7950)
+          .roundRect(239, 39, 46, 55, 3).fill(0x152a3c)
+          .circle(267, 53, 8).fill(0xdfdfc8)
+          .rect(260, 39, 3, 55).fill(0x9c7950).rect(239, 65, 46, 3).fill(0x9c7950));
+        this.worldLayer.addChild(new Graphics().roundRect(40, 117, 42, 19, 4).fill(0x9b795b)
+          .roundRect(43, 111, 15, 10, 3).fill(0xd3c1a4).rect(40, 135, 4, 9).fill(0x6a4c35)
+          .rect(78, 135, 4, 9).fill(0x6a4c35));
+        this.worldLayer.addChild(rect(108, 148, 32, 4, 0x9b795b), rect(111, 151, 4, 12, 0x6a4c35),
+          rect(133, 151, 4, 12, 0x6a4c35), rect(159, 131, 48, 5, 0xa27b51),
+          rect(164, 136, 4, 27, 0x725036), rect(198, 136, 4, 27, 0x725036));
+        this.worldLayer.addChild(new Graphics().roundRect(176, 120, 9, 11, 2).fill(0xd1b58b)
+          .moveTo(186, 122).arc(186, 125, 3, -Math.PI / 2, Math.PI / 2).stroke({ color: 0xd1b58b, width: 2 }));
+        this.lightLayer.addChild(circle(181, 124, 35, 0xefb772, 0.08));
+      } else {
+        this.host.dataset.bellVisual = "actual-hero|actual-roadside-camp|existing-recovery|remembered-bell|thought-bubble|no-board|no-die|no-new-reward";
+        this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172331), rect(0, 121, 320, 59, 0x334039));
+        this.worldLayer.addChild(circle(263, 31, 11, 0xc8d3c7, 0.88));
+        for (const [x, y] of [[28, 26], [94, 42], [143, 20], [215, 27], [301, 51]]) {
+          this.worldLayer.addChild(circle(x!, y!, 0.8, 0xd6ded3, 0.7));
+        }
+        this.worldLayer.addChild(new Graphics().moveTo(277, 121).bezierCurveTo(226, 132, 231, 157, 251, 180)
+          .lineTo(307, 180).bezierCurveTo(258, 158, 255, 138, 294, 121).closePath().fill(0x76654d));
+        for (const x of [30, 59, 296]) this.worldLayer.addChild(new Graphics().rect(x - 2, 75, 4, 58).fill(0x5a4938)
+          .poly([x - 17, 105, x, 52, x + 17, 105]).fill(0x29453e)
+          .poly([x - 14, 88, x, 37, x + 14, 88]).fill(0x34524a));
+        this.worldLayer.addChild(new Graphics().roundRect(105, 147, 36, 7, 3).fill(0x8b6547)
+          .ellipse(106, 150, 3, 4).fill(0xb78b62)
+          .moveTo(167, 151).lineTo(192, 155).moveTo(167, 155).lineTo(192, 150).stroke({ color: 0x987453, width: 4 })
+          .poly([170, 150, 178, 127, 190, 150]).fill(0xeaae64)
+          .poly([176, 150, 183, 136, 187, 150]).fill(0xffdfa1));
+        this.lightLayer.addChild(circle(181, 143, 40, 0xefb772, 0.13));
+      }
+      this.drawHero({ ...state, scene: { ...state.scene, mode: "camp" } }, 124, 143, palette, 1.2, scene.heroId, false);
+      // The delivered bell exists only inside a thought bubble, never in a hand
+      // or on the inn table. This is recollection, not a second expedition.
+      this.worldLayer.addChild(new Graphics().circle(141, 104, 3).fill({ color: 0xb5c4c8, alpha: 0.65 })
+        .circle(150, 96, 5).fill({ color: 0xb5c4c8, alpha: 0.65 })
+        .ellipse(182, 73, 34, 25).fill({ color: 0x9cb2bd, alpha: 0.15 })
+        .ellipse(182, 73, 34, 25).stroke({ color: 0xb5c4c8, width: 1.5, alpha: 0.75 })
+        .moveTo(174, 68).arc(182, 68, 8, Math.PI, 0).lineTo(193, 83).lineTo(171, 83).closePath()
+        .fill({ color: 0xd7c9a7, alpha: 0.8 }).circle(182, 87, 2).fill(0xd7c9a7)
+        .circle(182, 58, 3).stroke({ color: 0xd7c9a7, width: 1.5 }));
+      return;
+    }
+    const board = scene.board;
     this.host.dataset.bellCell = String(board.currentCell);
     this.host.dataset.bellTurn = String(scene.turn);
     this.host.dataset.bellRoll = scene.roll === null ? "unrolled" : String(scene.roll);
@@ -4765,7 +4823,7 @@ export class GameRenderer {
       this.host.dataset.bellHeroPosition = `${p.x},${heroY}`;
       this.drawHero(state, p.x, heroY, palette, 0.9, scene.heroId, false);
       const bellX = Math.min(309, p.x + 11), bellY = heroY - 13;
-      this.lightLayer.addChild(new Graphics().arc(bellX, bellY - 2, 5, Math.PI, 0).lineTo(bellX + 7, bellY + 6)
+      this.lightLayer.addChild(new Graphics().moveTo(bellX - 5, bellY - 2).arc(bellX, bellY - 2, 5, Math.PI, 0).lineTo(bellX + 7, bellY + 6)
         .lineTo(bellX - 7, bellY + 6).closePath().fill(0xdab565)
         .circle(bellX, bellY + 8, 1.5).fill(0xf6d487)
         .circle(bellX, bellY - 7, 2).stroke({ color: 0xf6d487, width: 1 }));

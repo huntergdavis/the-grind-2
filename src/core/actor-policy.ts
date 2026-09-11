@@ -7,6 +7,7 @@ import {
   scoreCounterDuelPrediction,
   selectTonicRestock,
   selectPaidInnRest,
+  selectBellDeliveryMemory,
 } from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { legalMillraceReversal } from "../depth/shared-opening";
@@ -382,6 +383,7 @@ function scoreCandidate(
     reason = "the road rival has declared a bounded Pattern Duel";
   } else if (command.type === "wait") {
     const innRest = selectPaidInnRest(state.depth);
+    const bellMemory = selectBellDeliveryMemory(state.depth);
     score = innRest !== null || state.depth.hero.resources.health < state.depth.hero.resources.maxHealth ? 100 : 5;
     reason = innRest !== null
       ? `${innRest.innName} restores depleted mana before the road for ${innRest.goldSpent} gold`
@@ -389,6 +391,7 @@ function scoreCandidate(
       && state.depth.hero.resources.health * 2 <= state.depth.hero.resources.maxHealth
       ? "full recovery is wiser than entering the unresolved road encounter at critical health"
       : "recovery is safer than an illegal or impossible move";
+    if (bellMemory !== null) reason += "; the already-needed rest leaves room for one private memory of the actual bell delivery";
   }
 
   return {
@@ -602,8 +605,8 @@ function presentationLabels(
     case "wait": {
       const innRest = selectPaidInnRest(state.depth);
       return innRest === null
-        ? { actionLabel: "recovers", targetLabel: state.scene.location }
-        : { actionLabel: "rests at an inn", targetLabel: `${innRest.innName} · gold ${innRest.goldBefore}→${innRest.goldAfter} · MP ${innRest.manaBefore}→${innRest.manaAfter}` };
+        ? { actionLabel: selectBellDeliveryMemory(state.depth) === null ? "recovers" : "recovers and remembers the bell", targetLabel: state.scene.location }
+        : { actionLabel: selectBellDeliveryMemory(state.depth) === null ? "rests at an inn" : "rests and remembers the bell", targetLabel: `${innRest.innName} · gold ${innRest.goldBefore}→${innRest.goldAfter} · MP ${innRest.manaBefore}→${innRest.manaAfter}` };
     }
   }
 }

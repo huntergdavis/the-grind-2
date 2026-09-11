@@ -2,6 +2,65 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## Remember the delivery — v0.5.163 implementation checkpoint
+
+D1b is in implementation, not yet publicly delivered. Recovery reused the
+committed D1b scope and actual `wait`/paid-rest/foreground callback patterns.
+`deja "Borrowed Bell paid inn recollection"` found no match; `deja "paid inn natural"`
+found this turn's negative probe, not a reusable positive. The older v0.5.142
+receipt in BACKLOG supplied the specific `golden:7` lead, but that old T73 inn
+does not prove a current post-delivery rest after intervening mechanics.
+
+Three reviewers own bounded memory rules, native presentation and acceptance.
+The initial inn-only rules (five tests), inn presentation (seven tests) and
+TypeScript checks passed. Natural acceptance then found no eligible post-board
+inn in two known campaigns: `shared-road-playful:7` through T800 and `golden:7`
+through T1000. No edited low-mana state is labelled a natural journey.
+
+One additional bounded continuation of the first seed found a genuine solo,
+living-hero critical recovery: admission T252, actual wait T253, HP 11→42,
+MP 28 unchanged, gold 20 unchanged, XP 486 unchanged, route location:9→location:1
+preserved; the same two-enemy road encounter follows. The slice is transparently
+refined to remember at either an already-needed inn or this existing recovery.
+The unchanged roadside predicates are extracted for shared use, not widened.
+The memory must add no action, cost, healing, XP, relationship or quest award.
+Final focused checks pass: six memory rules tests, eight campaign checks,
+eight presentation tests and 57 existing rest/policy/inbox/dwell regressions.
+The natural campaign proves the T253 recovery, exact saved receipt and ordinary
+next road combat; that next combat retains its existing eight XP, while the
+memory/rest itself grants zero. Production build, version, boundary and final
+TypeScript checks pass. An initial typecheck caught an acceptance-helper import
+being moved between files; the final build includes the corrected import.
+
+The unchanged local canonical run passed two tests and failed two: save/replay
+exceeded its original 20-second limit at 34.881 seconds; the ten-golden
+computation completed in 92.659 seconds and reported the expected old-anchor
+mismatch. Only the observed ten Depth 32 hashes and version comment were
+updated. No normalization or limit increase was made. Clean release CI must
+provide the final replay verdict. Browser acceptance and public verification
+remain pending.
+
+The first final-build browser test completed in 38.7 seconds (57.1-second
+runner), proving natural recovery, exact Journal/reload, normal-speed protection
+against a 60-second stale checkpoint, unchanged rewards and the same next road
+encounter. No page/console errors, model activity or external requests occurred.
+Direct screenshot review then caught a gold triangle from the scene origin to
+the remembered bell: its arc lacked an explicit starting point. This is not
+accepted as final visual evidence. `deja "canvas bell triangle path beginPath"`
+found no prior match; the correction follows the current drawing path itself.
+The original three screenshots are preserved separately from the pending
+corrected-build acceptance; no simulation rule or canonical anchor changes.
+
+The corrected production build passed, and its final browser acceptance passed
+in 38.9 seconds (52.6-second runner), under the unchanged 120-second cap. All
+three corrected desktop/320px/Focus screenshots were directly inspected: clean
+remembered bell, readable caption and unobscured hero/camp, with no new panel.
+The exact installed-Pixi path diagnostic reproduced the old origin-connected
+bounds and confirmed the explicit starting points for the thought bell and
+cup. The same correction also fixes the original board's carried-bell outline.
+This is renderer-only; simulation hashes and narrator workers remain unchanged.
+Clean release CI and public source verification are the remaining delivery steps.
+
 ## The Borrowed Bell — v0.5.162 final delivery
 
 **Live and publicly source-verified 2026-09-10 at 22:12:03 PDT.** Feature

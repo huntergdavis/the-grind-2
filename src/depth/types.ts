@@ -1205,8 +1205,9 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 31;
+  schemaVersion: 32;
   bellExpedition: import("./borrowed-bell").BellExpedition | null;
+  bellMemory: import("./borrowed-bell-memory").BellDeliveryMemory | null;
   repartee: import("./repartee").ReparteeProgress;
   reparteeWitness: import("./repartee-witness").ReparteeWitnessState;
   reparteeCallback: import("./repartee-memory").ReparteeCallback | null;

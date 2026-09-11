@@ -11,6 +11,7 @@ import { reparteeBook } from "../depth/repartee";
 import { isValidReparteeWitnessReaction, reparteeWitnessPreference } from "../depth/repartee-witness";
 import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 import { isValidCampaignBorrowedBell } from "../depth/borrowed-bell-campaign";
+import { bellDeliveryRestName, isValidBellDeliveryMemory } from "../depth/borrowed-bell-memory";
 
 export const maximumSpectatorMoments = 8;
 export const maximumSpectatorDetails = 8;
@@ -476,6 +477,16 @@ function reparteeDelta(before: WorldState, after: WorldState, source: ChronicleE
 function borrowedBellDelta(before: WorldState, after: WorldState, source: ChronicleEntry) {
   const board = after.depth.bellExpedition;
   if (board === null || source.tick !== after.tick || !isValidCampaignBorrowedBell(after.depth)) return null;
+  const memory = after.depth.bellMemory;
+  if (source.commandType === "wait" && source.mode === "chronicle" && before.depth.bellMemory === null && memory !== null
+    && memory.tick === source.tick && isValidBellDeliveryMemory(after.depth)
+    && before.depth.bellExpedition?.instanceId === memory.instanceId
+    && `${after.campaignId}:${memory.sourceCommandId}` === source.commandId) {
+    return { episodeId: `bell:${board.instanceId}`, title: "The bell remembered", status: "resolved" as const,
+      details: [`${after.hero.name}: “${memory.line}”`,
+        `A private recollection at ${bellDeliveryRestName(memory.rest)}; no companion witness or extra reward.`,
+        `Ordinary rest · gold ${memory.rest.goldBefore} → ${memory.rest.goldAfter} · HP ${memory.rest.healthBefore} → ${memory.rest.healthAfter} · MP ${memory.rest.manaBefore} → ${memory.rest.manaAfter}`] };
+  }
   const move = board.turns.at(-1), roll = board.pendingRoll;
   const start = source.commandType === "start-bell" && before.depth.bellExpedition === null
     && board.startedTick === source.tick && `${after.campaignId}:${board.sourceCommandId}` === source.commandId;

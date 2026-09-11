@@ -61,7 +61,7 @@ describe("Shared Road Oath lifecycle", () => {
     legacy.schemaVersion = 8;
     delete legacy.companions;
     const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-    expect(upgraded.schemaVersion).toBe(31);
+    expect(upgraded.schemaVersion).toBe(32);
     expect(upgraded.companions).toEqual({
       schemaVersion: 2,
       kitRulesVersion: "explicit-companion-kit-v1",

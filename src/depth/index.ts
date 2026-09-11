@@ -12,6 +12,7 @@ export * from "./repartee-witness";
 export * from "./repartee-memory";
 export * from "./borrowed-bell";
 export * from "./borrowed-bell-campaign";
+export * from "./borrowed-bell-memory";
 export * from "./dungeon";
 export * from "./quest-lead";
 export * from "./rpg";

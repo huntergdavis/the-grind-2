@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { advanceWorld } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
-import { bellDeadlineMarks, projectBorrowedBellScene } from "./borrowed-bell-view";
+import { naturalBorrowedBellMemoryFixture } from "../../tests/borrowed-bell-memory-fixtures";
+import { selectBellDeliveryMemory } from "../depth/borrowed-bell-memory";
+import { bellDeadlineMarks, projectBorrowedBellScene, type BorrowedBellBoardSceneView } from "./borrowed-bell-view";
 
 let actualJourney: readonly WorldState[] | undefined;
 function journey(): readonly WorldState[] {
@@ -17,12 +19,36 @@ function journey(): readonly WorldState[] {
   throw new Error("Actual Borrowed Bell journey did not finish within its finite action budget");
 }
 
+function boardScene(state: WorldState): BorrowedBellBoardSceneView {
+  const scene = projectBorrowedBellScene(state);
+  if (scene === null || scene.phase === "memory") throw new Error("Expected an actual Borrowed Bell board scene");
+  return scene;
+}
+
+/** Explicit service-boundary scenario, not a claimed natural autonomous rest.
+ * The hero, visited inn, completed board and delivery receipts are actual. Only
+ * the quiet low-mana boundary is staged; the paid wait and memory are real commands.
+ */
+function innMemoryScenario(locationId?: string): { before: WorldState; after: WorldState } {
+  const next = advanceWorld(journey().at(-1)!);
+  const before: WorldState = { ...next, depth: { ...next.depth,
+    atlas: { ...next.depth.atlas, currentLocationId: locationId ?? next.depth.atlas.currentLocationId, route: null },
+    hero: { ...next.depth.hero, resources: { ...next.depth.hero.resources,
+      health: next.depth.hero.resources.maxHealth - 1,
+      mana: Math.floor(next.depth.hero.resources.maxMana / 3) } },
+  } };
+  if (selectBellDeliveryMemory(before.depth) === null) throw new Error("Explicit paid-rest memory scenario is not eligible");
+  const after = advanceWorld(before);
+  if (after.depth.bellMemory === null) throw new Error("Actual wait did not commit the eligible inn memory");
+  return { before, after };
+}
+
 describe("Borrowed Bell presentation", () => {
   it("admits one actual hero with a public nine-cell graph and no invented die or hidden effects", () => {
     const [before, admitted] = journey() as readonly [WorldState, WorldState, ...WorldState[]];
     const original = JSON.stringify(admitted);
     expect(projectBorrowedBellScene(before)).toBeNull();
-    const scene = projectBorrowedBellScene(admitted)!;
+    const scene = boardScene(admitted);
     expect(scene.phase).toBe("admission");
     expect(scene.commandId).toBe(admitted.chronicle.at(-1)!.commandId);
     expect(scene.commandId).toBe(`${admitted.campaignId}:${admitted.depth.bellExpedition!.sourceCommandId}`);
@@ -48,7 +74,7 @@ describe("Borrowed Bell presentation", () => {
     let rolls = 0, moves = 0;
     for (let index = 2; index < states.length; index++) {
       const state = states[index]!, before = states[index - 1]!, expedition = state.depth.bellExpedition!;
-      const scene = projectBorrowedBellScene(state)!;
+      const scene = boardScene(state);
       expect(scene.commandId).toBe(state.chronicle.at(-1)!.commandId);
       expect(projectBorrowedBellScene(JSON.parse(JSON.stringify(state)))).toEqual(scene);
       if (expedition.pendingRoll !== null) {
@@ -81,7 +107,7 @@ describe("Borrowed Bell presentation", () => {
     }
     expect(rolls).toBeGreaterThan(0);
     expect(moves).toBe(rolls);
-    const final = states.at(-1)!, scene = projectBorrowedBellScene(final)!, completion = final.depth.bellExpedition!.completion!;
+    const final = states.at(-1)!, scene = boardScene(final), completion = final.depth.bellExpedition!.completion!;
     expect(scene.phase).toBe("result");
     expect(scene.board.outcome).toBe(completion.outcome);
     expect(scene.deadline).toContain(completion.bonusGold === 3 ? "+3 gold, once" : "no delivery bonus");
@@ -111,5 +137,100 @@ describe("Borrowed Bell presentation", () => {
     expect(bellDeadlineMarks(0)).toBe("[·] [·] [·] [·]");
     expect(bellDeadlineMarks(2)).toBe("[■] [■] [·] [·]");
     expect(bellDeadlineMarks(7)).toBe("[■] [■] [■] [■]");
+  });
+
+  it("projects the actual paid wait as a private inn memory, not another board or delivery reward", () => {
+    const { before, after } = innMemoryScenario();
+    const original = JSON.stringify(after), scene = projectBorrowedBellScene(after);
+    expect(scene?.phase).toBe("memory");
+    if (scene?.phase !== "memory") throw new Error("Missing actual inn memory");
+    const memory = after.depth.bellMemory!;
+    if (memory.rest.kind !== "inn") throw new Error("Explicit paid-rest scenario must remain an inn");
+    expect(scene.memory).toEqual(memory);
+    expect(scene.commandId).toBe(`${after.campaignId}:${memory.sourceCommandId}`);
+    expect(after.chronicle.at(-1)).toMatchObject({ commandType: "wait", mode: "chronicle", tick: memory.tick });
+    expect(scene.heroId).toBe(after.depth.hero.id);
+    expect(scene.narrative).toBe(memory.line);
+    expect(scene.title).toContain(memory.rest.innName);
+    expect(scene.title).toContain(after.depth.atlas.locations.find(location => location.id === memory.rest.locationId)!.name);
+    expect(scene.consequence).toContain("−5 gold");
+    expect(scene.consequence).toContain(`MP ${memory.rest.manaBefore} → ${memory.rest.manaAfter}`);
+    expect(scene).not.toHaveProperty("board");
+    expect(scene).not.toHaveProperty("roll");
+    expect(scene).not.toHaveProperty("path");
+    expect(scene.deadline).toBe("");
+    expect(after.depth.bellExpedition).toEqual(before.depth.bellExpedition);
+    expect(after.depth.hero.gold).toBe(before.depth.hero.gold - 5);
+    expect(after.depth.companions).toEqual(before.depth.companions);
+    expect(projectBorrowedBellScene(JSON.parse(original))).toEqual(scene);
+    expect(JSON.stringify(after)).toBe(original);
+  });
+
+  it("rejects stale, foreign, wrong-venue and invalid memory receipts without replaying the old board", () => {
+    const { after } = innMemoryScenario(), source = after.chronicle.at(-1)!, memory = after.depth.bellMemory!;
+    if (memory.rest.kind !== "inn") throw new Error("Explicit paid-rest scenario must remain an inn");
+    const variants: WorldState[] = [
+      { ...after, tick: after.tick + 1 },
+      { ...after, scene: { ...after.scene, mode: "town" } },
+      { ...after, chronicle: [{ ...source, mode: "town" }] },
+      { ...after, chronicle: [{ ...source, commandType: "move-bell" }] },
+      { ...after, chronicle: [{ ...source, commandId: memory.sourceCommandId }] },
+      { ...after, chronicle: [{ ...source, commandId: `foreign:${memory.sourceCommandId}` }] },
+      { ...after, depth: { ...after.depth, atlas: { ...after.depth.atlas, currentLocationId: "elsewhere" } } },
+      { ...after, depth: { ...after.depth, bellMemory: { ...memory, line: "An invented second reward" } } },
+      { ...after, depth: { ...after.depth, bellMemory: { ...memory, evidenceSourceCommandId: "unrelated" } } },
+      { ...after, depth: { ...after.depth, bellMemory: { ...memory, rest: { ...memory.rest, innId: "invented-inn" } } } },
+    ];
+    for (const variant of variants) expect(projectBorrowedBellScene(variant)).toBeNull();
+    const continued = advanceWorld(after);
+    expect(projectBorrowedBellScene(continued)).toBeNull();
+    expect(continued.depth.bellMemory).toEqual(memory);
+    expect(selectBellDeliveryMemory(continued.depth)).toBeNull();
+  });
+
+  it("allows the later paid inn to be in another recorded town and labels its public atlas location", () => {
+    const completed = journey().at(-1)!;
+    const other = Object.values(completed.depth.towns).find(town => town.visits >= 1
+      && town.locationId !== completed.depth.bellExpedition!.locationId
+      && town.buildings.some(building => building.kind === "inn"));
+    if (other === undefined) throw new Error("Actual journey did not retain its earlier visited inn town");
+    const { after } = innMemoryScenario(other.locationId), scene = projectBorrowedBellScene(after);
+    expect(scene?.phase).toBe("memory");
+    if (scene?.phase !== "memory") throw new Error("Other-town inn memory was incorrectly tied to the old board venue");
+    if (scene.memory.rest.kind !== "inn") throw new Error("Explicit other-town scenario must remain an inn");
+    const location = after.depth.atlas.locations.find(entry => entry.id === other.locationId)!;
+    expect(scene.memory.rest.locationId).not.toBe(after.depth.bellExpedition!.locationId);
+    expect(scene.locationName).toBe(location.name);
+    expect(scene.title).toBe(`${scene.memory.rest.innName} · ${location.name}`);
+  });
+
+  it("presents the naturally reached roadside recovery as a private memory without inventing an inn or charging gold", () => {
+    const before = naturalBorrowedBellMemoryFixture(), after = advanceWorld(before);
+    expect(before.tick).toBe(252);
+    expect(after.tick).toBe(253);
+    const scene = projectBorrowedBellScene(after), memory = after.depth.bellMemory!;
+    expect(scene?.phase).toBe("memory");
+    if (scene?.phase !== "memory" || memory.rest.kind !== "roadside") throw new Error("Missing natural roadside memory");
+    const rest = memory.rest;
+    const name = (id: string) => after.depth.atlas.locations.find(location => location.id === id)!.name;
+    expect(scene.title).toBe(`Roadside camp · ${name(rest.route.path[rest.route.legIndex]!)} → ${name(rest.route.path[rest.route.legIndex + 1]!)}`);
+    expect(scene.narrative).toBe(memory.line);
+    expect(scene.commandId).toBe(`${after.campaignId}:depth:253:critical-roadside-recovery`);
+    expect(scene.consequence).toBe("Camp recovery: HP 11 → 42 · MP 28 → 28 · gold 20, unchanged.");
+    expect(scene.title).not.toMatch(/inn/iu);
+    expect(scene).not.toHaveProperty("board");
+    expect(scene).not.toHaveProperty("roll");
+    expect(rest).not.toHaveProperty("innId");
+    expect(after.depth.atlas.route).toEqual(before.depth.atlas.route);
+    expect(after.depth.hero).toEqual({ ...before.depth.hero, resources: { ...before.depth.hero.resources,
+      health: before.depth.hero.resources.maxHealth, mana: before.depth.hero.resources.maxMana } });
+    expect(after.depth.companions).toEqual(before.depth.companions);
+    expect(after.depth.bellExpedition).toEqual(before.depth.bellExpedition);
+    expect(projectBorrowedBellScene(JSON.parse(JSON.stringify(after)))).toEqual(scene);
+    expect(projectBorrowedBellScene({ ...after, depth: { ...after.depth, atlas: { ...after.depth.atlas, route: null } } })).toBeNull();
+    const continued = advanceWorld(after);
+    expect(continued.chronicle.at(-1)!.commandType).toBe("start-combat");
+    expect(projectBorrowedBellScene(continued)).toBeNull();
+    expect(continued.depth.bellMemory).toEqual(memory);
   });
 });

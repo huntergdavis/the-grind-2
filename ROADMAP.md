@@ -5,7 +5,7 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next: D1b — Remember the delivery.** One private recollection during a later, genuinely eligible paid inn rest, grounded in the hero's exact board choices and result. Preserve the ordinary rest's cost/recovery; the memory grants nothing extra and invents no companion witness. Optional first-person rendering remains a later D2 experiment.
+1. **In implementation: D1b — Remember the delivery (v0.5.163).** One private recollection during a later, already-needed paid inn rest or solo critical roadside recovery, grounded in the hero's exact board choices and result. Preserve the ordinary rest's cost/recovery; the memory grants nothing extra and invents no companion witness. Optional first-person rendering remains a later D2 experiment.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -38,7 +38,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D1b — Remember the delivery** | One later eligible inn-rest recollection grounded in the completed board's actual choices and result | Next; no extra reward or invented companion witness |
+| **D1b — Remember the delivery** | One later real inn/camp recollection grounded in the completed board's actual choices and result | Implementing; no extra rest, reward or invented companion witness |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
 
 This is a proposed delivery sequence, not a combined release gate. Each
