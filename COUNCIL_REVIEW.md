@@ -4,6 +4,15 @@ Status: council reviews, latest update 2026-09-10
 
 ## Books & Flyting F1 — v0.5.159 implementation review
 
+The first clean-checkout Pages run,
+[34550519488](https://github.com/huntergdavis/the-grind-2/actions/runs/34550519488),
+completed the release test phase in 198.88 seconds: 3,461 passed, four failed and
+two explicitly opt-in long audits skipped, across 236 files. All four failures
+were in two additional Champion-presentation fixture helpers that assumed the
+next turn granted XP. The runtime correctly took a zero-XP book turn instead.
+Their follow-up repair completes the actual offered five-beat social arc before
+capturing the earned threshold; it changes no gameplay or presentation code.
+
 Three parallel owners reviewed/implemented rules, presentation and acceptance.
 The scope is one original book and a real three-round solo verbal contest, not
 a universal battle registry, expanded companion emotion system or new narrator.

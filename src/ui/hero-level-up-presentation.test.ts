@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { championExperienceFloorV1 } from "../core/champions";
 import { createHeroGrowthState } from "../core/hero-growth";
-import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
 import {
@@ -21,8 +21,25 @@ function withExperience(state: WorldState, experience: number): WorldState {
 }
 
 function earnedPacket(seed: string): HeroLevelUpPacketV2 {
-  const before = withExperience(createWorld(seed, `campaign:${seed}`), championExperienceFloorV1 - 1);
+  const created = createWorld(seed, `campaign:${seed}`);
+  const initial = campaignDirector(created).candidates.some((candidate) => candidate.command.type === "buy-disarming-kit")
+    ? advanceWorld(created) : created;
+  let before = withExperience(initial, championExperienceFloorV1 - 1);
+  if (campaignDirector(before).candidates[0]?.command.type === "read-book") {
+    // As in hero-level-up.test.ts, finish real zero-XP story actions first.
+    // The threshold must be earned after reading and the actual three replies.
+    for (const type of ["read-book", "start-repartee", "repartee-action", "repartee-action", "repartee-action"]) {
+      expect(campaignDirector(before).candidates.every((candidate) => candidate.command.type === type)).toBe(true);
+      const previous = before;
+      before = advanceWorld(before);
+      expect(before.hero.experience).toBe(previous.hero.experience);
+      expect(before.hero.level).toBe(previous.hero.level);
+    }
+    expect(before.depth.repartee.completed?.rounds).toHaveLength(3);
+  }
   const after = advanceWorld(before);
+  expect(after.hero.experience).toBe(before.hero.experience + 1);
+  expect(after.hero.level).toBe(1_000);
   const source = after.chronicle.at(-1);
   if (source === undefined) throw new Error("Maximum-level fixture produced no Chronicle entry");
   const packet = projectHeroLevelUpPacketV2(before, after, source);

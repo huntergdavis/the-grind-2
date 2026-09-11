@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { championExperienceFloorV1 } from "../core/champions";
 import { createHeroGrowthState } from "../core/hero-growth";
-import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "../core/simulation";
 import { monsterDefinitions } from "../depth/combat";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { abilityExperienceFloor, heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
@@ -49,14 +49,28 @@ function championFixture(seed: string) {
   const experience = championExperienceFloorV1 - 1;
   const level = heroLevelForExperience(experience);
   const depthHero = { ...initial.depth.hero, experience, level };
-  const before = upgradeWorldState({
+  let before = upgradeWorldState({
     ...initial,
     hero: { ...initial.hero, experience, level, mastery: heroMasteryForExperience(experience) },
     depth: { ...initial.depth, hero: depthHero, heroGrowth: createHeroGrowthState(depthHero) },
   });
+  if (campaignDirector(before).candidates[0]?.command.type === "read-book") {
+    // Complete the genuine zero-XP social arc before isolating the earned
+    // Champion crossing; the registry must never animate a fabricated reward.
+    for (const type of ["read-book", "start-repartee", "repartee-action", "repartee-action", "repartee-action"]) {
+      expect(campaignDirector(before).candidates.every((candidate) => candidate.command.type === type)).toBe(true);
+      const previous = before;
+      before = advanceWorld(before);
+      expect(before.hero.experience).toBe(previous.hero.experience);
+      expect(before.hero.level).toBe(previous.hero.level);
+    }
+    expect(before.depth.repartee.completed?.rounds).toHaveLength(3);
+  }
   const after = advanceWorld(before);
   const source = after.chronicle.at(-1);
   if (source === undefined) throw new Error("Champion registry fixture produced no Chronicle source");
+  expect(after.hero.experience).toBe(before.hero.experience + 1);
+  expect(after.hero.experience).toBe(championExperienceFloorV1);
   const maximumPacket = projectHeroLevelUpPacketV2(before, after, source);
   if (maximumPacket === null) throw new Error("Champion registry fixture produced no V2 packet");
   return { before, after, source, packet: maximumPacket };
