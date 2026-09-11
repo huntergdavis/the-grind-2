@@ -34,26 +34,26 @@ pass; [CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34656637066)
 passes 3,819 tests in 293 files with two optional skips. Complete public HTML,
 three assets and eight source entries match `9e83634`. No new model or scheduler.
 
-### Next proposal: News from the oven
+## News from the oven — v0.5.180
 
-A later actual reunion could let this same baker report the exact completed
-bake to the hero. That report must be a newly committed exchange referencing
-the earlier attempt and outcome, not automatic hero knowledge from a cutaway.
-Preserve earlier witnessed-memory dialogue and old completed greetings. Do not
-invent bread delivery, eating, admiration, reward or a journey home. This
-follow-on is not implemented by v0.5.179.
+Implemented, in verification; not yet a verified release. A newly earned
+matching reunion lets the former baker report the actual completed loaf.
+The report references its exact bake event, command and tick, and the new
+reunion supplies the separate source for telling the hero. Matching resident,
+oath, farewell and town are required; baking must finish before actual arrival.
 
-The 2026-09-11 read-only council recommends an optional versioned
-`completed.ovenReport` created only by the existing newly committed reunion.
-It references the exact loaf ID and completed event/command/tick, outcome and
-one short authored report line. The reunion and loaf must agree on resident,
-oath, farewell and town; the bake must precede the actual reunion arrival.
-Keep existing `heroLine`, `companionLine` and witnessed `memory` unchanged,
-appending the report separately in the existing caption and Company details.
-Do not expose the private oven roll or modify the loaf. Loading old completed
-greetings must leave report absence intact, and durable proof must survive
-Chronicle pruning. The next slice still needs its own actual source journey
-and verification; this review adds no report or new runtime behavior.
+Existing greetings and witnessed-memory dialogue stay intact. A separate
+short line brings news of a plain, unexpectedly good or bricklike loaf, with
+authored dry humor appropriate to that outcome. The existing two-person scene,
+caption, adventure log and collapsed Company history carry the exchange.
+No new command, timer, panel, bread delivery, eating, reward, admiration or LLM
+request is added. The private oven roll is not exposed. Old completed greetings
+remain report-free on load; retained proof does not depend on Chronicle length.
+
+The unchanged known journey establishes Ada's bake T74, actual return T85,
+reunion T86 and ordinary route planning T87 in 3.409 seconds. Original full-state
+hashes and dialogue were captured before implementation, including exact reload.
+Final verification evidence will be recorded in the council release receipt.
 
 ## F2b shipped scope — a shared memory before parting
 

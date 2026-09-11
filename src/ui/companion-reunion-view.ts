@@ -1,5 +1,5 @@
 import type { WorldState } from "../core/types";
-import { isValidCampaignCompanionReunion, type CompanionReunionMemory } from "../depth/companion-reunion";
+import { isValidCampaignCompanionReunion, type CompanionReunionMemory, type CompanionReunionOvenReport } from "../depth/companion-reunion";
 import type { ReparteeContestSceneView } from "./repartee-view";
 
 export interface CompanionReunionSceneView extends Omit<ReparteeContestSceneView, "phase" | "buildingId" | "buildingName" | "bookId" | "momentum"> {
@@ -13,6 +13,7 @@ export interface CompanionReunionSceneView extends Omit<ReparteeContestSceneView
   readonly departureTick: number;
   readonly sharedVictories: number;
   readonly memory?: Readonly<CompanionReunionMemory>;
+  readonly ovenReport?: Readonly<CompanionReunionOvenReport>;
   readonly buildingId: null;
   readonly buildingName: null;
   readonly bookId: null;
@@ -44,6 +45,7 @@ export function projectCompanionReunionScene(state: WorldState): CompanionReunio
   const location = state.depth.atlas.locations.find((entry) => entry.id === reunion.locationId && entry.kind === "town");
   if (former === undefined || location === undefined || !state.depth.atlas.discoveredLocationIds.includes(location.id)) return null;
   const memory = reunion.completed.memory;
+  const ovenReport = reunion.completed.ovenReport;
   return Object.freeze({
     phase: "reunion", reunionId: reunion.completed.sourceCommandId,
     commandId: source.commandId, tick: source.tick, heroId: reunion.heroId, heroName: state.hero.name,
@@ -52,6 +54,12 @@ export function projectCompanionReunionScene(state: WorldState): CompanionReunio
     arrivalSourceCommandId: reunion.arrival.sourceCommandId, arrivalTick: reunion.arrival.tick,
     departureTick: reunion.departureTick, sharedVictories: reunion.sharedVictories,
     ...(memory === undefined ? {} : { memory: Object.freeze({ ...memory }) }),
+    ...(ovenReport === undefined ? {} : { ovenReport: Object.freeze({
+      schemaVersion: ovenReport.schemaVersion, rulesVersion: ovenReport.rulesVersion,
+      loafId: ovenReport.loafId, sourceCompletionEventId: ovenReport.sourceCompletionEventId,
+      sourceCompletionCommandId: ovenReport.sourceCompletionCommandId,
+      sourceCompletionTick: ovenReport.sourceCompletionTick, outcome: ovenReport.outcome, line: ovenReport.line,
+    }) }),
     buildingId: null, buildingName: null, bookId: null, residentId: null, residentName: null,
     title: `${memory === undefined ? "A familiar face" : "An old line returns"} · ${location.name}`,
     call: reunion.completed.heroLine, reply: reunion.completed.companionLine,
@@ -66,6 +74,7 @@ export function createCompanionReunionRecord(doc: Document, state: WorldState, r
   if (reunion === null || reunion.completed === null || reunion.residentId !== residentId || reunion.joinedTick !== joinedTick
     || state.hero.id !== state.depth.hero.id || !isValidCampaignCompanionReunion(state.depth)) return null;
   const memory = reunion.completed.memory;
+  const ovenReport = reunion.completed.ovenReport;
   const location = state.depth.atlas.locations.find((entry) => entry.id === reunion.locationId);
   const sourceLocation = state.depth.atlas.locations.find((entry) => entry.id === reunion.arrival.sourceLocationId);
   const record = doc.createElement("details");
@@ -109,6 +118,18 @@ export function createCompanionReunionRecord(doc: Document, state: WorldState, r
     record.append(remembered,
       paragraph(`Original witnessed opinion, unchanged: ${memory.pose}; regard ${memory.regardAfter > 0 ? "+" : ""}${memory.regardAfter}. Original contest outcome: ${memory.outcome}. No new contest, regard or reward.`),
       paragraph(`Witness ${memory.witnessId}, oath joined T${memory.joinedTick}, hero ${memory.heroId}. Encounter ${memory.encounterId}. Reaction ${memory.sourceReactionId} at T${memory.sourceReactionTick}: ${memory.sourceReactionCommandId}. Exact reply source: ${memory.evidenceSourceCommandId}; round index ${memory.evidenceRoundIndex}. Memory rules ${memory.rulesVersion}.`, true));
+  }
+  if (ovenReport !== undefined) {
+    record.dataset.ovenReport = ovenReport.loafId;
+    record.dataset.bakeEvent = ovenReport.sourceCompletionEventId;
+    record.dataset.bakeSource = ovenReport.sourceCompletionCommandId;
+    record.dataset.reportSource = reunion.completed.sourceCommandId;
+    const reportLine = line(reunion.residentId, reunion.companionName, ovenReport.line);
+    reportLine.classList.add("reunion-oven-report");
+    reportLine.dataset.ovenReport = ovenReport.loafId;
+    record.append(reportLine,
+      paragraph(`Bake completed T${ovenReport.sourceCompletionTick}: ${ovenReport.outcome}. NPC event: ${ovenReport.sourceCompletionEventId}. Trigger command: ${ovenReport.sourceCompletionCommandId}.`, true),
+      paragraph(`Reported at reunion T${reunion.completed.tick}: ${reunion.completed.sourceCommandId}. Report rules ${ovenReport.rulesVersion}. This is news of the recorded bake, not bread delivered or a new reward.`, true));
   }
   return record;
 }

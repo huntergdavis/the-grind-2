@@ -1646,7 +1646,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
     case "reunite-companion": {
       const companionReunion = stepCampaignCompanionReunion(input, command), completed = companionReunion.completed!;
       return appendLog({ ...state, companionReunion }, "town",
-        `${input.hero.name}: “${completed.heroLine}” ${companionReunion.companionName}: “${completed.companionLine}” The old oath remains fulfilled; this hello earns no reward.`);
+        `${input.hero.name}: “${completed.heroLine}” ${companionReunion.companionName}: “${completed.companionLine}”${completed.ovenReport === undefined ? "" : ` ${companionReunion.companionName}: “${completed.ovenReport.line}”`} The old oath remains fulfilled; this hello earns no reward.`);
     }
     case "start-room-challenge":
     case "answer-room-challenge": {

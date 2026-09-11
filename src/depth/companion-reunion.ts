@@ -1,5 +1,6 @@
 import { advanceRoute, planRoute } from "./atlas";
 import { isValidCompanionReferences, isValidFormerCompanion } from "./companion";
+import { isValidCampaignElsewhereLoaf, type ElsewhereLoafOutcome } from "./elsewhere-loaf";
 import { isValidCampaignRepartee } from "./repartee-campaign";
 import type { ReparteeWitnessReaction } from "./repartee-witness";
 import { selectPaidInnRest } from "./town-rest";
@@ -23,6 +24,18 @@ export interface CompanionReunionMemory {
   readonly pose: ReparteeWitnessReaction["pose"];
   readonly outcome: ReparteeWitnessReaction["outcome"];
   readonly regardAfter: ReparteeWitnessReaction["regardAfter"];
+}
+
+/** News is learned only in this newly committed reunion, not from seeing the earlier cutaway. */
+export interface CompanionReunionOvenReport {
+  readonly schemaVersion: 1;
+  readonly rulesVersion: "reunion-oven-report-v1";
+  readonly loafId: string;
+  readonly sourceCompletionEventId: string;
+  readonly sourceCompletionCommandId: string;
+  readonly sourceCompletionTick: number;
+  readonly outcome: ElsewhereLoafOutcome;
+  readonly line: string;
 }
 
 export interface CompanionReunion {
@@ -51,6 +64,8 @@ export interface CompanionReunion {
     readonly companionLine: string;
     /** Absent on released greetings; loading a save never invents a remembered conversation. */
     readonly memory?: CompanionReunionMemory;
+    /** Separate spoken news; earlier greetings and remembered dialogue are never rewritten. */
+    readonly ovenReport?: CompanionReunionOvenReport;
   } | null;
 }
 type ReunionCommand = Extract<DepthCommand, { type: "reunite-companion" }>;
@@ -109,6 +124,30 @@ export function companionReunionMemoryLines(memory: Pick<CompanionReunionMemory,
   };
   if (!Object.hasOwn(replies, memory.sourceReactionId)) throw new TypeError("Unknown remembered witness reaction");
   return { heroLine: `I brought an old line back with me: “${memory.quote}”`, companionLine: replies[memory.sourceReactionId]! };
+}
+
+/** Authored report copy only; the campaign helper proves the actual bake and speakers. */
+export function companionReunionOvenReportLine(outcome: ElsewhereLoafOutcome, innName: string): string {
+  const opening = `I baked at ${innName}.`;
+  switch (outcome) {
+    case "plain-loaf": return `${opening} An ordinary loaf. Lunch need not be ambitious.`;
+    case "unexpected-delight": return `${opening} The experiment rose higher than planned.`;
+    case "bricklike-loaf": return `${opening} Excellent load-bearing properties.`;
+    default: throw new TypeError("Unknown reported loaf outcome");
+  }
+}
+
+function ovenReport(state: DepthState, reunion: CompanionReunion): CompanionReunionOvenReport | null {
+  const loaf = state.elsewhereLoaf;
+  if (loaf === undefined || !isValidCampaignElsewhereLoaf(state) || loaf.completion === null
+    || loaf.heroId !== reunion.heroId || loaf.residentId !== reunion.residentId || loaf.companionName !== reunion.companionName
+    || loaf.joinedTick !== reunion.joinedTick || loaf.departureTick !== reunion.departureTick || loaf.locationId !== reunion.locationId
+    || loaf.completion.tick >= reunion.arrival.tick) return null;
+  const completed = loaf.completion;
+  return { schemaVersion: 1, rulesVersion: "reunion-oven-report-v1", loafId: loaf.id,
+    sourceCompletionEventId: completed.eventId, sourceCompletionCommandId: completed.triggerCommandId,
+    sourceCompletionTick: completed.tick, outcome: completed.outcome,
+    line: companionReunionOvenReportLine(completed.outcome, loaf.innName) };
 }
 
 function witnessedMemory(state: DepthState, reunion: CompanionReunion): CompanionReunionMemory | null {
@@ -216,7 +255,7 @@ export function isValidCampaignCompanionReunion(state: DepthState): boolean {
     const replay = advanceRoute({ ...state.atlas, currentLocationId: arrival.sourceLocationId, route }, arrival.distance);
     if (replay.route !== null || replay.currentLocationId !== reunion.locationId) return false;
     if (reunion.completed !== null) {
-      const completed = reunion.completed, hasMemory = Object.hasOwn(completed, "memory");
+      const completed = reunion.completed, hasMemory = Object.hasOwn(completed, "memory"), hasOvenReport = Object.hasOwn(completed, "ovenReport");
       let lines = companionReunionLines(reunion.sharedVictories);
       if (hasMemory) {
         const expected = witnessedMemory(state, reunion), memory: unknown = completed.memory;
@@ -224,7 +263,12 @@ export function isValidCampaignCompanionReunion(state: DepthState): boolean {
           || !Object.entries(expected).every(([key, value]) => memory[key] === value)) return false;
         lines = companionReunionMemoryLines(expected);
       }
-      if (!keys(completed, ["sourceCommandId", "tick", "heroLine", "companionLine", ...(hasMemory ? ["memory"] : [])]) || !integer(completed.tick, 1)
+      if (hasOvenReport) {
+        const expected = ovenReport(state, reunion), report: unknown = completed.ovenReport;
+        if (expected === null || !keys(report, Object.keys(expected))
+          || !Object.entries(expected).every(([key, value]) => report[key] === value)) return false;
+      }
+      if (!keys(completed, ["sourceCommandId", "tick", "heroLine", "companionLine", ...(hasMemory ? ["memory"] : []), ...(hasOvenReport ? ["ovenReport"] : [])]) || !integer(completed.tick, 1)
         || completed.tick <= arrival.tick || completed.tick > state.tick
         || completed.sourceCommandId !== companionReunionCommandId(completed.tick, { type: "reunite-companion", residentId: reunion.residentId, joinedTick: reunion.joinedTick, arrivalTick: arrival.tick })
         || completed.heroLine !== lines.heroLine || completed.companionLine !== lines.companionLine) return false;
@@ -241,10 +285,11 @@ export function selectCompanionReunion(state: DepthState): NonNullable<Companion
   if (reunion === null || reunion.completed !== null || !integer(state.tick) || state.tick >= Number.MAX_SAFE_INTEGER
     || !isValidCampaignCompanionReunion(state) || !quietSolo(state) || selectPaidInnRest(state) !== null) return null;
   const atTick = state.tick + 1;
-  const memory = witnessedMemory(state, reunion);
+  const memory = witnessedMemory(state, reunion), report = ovenReport(state, reunion);
   return { sourceCommandId: companionReunionCommandId(atTick, { type: "reunite-companion", residentId: reunion.residentId,
     joinedTick: reunion.joinedTick, arrivalTick: reunion.arrival.tick }), tick: atTick,
-    ...(memory === null ? companionReunionLines(reunion.sharedVictories) : { memory, ...companionReunionMemoryLines(memory) }) };
+    ...(memory === null ? companionReunionLines(reunion.sharedVictories) : { memory, ...companionReunionMemoryLines(memory) }),
+    ...(report === null ? {} : { ovenReport: report }) };
 }
 
 export function stepCampaignCompanionReunion(state: DepthState, command: ReunionCommand): CompanionReunion {

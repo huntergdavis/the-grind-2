@@ -38,8 +38,8 @@ Browser acceptance, CI and public-source verification pass; old greetings remain
 unchanged. **Elsewhere: The Experimental Loaf (v0.5.179)** is live: one
 recorded former-baker activity at a supplied inn worksite, a compact NPC-only
 cutaway and permanent Company history. Browser, CI and public-source
-verification pass. **News from the oven**, a source-bound reunion report,
-is the next separate, unimplemented proposal.
+verification pass. **News from the oven (v0.5.180)**, a source-bound reunion
+report, is implemented and entering verification; it is not yet a verified release.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.

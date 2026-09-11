@@ -3,7 +3,8 @@ import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, campaignDirector, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
 import { projectCompanionReunionScene } from "../src/ui/companion-reunion-view";
-import { naturalReunionWitnessMemoryFixture, releasedCompanionReunionFixture, reunionWitnessMemoryCampaignId } from "./reunion-witness-memory-fixtures";
+import { releasedCompanionReunionFixture } from "./reunion-witness-memory-fixtures";
+import { naturalOvenReportFixture, releasedOvenReportBaselineFixture, ovenReportCampaignId as reunionWitnessMemoryCampaignId } from "./oven-report-fixtures";
 
 async function installDurableFixture(page: Page, world: WorldState): Promise<void> {
   // Existing IndexedDB save seam. Restore the actual unchanged T85 arrival;
@@ -62,7 +63,7 @@ async function pausedSave(page: Page, afterTick?: number): Promise<string> {
   return page.evaluate(({ id, tick }) => new Promise<string>((resolve, reject) => {
     const app = document.querySelector<HTMLElement>("#app")!, button = document.querySelector<HTMLButtonElement>("#pause-button")!;
     let requested = false;
-    const timeout = window.setTimeout(() => { window.clearInterval(poll); reject(new Error("Witness-memory turn did not settle within20 seconds")); }, 20_000);
+    const timeout = window.setTimeout(() => { window.clearInterval(poll); reject(new Error("Oven-report turn did not settle within20 seconds")); }, 20_000);
     const poll = window.setInterval(() => {
       if (document.documentElement.dataset.ready !== "true") return;
       const raw = sessionStorage.getItem(`the-grind-2:campaign:${id}`);
@@ -81,13 +82,15 @@ function olderStories(world: WorldState): string {
 }
 
 async function proveReunion(page: Page, world: WorldState): Promise<void> {
-  const reunion = world.depth.companionReunion!, completed = reunion.completed!;
+  const reunion = world.depth.companionReunion!, completed = reunion.completed!, report = completed.ovenReport!;
   const location = world.depth.atlas.locations.find(entry => entry.id === reunion.locationId)!;
   await expect.poll(async () => page.evaluate(() => {
     const caption = document.querySelector<HTMLElement>("#repartee-caption")!, stage = document.querySelector<HTMLElement>("#stage")!;
     return { hidden: caption.hidden, caption: { ...caption.dataset }, stage: { ...stage.dataset },
       title: caption.querySelector("h2")?.textContent, note: caption.querySelector(".repartee-note")?.textContent,
       lines: [...caption.querySelectorAll<HTMLElement>(".reunion-line")].map(line => ({ speaker: line.dataset.speaker, text: line.textContent })),
+      report: (() => { const node = caption.querySelector<HTMLElement>(".reunion-oven-report");
+        return node === null ? null : { text: node.textContent, data: { ...node.dataset } }; })(),
       noContest: ["book", "round", "momentum", "outcome", "witness", "reaction", "regard", "score", "encore"].every(key => !(key in caption.dataset)),
       marks: caption.querySelectorAll(".repartee-marks, [data-result-marker]").length,
       noActiveCompanion: document.querySelector<HTMLElement>("#stage-focus-ribbon")?.dataset.partySize === "1" };
@@ -101,6 +104,9 @@ async function proveReunion(page: Page, world: WorldState): Promise<void> {
     note: completed.memory === undefined ? "Two roads cross again." : "Some words travel with you.",
     lines: [{ speaker: reunion.heroId, text: `${world.hero.name}: ${completed.heroLine}` },
       { speaker: reunion.residentId, text: `${reunion.companionName}: ${completed.companionLine}` }],
+    report: { text: `${reunion.companionName}: ${report.line}`, data: { speaker: reunion.residentId,
+      ovenReport: report.loafId, bakeEvent: report.sourceCompletionEventId, bakeSource: report.sourceCompletionCommandId,
+      reportSource: `${world.campaignId}:${completed.sourceCommandId}` } },
     noContest: true, marks: 0, noActiveCompanion: true,
   });
   await expect.poll(async () => page.evaluate(() => {
@@ -160,6 +166,8 @@ async function proveCompanyJournal(page: Page, world: WorldState): Promise<void>
   expect(journal).toMatchObject({ visible: true, records: 1,
     data: { campaign: world.campaignId, companionReunion: completed.sourceCommandId, command: completed.sourceCommandId,
       companion: reunion.residentId, joinedTick: String(reunion.joinedTick), location: reunion.locationId, arrivalSource: reunion.arrival.sourceCommandId,
+      ovenReport: completed.ovenReport!.loafId, bakeEvent: completed.ovenReport!.sourceCompletionEventId,
+      bakeSource: completed.ovenReport!.sourceCompletionCommandId, reportSource: completed.sourceCommandId,
       memoryRule: memory.rulesVersion, memoryReaction: memory.sourceReactionCommandId,
       memoryEvidence: memory.evidenceSourceCommandId, memoryRegard: String(memory.regardAfter) },
     lines: [{ speaker: reunion.heroId, text: `${world.hero.name}: ${completed.heroLine}` },
@@ -173,15 +181,19 @@ async function proveCompanyJournal(page: Page, world: WorldState): Promise<void>
     `Reaction ${memory.sourceReactionId} at T${memory.sourceReactionTick}`,
     `round index ${memory.evidenceRoundIndex}`, `regard ${memory.regardAfter}`,
     `Original contest outcome: ${memory.outcome}`, "No new contest, regard or reward."]) expect(journal.text).toContain(text);
+  for (const text of [completed.ovenReport!.line, completed.ovenReport!.sourceCompletionEventId,
+    completed.ovenReport!.sourceCompletionCommandId, "Bake completed T74:", "Reported at reunion T86:",
+    "not bread delivered or a new reward"]) expect(journal.text).toContain(text);
+  expect(journal.text).not.toContain("ovenRoll");
   expect(journal.formerText).toContain(reunion.companionName);
   expect(journal.text).toContain(world.depth.atlas.locations.find(location => location.id === reunion.locationId)!.name);
   expect(journal.text).toContain(world.depth.atlas.locations.find(location => location.id === reunion.arrival.sourceLocationId)!.name);
   await page.evaluate(() => document.querySelector<HTMLButtonElement>('#view-toolbar [data-view="watch"]')!.click());
 }
 
-test("the same former companion remembers an exact witnessed line without changing the old opinion", async ({ page }, testInfo) => {
-  test.setTimeout(100_000);
-  const startedAt = Date.now(), { before, completed: world, next } = naturalReunionWitnessMemoryFixture();
+test("the same baker reports a real completed loaf without rewriting the old witnessed conversation", async ({ page }, testInfo) => {
+  test.setTimeout(150_000);
+  const startedAt = Date.now(), { before, completed: world, next } = naturalOvenReportFixture();
   const reunion = world.depth.companionReunion!, completed = reunion.completed!, memory = completed.memory!;
   const reaction = before.depth.reparteeWitness.reaction!, evidence = reaction.evidence!;
   const errors: string[] = [], inference: string[] = [], external: string[] = [];
@@ -197,7 +209,7 @@ test("the same former companion remembers an exact witnessed line without changi
     const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23", timeZoneName: "short" }).formatToParts(new Date()).map(part => [part.type, part.value]));
     console.log("[" + p.year + "-" + p.month + "-" + p.day + " " + p.hour + ":" + p.minute + ":" + p.second + " " + p.timeZoneName
-      + "] Reunion memory +" + ((Date.now() - startedAt) / 1000).toFixed(1) + "s: " + message);
+      + "] Oven report +" + ((Date.now() - startedAt) / 1000).toFixed(1) + "s: " + message);
   };
   const capture = async (name: string): Promise<void> => {
     if (process.env.TG2_VISUAL_CAPTURE !== "1") return;
@@ -225,6 +237,15 @@ test("the same former companion remembers an exact witnessed line without changi
     expect(completed.companionLine).toBe("It is exactly as I remember. I am still not sure what to make of it.");
     expect(before.depth.reparteeCallback).toMatchObject({ tick: 44, sourceReactionTick: 32,
       witnessId: reunion.residentId, joinedTick: 28, rememberedReply: memory.rememberedReply });
+    const loaf = before.depth.elsewhereLoaf!, report = completed.ovenReport!;
+    expect(report).toEqual({ schemaVersion: 1, rulesVersion: "reunion-oven-report-v1", loafId: loaf.id,
+      sourceCompletionEventId: loaf.completion!.eventId, sourceCompletionCommandId: loaf.completion!.triggerCommandId,
+      sourceCompletionTick: 74, outcome: "plain-loaf", line: "I baked at The Candle Inn. An ordinary loaf. Lunch need not be ambitious." });
+    expect(loaf.completion!.tick).toBeLessThan(reunion.arrival.tick);
+    expect(report).not.toHaveProperty("ovenRoll");
+    expect(world.depth.elsewhereLoaf).toEqual(loaf);
+    expect(world.scene.action).toContain(report.line);
+    expect(world.depth.log.at(-1)!.message).toContain(report.line);
     expect(world.depth.hero).toEqual(before.depth.hero);
     expect(world.hero).toEqual(before.hero);
     for (const key of ["atlas", "towns", "companions", "quest", "completedQuests", "pendingQuestReward", "completedCombats",
@@ -240,6 +261,12 @@ test("the same former companion remembers an exact witnessed line without changi
     expect(canonicalHash(old)).toBe("d9cce50f7bc14aa8");
     expect(old.depth.companionReunion!.completed).not.toHaveProperty("memory");
     expect(projectCompanionReunionScene(old)!.title).toBe("A familiar face · Elderwatch");
+    expect(old.depth.companionReunion!.completed).not.toHaveProperty("ovenReport");
+    const priorGreeting = releasedOvenReportBaselineFixture();
+    expect(canonicalHash(priorGreeting)).toBe("195410d557c0b9dc");
+    expect(priorGreeting.depth.elsewhereLoaf!.completion!.tick).toBe(74);
+    expect(priorGreeting.depth.companionReunion!.completed).not.toHaveProperty("ovenReport");
+    expect(projectCompanionReunionScene(priorGreeting)).not.toHaveProperty("ovenReport");
 
     await installDurableFixture(page, before);
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -253,17 +280,17 @@ test("the same former companion remembers an exact witnessed line without changi
     const completedRaw = await pausedSave(page, before.tick);
     expect(JSON.parse(completedRaw)).toEqual(world);
     expect(canonicalStringify(await durableSave(page))).toBe(canonicalStringify(world));
-    await proveReunion(page, world); await capture("reunion-memory-1280");
+    await proveReunion(page, world); await capture("oven-report-1280");
     await proveCompanyJournal(page, world);
     await page.setViewportSize({ width: 320, height: 568 });
-    await proveReunion(page, world); await capture("reunion-memory-320");
+    await proveReunion(page, world); await capture("oven-report-320");
     await page.locator("#stage-focus-button").click();
     await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
-    await proveReunion(page, world); await capture("reunion-memory-320-focus");
+    await proveReunion(page, world); await capture("oven-report-320-focus");
     expect(await pausedSave(page)).toBe(completedRaw);
     await page.keyboard.press("Escape");
     await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "panels");
-    milestone("actual Ada remembers the exact T32 line; neutral opinion, T44 callback and former oath stay unchanged");
+    milestone("actual Ada reports her T74 plain loaf at the T86 reunion; original T32 dialogue, neutral judgment and T44 callback remain unchanged");
 
     await page.reload({ timeout: 25_000 });
     expect(await pausedSave(page)).toBe(completedRaw);
@@ -279,10 +306,10 @@ test("the same former companion remembers an exact witnessed line without changi
     await expect(page.locator("#repartee-caption")).toBeHidden();
     await proveCompanyJournal(page, next);
     expect(errors).toEqual([]); expect(inference).toEqual([]); expect(external).toEqual([]);
-    milestone("exact reload keeps one reunion; ordinary next command clears Watch while Company retains all original sources");
+    milestone("exact reload retains one report; ordinary T87 route clears Watch while Company keeps distinct bake and reunion sources");
   } finally {
-    await testInfo.attach("Reunion memory actual source diagnostics", { body: JSON.stringify({ errors, inference, external,
-      ticks: [before.tick, world.tick, next.tick], commandId: completed.sourceCommandId,
-      nextCommand: next.chronicle.at(-1)!.commandType, memory, elapsedMs: Date.now() - startedAt }, null, 2), contentType: "application/json" });
+    await testInfo.attach("Oven report actual source diagnostics", { body: JSON.stringify({ errors, inference, external,
+      ticks: [before.tick, world.tick, next.tick], hashes: [before, world, next].map(canonicalHash), commandId: completed.sourceCommandId,
+      nextCommand: next.chronicle.at(-1)!.commandType, memory, ovenReport: completed.ovenReport, elapsedMs: Date.now() - startedAt }, null, 2), contentType: "application/json" });
   }
 });

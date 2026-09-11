@@ -84,7 +84,11 @@ async function proveReunion(page: Page, world: WorldState): Promise<void> {
     });
     const actorsClear = [[102, 110], [222, 110]].every(([px = 0, py = 0]) =>
       document.elementFromPoint(host.left + x + px * scale, host.top + y + py * scale) === canvas);
-    const rows = [...caption.querySelectorAll<HTMLElement>("h2, .reunion-line, .repartee-note")].map(row => {
+    const hasReport = caption.dataset.ovenReport !== undefined;
+    const compactReport = hasReport && (innerWidth <= 600 || document.querySelector<HTMLElement>("#app")?.dataset.chromeMode === "focus");
+    const note = caption.querySelector<HTMLElement>(".repartee-note")!;
+    const rows = [...caption.querySelectorAll<HTMLElement>("h2, .reunion-line, .reunion-oven-report, .repartee-note")]
+      .filter(row => !row.matches(".repartee-note") || !compactReport).map(row => {
       row.scrollIntoView({ block: "nearest", inline: "nearest" });
       const box = row.getBoundingClientRect(), clip = caption.getBoundingClientRect();
       const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
@@ -94,7 +98,10 @@ async function proveReunion(page: Page, world: WorldState): Promise<void> {
     return { adequateStage: scale * 320 >= (innerWidth <= 760 ? Math.min(280, innerWidth - 32) : 380) - 1,
       safeStage: scale > 0 && x >= left - 1 && y >= top - 1 && x + scale * 320 <= right + 1 && y + scale * 180 <= bottom + 1,
       inViewport: scene.left >= -1 && scene.top >= -1 && scene.right <= innerWidth + 1 && scene.bottom <= innerHeight + 1,
-      clear, actorsClear, readableRows: rows.length === 4 && rows.every(Boolean), pageFits: document.documentElement.scrollWidth <= innerWidth + 1 };
+      clear, actorsClear, readableRows: rows.length === (hasReport ? compactReport ? 4 : 5 : 4) && rows.every(Boolean)
+        && (!compactReport || getComputedStyle(note).display === "none")
+        && caption.querySelectorAll(".reunion-oven-report").length === (hasReport ? 1 : 0),
+      pageFits: document.documentElement.scrollWidth <= innerWidth + 1 };
   }), { timeout: 8_000 }).toEqual({ adequateStage: true, safeStage: true, inViewport: true,
     clear: true, actorsClear: true, readableRows: true, pageFits: true });
 }
@@ -119,7 +126,8 @@ async function proveCompanyJournal(page: Page, world: WorldState): Promise<void>
     data: { campaign: world.campaignId, companionReunion: completed.sourceCommandId, command: completed.sourceCommandId,
       companion: reunion.residentId, joinedTick: String(reunion.joinedTick), location: reunion.locationId, arrivalSource: reunion.arrival.sourceCommandId },
     lines: [{ speaker: reunion.heroId, text: `${world.hero.name}: ${completed.heroLine}` },
-      { speaker: reunion.residentId, text: `${reunion.companionName}: ${completed.companionLine}` }] });
+      { speaker: reunion.residentId, text: `${reunion.companionName}: ${completed.companionLine}` },
+      ...(completed.ovenReport === undefined ? [] : [{ speaker: reunion.residentId, text: `${reunion.companionName}: ${completed.ovenReport.line}` }])] });
   for (const text of [completed.sourceCommandId, reunion.arrival.sourceCommandId, reunion.residentId,
     `joined T${reunion.joinedTick}`, `farewell T${reunion.departureTick}`, reunion.arrival.route.path.join(" → "),
     `committed travel distance ${reunion.arrival.distance}`, "former companion remains a former companion", "bond, regard and resources unchanged"]) expect(journal.text).toContain(text);

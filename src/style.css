@@ -34,11 +34,14 @@
 .repartee-caption p { margin: 0.45rem 0 0; font-size: 0.95rem; line-height: 1.45; }
 .repartee-caption .repartee-call { color: #d5dbe6; }
 .repartee-caption .repartee-reply { color: #fff2d4; }
+.repartee-caption .reunion-oven-report { color: #e2cfab; }
+.company-history[data-oven-report] { overflow-wrap: anywhere; }
 .repartee-caption .repartee-witness { color: #b7ded3; font-size: 0.85rem; }
 .repartee-caption .repartee-marks { margin-top: 0.5rem; color: #e7bc73; font: 0.8rem ui-monospace, monospace; }
 .repartee-caption .repartee-note { color: #b8c4ca; font-size: 0.75rem; }
 #app[data-chrome-mode="focus"] .repartee-caption[data-phase="challenge"] .repartee-note,
-#app[data-chrome-mode="focus"] .repartee-caption[data-phase="round"] .repartee-note { display: none; }
+#app[data-chrome-mode="focus"] .repartee-caption[data-phase="round"] .repartee-note,
+#app[data-chrome-mode="focus"] .repartee-caption[data-oven-report] .repartee-note { display: none; }
 #app:is([data-repartee-scene], [data-bell-scene]) .chronicle,
 #app:is([data-repartee-scene], [data-bell-scene]) .hero-hud,
 #app:is([data-repartee-scene], [data-bell-scene]) #stage-focus-ribbon,
@@ -69,7 +72,8 @@
   .repartee-caption { right: 0.65rem; bottom: 0.65rem; left: 0.65rem; padding: 0.65rem 0.75rem; }
   .repartee-caption p { font-size: 0.85rem; line-height: 1.4; }
   .repartee-caption[data-phase="challenge"] .repartee-note,
-  .repartee-caption[data-phase="round"] .repartee-note { display: none; }
+  .repartee-caption[data-phase="round"] .repartee-note,
+  .repartee-caption[data-oven-report] .repartee-note { display: none; }
 }
 @media (max-width: 760px) {
   /* One compact header leaves room for actors and keeps Journal navigation

@@ -2,6 +2,61 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## News from the oven — v0.5.180 in verification
+
+Reuses the previous council's committed narrow proposal in
+[Lifetime stories](docs/design/LIFETIME_STORIES.md#news-from-the-oven--v05180),
+recovered with `deja "News from the oven"` on 2026-09-11. Rules, presentation
+and acceptance agents review this one follow-on independently. LLM work remains
+paused; no wider economy, schedule, new panel or replay queue is introduced.
+
+The unchanged `fdfc539` source journey completes in **3,409 ms**, inside the
+existing T320/20-second bound. Ada's actual plain loaf completes T74, before
+arrival T85 and reunion T86; the resident, oath and farewell town match.
+Original full hashes: T85 `f5b9799468cf117e`, T86 `195410d557c0b9dc`,
+T87 `281ce30ff33f2647`. All reload exactly. Old T86/T87 full states are
+retained in ignored scratch; no additional seed sweep or runtime edits were
+needed for this proof. Existing witnessed dialogue has no oven report.
+
+The implementation appends an optional versioned report only when a new
+matching reunion commits. Existing hero/companion lines and witnessed memory
+remain unchanged. Exact bake and new report sources remain distinct in Company;
+the existing caption and adventure log include the new spoken news. Three
+authored outcome-specific lines grant no resources, score or new relationship
+judgment. Strict durable source validation does not require old Chronicle rows.
+All **42 distinct focused checks** pass: 19 reunion rules checks, 15 current
+and legacy presentation checks, three new core flow checks and five neighboring
+reunion/baking core checks. TypeScript, version/boundary checks and production
+build pass. Exact reconstructed v179 T86/T87 states match the independently
+captured actual canonical bytes locally, as well as their full hashes; the
+v177 frozen archive remains untouched. Public projection omits the private roll.
+
+Only golden:1 needs local inspection: the preceding release already establishes
+that the other nine golden campaigns have no loaf. Its actual reunion is T92,
+before its later bake T123, so it correctly gains no report and retains the
+entire hash `7b41f754e220d1ac`. No golden anchor changes. The first single-campaign
+replay passes in 62.49s but its diagnostic stdout is not delivered; a second
+single-campaign pass in 48.94s saves the compact generated artifact explicitly.
+This output issue does not become a wider matrix or a larger test limit.
+The unchanged complete golden gate remains in CI.
+
+The final read-only council cross-review finds no blocking source, identity,
+lifecycle, privacy or old-save issue. Complete local HTML, three assets and
+five emitted runtime source entries match the working implementation. Both
+LLM workers remain unchanged. All three production captures were inspected at
+2026-09-11 16:44:51 PDT: desktop, 320px and 320px Focus show both real actors
+unobstructed and retain every spoken line. Only the redundant closing note is
+hidden in narrow/Focus views. The adjacent browser assertions now account for
+the optional third spoken line; their note breakpoint matches the actual 600px
+CSS rule, independently of the 760px stage rule.
+
+Production browser acceptance passes in **58.7s** (1.3m including startup).
+Actual T85 arrival advances to the T86 report, reloads exactly, then returns to
+ordinary T87 route planning. The original witnessed lines, regard and callback
+stay intact. Company retains separate bake T74 and report T86 sources. No
+browser errors, model calls or external requests occur. The owned preview port
+19905 is confirmed closed. CI and public deployment remain the final gates.
+
 ## Elsewhere: The Experimental Loaf — v0.5.179 verified release
 
 **Live and publicly source-verified 2026-09-11 16:11:17 PDT.** Feature

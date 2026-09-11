@@ -5,10 +5,11 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: News from the oven.** On a newly earned matching reunion,
+1. **In verification: News from the oven (v0.5.180).** On a newly earned matching reunion,
    the former baker reports the exact completed bake. Preserve existing dialogue,
    witnessed memory and old completed greetings; no invented delivery or reward.
-   Establish the actual source journey before implementing the report.
+   Actual bake T74 precedes arrival T85 and reunion T86 in the known journey.
+   The report is implemented; browser, CI and public deployment are not yet verified.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -172,7 +173,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **News from the oven** | On a real later reunion, the same baker can tell the hero how the recorded bake turned out | Next proposal; preserve earlier dialogue and old completed greetings, no invented delivery or reward |
+| **News from the oven** | On a real later reunion, the same baker tells the hero how the recorded bake turned out | v0.5.180 in verification; original dialogue and old greetings preserved, no delivery or reward |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 

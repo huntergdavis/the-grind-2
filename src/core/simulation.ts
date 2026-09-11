@@ -632,7 +632,7 @@ function describeBeat(
     return { mode: "chronicle", location: location?.name ?? opportunity.location,
       goal: completed.memory === undefined ? "A hello after the shared road" : "Remember a line from the shared road",
       headline: `${completed.memory === undefined ? "A familiar face" : "An old line returns"}: ${reunion.companionName}`,
-      action: `${state.hero.name}: “${completed.heroLine}” ${reunion.companionName}: “${completed.companionLine}”`,
+      action: `${state.hero.name}: “${completed.heroLine}” ${reunion.companionName}: “${completed.companionLine}”${completed.ovenReport === undefined ? "" : ` ${reunion.companionName}: “${completed.ovenReport.line}”`}`,
       consequence: completed.memory === undefined
         ? "The fulfilled oath stays fulfilled. No new journey, reward or relationship change is claimed."
         : "An actual witnessed answer returns to the conversation. The old judgment and fulfilled oath remain unchanged; no new reward or relationship change.",

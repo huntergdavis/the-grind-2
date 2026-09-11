@@ -354,7 +354,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     }
     if (scene === null) {
       caption.replaceChildren();
-      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score", "reunion", "companion", "location", "credit", "choice", "creditRegard"]) delete caption.dataset[key];
+      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score", "reunion", "companion", "location", "credit", "choice", "creditRegard", "ovenReport"]) delete caption.dataset[key];
       return;
     }
     caption.dataset.phase = scene.phase;
@@ -384,6 +384,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     delete caption.dataset.credit;
     delete caption.dataset.choice;
     delete caption.dataset.creditRegard;
+    delete caption.dataset.ovenReport;
     const title = doc.createElement("h2");
     title.textContent = scene.title;
     if ("creditId" in scene) {
@@ -414,7 +415,19 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
       heroLine.dataset.speaker = scene.heroId;
       const companionLine = dialogue(scene.companion.name, scene.reply!, "repartee-reply reunion-line");
       companionLine.dataset.speaker = scene.companion.id;
-      caption.replaceChildren(title, heroLine, companionLine, paragraph(scene.consequence, "repartee-note"));
+      const children = [title, heroLine, companionLine];
+      if (scene.ovenReport !== undefined) {
+        caption.dataset.ovenReport = scene.ovenReport.loafId;
+        const reportLine = dialogue(scene.companion.name, scene.ovenReport.line, "reunion-oven-report");
+        reportLine.dataset.speaker = scene.companion.id;
+        reportLine.dataset.ovenReport = scene.ovenReport.loafId;
+        reportLine.dataset.bakeEvent = scene.ovenReport.sourceCompletionEventId;
+        reportLine.dataset.bakeSource = scene.ovenReport.sourceCompletionCommandId;
+        reportLine.dataset.reportSource = scene.commandId;
+        children.push(reportLine);
+      }
+      children.push(paragraph(scene.consequence, "repartee-note"));
+      caption.replaceChildren(...children);
       return;
     }
     if ("challengeId" in scene) {
