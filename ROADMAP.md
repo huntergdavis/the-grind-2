@@ -5,15 +5,25 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: D5 — The Room Is Taken.** Give one genuinely entered dungeon
-   lair a guardian, resolve real tactical combat, then resume the same maze.
-   Preserve actual costs, defeat and once-only rewards; use existing stages and
-   a cleared-room glyph. Admission and retained-guardian/revisit rules remain
-   unproven; the bounded source proof comes first.
+1. **Implemented; release validation pending: D5 — The Room Is Taken, v0.5.174.**
+   One actual lair entry admits one real guardian fight. Victory clears that
+   room; defeat or stalemate leaves an unbeaten memory, with no second challenge
+   or extra reward. The unchanged v173 journey proves T105 admission; the new
+   journey genuinely loses at T108 and recovers at the entrance at T109.
+   Native 2D/first-person marks, stone battle staging and 20 focused presentation
+   checks are complete. Production browser and all three inspected views pass;
+   release CI and public verification remain pending, so this is not yet shipped.
    [Council scope](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken).
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+2. **Next scoping check: Road Supper**, from the everyday-adventure inventory.
+   Inspect actual owned ingredients and an existing rest opportunity before
+   proposing one consumed-supply/preparation effect. Admission, item support and
+   outcome are unproven; do not fabricate supplies or start a cooking framework.
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
+
+<details>
+<summary>Latest verified release: B1 — The Cup Is Exaggerating, v0.5.173</summary>
 
 **Latest live: B1 — The Cup Is Exaggerating, v0.5.173**, publicly source-verified
 2026-09-11 09:14:36 PDT. A real inn resident offers a short covered-die claim.
@@ -36,6 +46,8 @@ saves and no external/model requests or errors. Three public assets and ten
 runtime source-map entries match the pushed release. Initial fixture failures,
 test-only corrections and local replay timeouts (passing in clean CI) remain
 in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+</details>
+
 T1's ferry is deferred: the bounded known journey and all 14 roads on its map
 have no recorded river crossings. That negative evidence is preserved.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
@@ -59,7 +71,8 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D5 — The Room Is Taken** | Enter a real inhabited lair, fight its guardian and resume the same dungeon | Next proposal; source admission and defeat/revisit rules unproven |
+| **D5 — The Room Is Taken** | Enter a real inhabited lair, fight its guardian and resume the same dungeon | Implemented; release validation pending, not yet live |
+| **Road Supper** | Consume actual supplies for a small preparation moment at a real rest | Next read-only scope/admission check; no implementation claimed |
 
 This is an individual delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -94,7 +107,7 @@ general framework. All remain client-side and work without an LLM.
 - Known-danger avoidance, map exclusions, waypoints and risk-aware routing.
 - Scouting and companion-provided dungeon knowledge.
 - Wider secret-passage networks beyond D4, one-way hazards and passages that change.
-- Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences; D5 proposes the first occupied lair.
+- Named room purposes, dungeon layers, inhabitants, ecology and lasting consequences beyond D5's implemented first occupied lair (release validation pending).
 - **Expedition Echo Cache:** leave actual supplies during retreat and recover them later.
 - **Last-known threat marks:** distinguish remembered monster positions from currently visible threats.
 - Durable movement trails and lifetime dungeon statistics: exploration, disarms, triggers and resource losses.

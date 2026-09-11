@@ -12,9 +12,11 @@ import { hasSharedOpeningWitness, legalMillraceReversal, millraceReversalDamageP
 import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel, restorativeHealthAmount } from "./rpg";
 import {
   createEncounterThreatProfile,
+  createDungeonEncounterThreatProfile,
   createLegacyUnratedThreat,
   isValidEncounterThreatProfile,
   type EncounterThreatContext,
+  type DungeonEncounterThreatContext,
 } from "./threat";
 import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, CompanionActionId, DetailedHeroState, ItemState } from "./types";
 
@@ -162,7 +164,7 @@ export function createCombat(
   encounterId: string,
   requestedEnemyCount = 2,
   allies: readonly CombatantState[] = [],
-  threatContext: EncounterThreatContext | null = null,
+  threatContext: EncounterThreatContext | DungeonEncounterThreatContext | null = null,
 ): CombatState {
   const heroStats = derivedStats(hero);
   const combatants: CombatantState[] = [{
@@ -201,17 +203,15 @@ export function createCombat(
     if (definition === undefined) throw new Error("Missing monster definition");
     return { id, definition };
   });
-  const threat = threatContext === null
-    ? createLegacyUnratedThreat()
-    : createEncounterThreatProfile(threatContext, enemyDefinitions.map(({ id, definition }) => ({
-        combatantId: id,
-        speciesId: definition.id,
-      })));
+  const species = enemyDefinitions.map(({ id, definition }) => ({ combatantId: id, speciesId: definition.id }));
+  const threat = threatContext === null ? createLegacyUnratedThreat()
+    : "kind" in threatContext ? createDungeonEncounterThreatProfile(threatContext, species)
+    : createEncounterThreatProfile(threatContext, species);
   for (let index = 0; index < count; index += 1) {
     const selected = enemyDefinitions[index];
     if (selected === undefined) throw new Error("Missing selected monster definition");
     const { id, definition } = selected;
-    const danger = threat.rating === "place-bound"
+    const danger = threat.rating !== "legacy-unrated"
       ? threat.factors.find((factor) => factor.combatantId === id)?.mechanicalTier
       : 6 + randomInt(4, seed, "combat", id, 0, "legacy-unrated-danger");
     if (danger === undefined) throw new Error("Missing encounter threat factor");
@@ -882,7 +882,7 @@ function hasValidRatedEnemySecrets(combat: CombatState): boolean {
   if (combat.threat.rating === "legacy-unrated") return true;
   const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
   return enemies.every((enemy, index) => {
-    const factor = combat.threat.rating === "place-bound" ? combat.threat.factors[index] : undefined;
+    const factor = combat.threat.rating !== "legacy-unrated" ? combat.threat.factors[index] : undefined;
     const definition = enemy.speciesId === null ? undefined : monsterDefinition(enemy.speciesId);
     const ability = enemy.abilities[0];
     if (

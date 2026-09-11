@@ -143,6 +143,7 @@ import { captureCompanionCredit, captureCompanionCreditFarewell, companionCredit
 import { capturePennywiseGateArrival, isValidCampaignPennywiseGate, pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate, selectPennywiseGateApproach, stepPennywiseGate } from "./pennywise-gate";
 import { isValidCampaignSmithyJob, selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions, stepSmithyJob } from "./smithy-job";
 import { innBluffClaim, innBluffCommandId, innBluffTellText, isValidCampaignInnBluff, projectInnBluffDecision, selectInnBluffVenue, stepInnBluff } from "./inn-bluff";
+import { dungeonGuardianCommandId, dungeonGuardianResolutionCommandId, isValidCampaignDungeonLair, recordDungeonLairOutcome, recordDungeonLairStart, revealDungeonLair, selectDungeonLairEncounter } from "./dungeon-lair";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -959,7 +960,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     if (
       !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
-      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) ||
+      !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
@@ -1537,6 +1538,11 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   if (input.bellExpedition !== null && input.bellExpedition.completion === null
     && command.type !== "roll-bell" && command.type !== "move-bell") throw new Error("Finish the active Borrowed Bell expedition before another command");
   if (input.repartee.active !== null && command.type !== "repartee-action") throw new Error("Finish the active flyting contest before another command");
+  const pendingLair = input.dungeon?.lair?.encounter;
+  if (pendingLair != null && pendingLair.resolution === null
+    && command.type !== (pendingLair.started === null ? "start-dungeon-guardian" : "combat-action")) {
+    throw new Error("Resolve the entered dungeon guardian before another command");
+  }
   const resolvingActiveEncounter = input.combat !== null
     ? command.type === "combat-action"
     : input.counterDuel !== null && command.type === "counter-duel-action"
@@ -1800,7 +1806,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         plan === null || command.dungeonId !== plan.dungeonId ||
         command.width !== plan.width || command.height !== plan.height
       ) throw new Error("Dungeon entry does not match the canonical expedition plan");
-      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion, 2, 1);
+      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion, 2, 1, 1);
       const entry = dungeon.cells.find((cell) => cell.id === dungeon.entryCellId);
       const entryTrap = dungeonTrapAt(dungeon, dungeon.entryCellId);
       let hero = state.hero;
@@ -1987,7 +1993,17 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       const loggedDungeon = trap === null && check === null && currentTrap?.phase !== "detected" && shrineUse === null
         ? dungeon
         : appendDungeonTraversalMessage(dungeon, message);
-      return appendLog({ ...state, dungeon: loggedDungeon, hero, quest }, "dungeon", message);
+      const moved = { ...state, dungeon: loggedDungeon, hero, quest };
+      const revealed = revealDungeonLair(input, moved, `depth:${state.tick}:dungeon:${loggedDungeon.id}:${command.direction}`);
+      const lair = revealed?.lair?.encounter;
+      const lairArrival = lair?.arrival.tick === state.tick;
+      const lairRevisit = lair?.resolution != null && revealed?.currentCellId === lair.cellId;
+      return appendLog({ ...moved, dungeon: revealed }, "dungeon", lairArrival
+        ? `${hero.name} enters the lair and finds ${lair.guardian.name}. “The map said lair. I had hoped it meant former lair.” One actual guardian; the room is not cleared.`
+        : lairRevisit ? lair.resolution!.outcome === "victory"
+          ? `${hero.name} crosses the cleared lair. The recorded guardian is already defeated; no second fight or reward.`
+          : `${hero.name} skirts the remembered, unbeaten guardian's lair without another challenge. The room is not cleared; no new fight or reward.`
+        : message);
     }
     case "unlock-dungeon-gate": {
       if (state.dungeon === null || state.dungeon.completed) throw new Error("No active dungeon gate can be unlocked");
@@ -2058,6 +2074,18 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
           })
         : state.quest;
       return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
+    }
+    case "start-dungeon-guardian": {
+      const plan = selectDungeonLairEncounter(input);
+      if (plan === null || command.dungeonId !== plan.dungeonId || command.cellId !== plan.cellId
+        || command.encounterId !== plan.encounterId) throw new Error("No matching entered dungeon guardian is available");
+      const sourceCommandId = dungeonGuardianCommandId(state.tick, command);
+      const combat = createCombat(state.seed, state.hero, command.encounterId, 1, [], plan.threatContext);
+      const dungeon = recordDungeonLairStart(input, combat, sourceCommandId);
+      const hero = observeMonsters(state.hero, combat.combatants);
+      const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(state.hero.monsterLore, hero.monsterLore));
+      return appendLog({ ...state, dungeon, combat, hero }, "combat",
+        `${dungeon.lair!.encounter!.guardian.name} holds the lair in ${dungeon.name}. ${hero.name} faces the actual guardian.${fieldNote === null ? "" : ` ${fieldNote}`}`);
     }
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
@@ -2227,6 +2255,14 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       }
       if (abilityMessages.length > 0) {
         next = appendLog(next, "ability", abilityMessages.join(" "));
+      }
+      if (input.dungeon?.lair?.encounter?.combatId === combat.id) {
+        const sourceCommandId = dungeonGuardianResolutionCommandId(combat, state.tick);
+        if (sourceCommandId === null) throw new Error("The guardian result is missing its actual combat action");
+        const dungeon = recordDungeonLairOutcome(input, combat, sourceCommandId);
+        next = appendLog({ ...next, dungeon }, "dungeon", combat.outcome === "victory"
+          ? `${state.hero.name} clears the lair. “At last, a former lair.” The ordinary battle rewards are settled once; the rest of ${dungeon.name} remains.`
+          : `${state.hero.name} leaves the guardian unbeaten. No victory reward or cleared mark; later visits will skirt this lair instead of restarting the fight.`);
       }
       return { ...next, companionCredit: captureCompanionCredit(input, next, command) };
     }
@@ -2579,6 +2615,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (!isValidCampaignDungeonLair(input)) throw new TypeError("Campaign state violates dungeon-lair invariants");
   if (!isValidCampaignInnBluff(input)) throw new TypeError("Campaign state violates inn-bluff invariants");
   if (!isValidCampaignSmithyJob(input)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(input)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
@@ -2595,6 +2632,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     throw new TypeError("Campaign state violates schema invariants");
   }
   let output = reduceDepth(input, command);
+  if (!isValidCampaignDungeonLair(output)) throw new TypeError("Campaign state violates dungeon-lair invariants");
   if (!isValidCampaignInnBluff(output)) throw new TypeError("Campaign state violates inn-bluff invariants");
   if (!isValidCampaignSmithyJob(output)) throw new TypeError("Campaign state violates smithy-job invariants");
   if (!isValidCampaignPennywiseGate(output)) throw new TypeError("Campaign state violates Pennywise Gate invariants");
@@ -2776,7 +2814,7 @@ export function isValidDepthEncounterThreatState(state: DepthState): boolean {
     if (actualLegacyIds.length !== receipt.length || actualLegacyIds.some((id, index) => id !== receipt[index])) return false;
     for (const combat of combats) {
       if (!isValidCombatState(combat)) return false;
-      if (combat.threat.rating === "place-bound" && !isValidEncounterThreatProvenance(combat.threat, state.atlas)) return false;
+      if (combat.threat.rating !== "legacy-unrated" && !isValidEncounterThreatProvenance(combat.threat, state.atlas)) return false;
       if (combat.weaponUse.tracking !== "legacy-untracked" && combat.weaponUse.heroId !== state.hero.id) return false;
       if (combat.weaponUse.tracking === "tracked") {
         const trackedUse = combat.weaponUse;
@@ -2792,6 +2830,7 @@ export function isValidDepthEncounterThreatState(state: DepthState): boolean {
       if (unresolvedRouteEncounterId(state) !== state.combat.id) return false;
       return sameThreatContext(state.combat.threat, projectRouteEncounterThreatContext(state));
     }
+    if (state.combat?.threat.rating === "dungeon-bound") return isValidCampaignDungeonLair(state);
     return true;
   } catch {
     return false;
@@ -2989,6 +3028,10 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     if (medicine !== null) return [{ id: medicine.sourceCommandId, deciderId: state.hero.id,
       label: `drink ${medicine.itemName} ×${medicine.quantityBefore}→×${medicine.quantityAfter} for ${medicine.amount} HP before continuing`,
       command: { type: "use-dungeon-tonic", dungeonId: medicine.dungeonId, cellId: medicine.cellId, itemId: medicine.itemId } }];
+    const guardian = selectDungeonLairEncounter(state);
+    if (guardian !== null) return [{ id: guardian.sourceCommandId, deciderId: state.hero.id,
+      label: `face ${state.dungeon.lair!.encounter!.guardian.name} in the entered lair`,
+      command: { type: "start-dungeon-guardian", dungeonId: guardian.dungeonId, cellId: guardian.cellId, encounterId: guardian.encounterId } }];
     if (dungeonTrapAt(state.dungeon, state.dungeon.currentCellId)?.phase === "detected") {
       return [commandCandidate(
         state,

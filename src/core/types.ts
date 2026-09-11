@@ -443,6 +443,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "disarm-dungeon-trap",
   "unlock-dungeon-gate",
   "start-combat",
+  "start-dungeon-guardian",
   "combat-action",
   "start-counter-duel",
   "counter-duel-action",

@@ -23,6 +23,7 @@ import { companionCreditChoices, companionCreditCommandId, selectCompanionCredit
 import { pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate } from "../depth/pennywise-gate";
 import { selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions } from "../depth/smithy-job";
 import { innBluffCommandId, projectInnBluffDecision, selectInnBluffVenue } from "../depth/inn-bluff";
+import { selectDungeonLairEncounter } from "../depth/dungeon-lair";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -539,6 +540,13 @@ function scoreCandidate(
     score = 30 - Math.min(20, ability?.experience ?? 0);
     if (state.hero.values.includes("curiosity")) score += 8;
     reason = `${ability?.name ?? "the technique"} has the most room to grow`;
+  } else if (command.type === "start-dungeon-guardian") {
+    const guardian = selectDungeonLairEncounter(state.depth);
+    if (guardian === null || guardian.dungeonId !== command.dungeonId || guardian.cellId !== command.cellId
+      || guardian.encounterId !== command.encounterId || candidate.id !== guardian.sourceCommandId
+      || candidate.deciderId !== state.hero.id) throw new Error("Actor Policy cannot invent a dungeon guardian");
+    score = 80;
+    reason = "a guardian has actually been encountered in this entered lair; face it once, without inventing a road or a victory";
   } else if (command.type === "start-combat") {
     score = 50;
     reason = "the road encounter has crossed the unavoidable threshold";
@@ -771,6 +779,7 @@ function presentationLabels(
     case "open-dungeon-passage": return { actionLabel: "investigates the draught", targetLabel: "the current room's hidden latch" };
     case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
+    case "start-dungeon-guardian": return { actionLabel: "faces the entered lair's guardian", targetLabel: state.depth.dungeon?.lair?.encounter?.guardian.name ?? "the recorded guardian" };
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
     case "admit-deferred-secret": return {
       actionLabel: "gives a held field note form",

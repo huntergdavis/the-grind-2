@@ -143,6 +143,7 @@ export const narratorBrowserFullRunSourcePathsV3 = Object.freeze([
   "src/depth/companion-reunion.ts",
   "src/depth/companion.ts",
   "src/depth/dungeon-field-medicine.ts",
+  "src/depth/dungeon-lair.ts",
   "src/depth/inn-bluff.ts",
   "src/depth/pennywise-gate.ts",
   "src/depth/repartee-campaign.ts",

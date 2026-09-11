@@ -5,6 +5,7 @@ import {
 import type { DungeonTrapKind, MazeDirection } from "../depth/types";
 import { projectDungeonSearchView } from "./dungeon-search-view";
 import { projectCurrentDungeonSecretPassage, type DungeonSecretPassageView } from "./dungeon-secret-passage-view";
+import { projectDungeonLairMark, type DungeonLairMark } from "./dungeon-guardian-view";
 
 const directions: readonly MazeDirection[] = ["north", "east", "south", "west"];
 const relativeDirections = ["front", "right", "back", "left"] as const;
@@ -47,6 +48,7 @@ export interface DungeonPerspectiveView {
   readonly landmark: { readonly kind: "far-stair-shrine"; readonly status: "promised" | "mapped" | "awakened"; readonly here: boolean } | null;
   readonly search: { readonly outcome: "marked" | "unrevealed"; readonly headline: string; readonly detail: string } | null;
   readonly secretPassage: (DungeonSecretPassageView & { readonly relative: DungeonPerspectiveExit["relative"] }) | null;
+  readonly guardian: DungeonLairMark | null;
 }
 
 function validFacing(value: unknown): value is MazeDirection {
@@ -130,6 +132,7 @@ export function projectDungeonPerspectiveView(state: WorldState, facing: MazeDir
     if (exits.length > 4 || new Set(exits.map((exit) => exit.direction)).size !== exits.length) return null;
     const landmark = projectDungeonLandmark(dungeon), search = projectDungeonSearchView(state);
     const secretPassage = projectCurrentDungeonSecretPassage(dungeon);
+    const lair = projectDungeonLairMark(dungeon);
     const source = state.chronicle.at(-1);
     return Object.freeze({ schemaVersion: 1, campaignId: state.campaignId, dungeonId: dungeon.id, tick: state.tick,
       sourceCommandId: source?.tick === state.tick && source.mode === "dungeon" ? source.commandId ?? null : null,
@@ -140,6 +143,7 @@ export function projectDungeonPerspectiveView(state: WorldState, facing: MazeDir
         here: landmark.cellId !== null && landmark.cellId === dungeon.currentCellId }),
       search: search === null ? null : Object.freeze({ outcome: search.outcome, headline: search.headline, detail: search.detail }),
       secretPassage: secretPassage === null ? null : Object.freeze({ ...secretPassage, relative: relative(secretPassage.direction, heading) }),
+      guardian: lair?.cellId === dungeon.currentCellId ? lair : null,
     });
   } catch { return null; }
 }

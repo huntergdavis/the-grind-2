@@ -7,10 +7,26 @@ const room: DungeonPerspectiveView = Object.freeze({
   schemaVersion: 1, campaignId: "campaign:perspective-drawing", dungeonId: "dungeon:public",
   tick: 3, sourceCommandId: "campaign:perspective-drawing:step:3", currentCellId: "known-room",
   heroId: "hero:perspective-drawing", heroName: "Aster", facing: "north", completed: false,
-  exits: Object.freeze([]), currentTrap: null, keyStatus: "unknown", landmark: null, search: null, secretPassage: null,
+  exits: Object.freeze([]), currentTrap: null, keyStatus: "unknown", landmark: null, search: null, secretPassage: null, guardian: null,
 });
 
 describe("public-only dungeon perspective drawing", () => {
+  it("draws a bounded remembered lair mark only when the public current-room packet supplies it", () => {
+    for (const status of ["revealed", "cleared", "unbeaten"] as const) {
+      const drawing = drawDungeonPerspective({ ...room, guardian: { dungeonId: room.dungeonId, cellId: room.currentCellId,
+        status, guardianId: "actual-guardian", guardianName: "Ash Goblin 1" } });
+      const mark = drawing.layer.children.find(child => child.label === `lair-${status}`);
+      expect(mark).toBeInstanceOf(Graphics);
+      if (!(mark instanceof Graphics)) throw new Error("Missing public floor mark");
+      expect(mark.context.bounds.minX).toBeGreaterThan(100);
+      expect(mark.context.bounds.maxX).toBeLessThan(132);
+      expect(mark.context.bounds.minY).toBeGreaterThan(86);
+      expect(mark.context.bounds.maxY).toBeLessThan(102);
+      expect(drawing.labels.map(label => label.text)).toContain(status === "revealed" ? "LAIR" : status.toUpperCase());
+      expect(drawing.layer.children.some(child => child.label === "actual-guardian")).toBe(false);
+      drawing.layer.destroy({ children: true });
+    }
+  });
   it("keeps a bounded native room inside the existing viewport without changing its packet", () => {
     const before = JSON.stringify(room), drawing = drawDungeonPerspective(room);
     expect(drawing.viewport).toEqual({ x: 44, y: 32, width: 232, height: 124 });

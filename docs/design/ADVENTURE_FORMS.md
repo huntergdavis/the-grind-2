@@ -782,41 +782,55 @@ model, inventory filler, HP/MP/XP effect or automatic regard is included.
 
 ## D5 proposed next slice — The Room Is Taken
 
-Read-only council recommendation, 2026-09-11 08:55:31 PDT, from the roadmap's
-named-room purposes, dungeon inhabitants and encounter-variety lane. Existing
-generation already produces `lair` cells, but entering one does not currently
-admit a fight. This proposal gives one real room a consequence, not another
-mandatory opening-town scene. Admission and defeat/revisit behavior are unproven.
+**Implemented for v0.5.174; release validation pending. Not yet shipped or
+publicly verified.** The heading retains the original proposal link. This
+2026-09-11 08:55:31 PDT council recommendation comes from the roadmap's named
+room purposes, inhabitants and encounter-variety lane. Existing generated
+`lair` cells now have a narrow first-entry consequence in new expeditions,
+not another mandatory opening-town scene.
 
 At the first eligible newly entered lair in a new solo expedition, reveal one
 real guardian, resolve existing tactical combat, then resume the same maze.
 “The map said lair. I had hoped it meant former lair.” A living solo hero,
 actual arrival at a generated lair, active expedition and no owed recovery or
-other encounter are required. Start with one guarded room per expedition,
+other encounter are required. There is one guarded room per expedition,
 represented by one bounded source-bound record in that dungeon; do not populate
 old saves retroactively or reveal an unvisited inhabitant on the map.
 
 Record the actual dungeon, cell, arrival command and combat identity. Only a
 real victory clears the lair. Preserve normal combat HP/MP, learning and reward
 rules, with no extra room-completion payout or repeated victory rewards.
-Defeat must remain defeat, using existing recovery at the dungeon entrance;
-the same surviving guardian cannot become an invented victory or new loot roll.
-Decide and test its exact retained-state/revisit rule before implementation.
+Defeat remains defeat, using existing recovery at the dungeon entrance.
+The exact rule is **one attempt**: defeat or stalemate retains an unbeaten
+memory; later traversal skirts the encounter without rechallenge, enemy reset
+or another loot roll. That remembered mark does not assert the guardian's
+current off-screen presence. A real victory alone clears this room, not the maze.
 
-`start-combat` currently requires the unresolved active route encounter. Add a
-narrowly validated dungeon-lair admission without weakening that route guard
-or inventing a road. Reuse dungeon → combat → dungeon presentation, one brief
-caption, existing Status history and a truthful cleared-room glyph in both
-2D and first-person. No extra Watch panel, new model, deck engine or art pack.
+The separate `start-dungeon-guardian` command admits the recorded lair's actual
+combat identity, leaving `start-combat`'s unresolved-road guard intact. Its
+`dungeon-bound` threat provenance carries the actual dungeon, room and place
+danger, not fabricated road or quest context. Native presentation reuses the
+dungeon caption, existing combatants in a stone chamber, Status history and
+source-bound room marks in both 2D and first-person. Only the exact final
+combat source presents the result; later recovery remains the existing camp
+event. No extra Watch panel, model, reading clock, deck engine or art pack.
 
-First inspect one unchanged current `shared-road-playful:7` /
-`campaign:browser-repartee-memory` journey under its existing T320 ceiling and
-a 20-second post-import cap. Stop at its first genuinely entered eligible lair;
-if negative, preserve that result and defer rather than search seeds, alter
-room geometry or raise the cap. This source proof has not yet run. Then cover
-one actual battle/resume, exact boundary saves, strict source rejection,
-victory/defeat distinction and no repeat reward. One bounded production browser
-scenario is enough. This proposal does not gate the B1 release.
+The unchanged v173 `shared-road-playful:7` / `campaign:browser-repartee-memory`
+source proof passes in 2.808 seconds under the original T320/20-second cap.
+Actual T104→T105 moves west from Salt Labyrinth (2,6) to new lair (1,6), with
+living solo Aster at HP42/42, MP24/24 and gold20. No seed, room, enemy or
+resource was staged; the reusable fixture pins T112. Integrated proof then
+admits Inkcap Mimic at T106, resolves a real defeat at T108, and performs
+ordinary entrance recovery at T109. No natural victory is fabricated.
+
+All 20 focused guardian/perspective presentation checks pass, including exact
+sources, public packet boundaries, reloads and existing Status records.
+Final production build/browser, CI and public verification remain pending;
+the release owner records their actual results in [the council log](../../COUNCIL_REVIEW.md).
+One bounded browser scenario is planned, not a new test matrix. B1's completed
+release remains independent. Next larger-backlog scoping action: inspect Road
+Supper's real supply/rest prerequisites before proposing a finite effect;
+no cooking runtime or natural admission is claimed.
 
 ## Make the adventures accumulate into a life
 

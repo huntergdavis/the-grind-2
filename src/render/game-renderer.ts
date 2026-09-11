@@ -109,6 +109,7 @@ import { projectDungeonSearchView } from "../ui/dungeon-search-view";
 import { dungeonPerspectiveFacing, projectDungeonPerspectiveView } from "../ui/dungeon-perspective-view";
 import { projectDungeonFieldMedicineScene } from "../ui/dungeon-field-medicine-view";
 import { projectCurrentDungeonSecretPassage, projectDungeonSecretPassageScene } from "../ui/dungeon-secret-passage-view";
+import { projectDungeonGuardianScene, projectDungeonLairMark, type DungeonGuardianScene } from "../ui/dungeon-guardian-view";
 import { projectPennywiseGateScene, type PennywiseGateScene } from "../ui/pennywise-gate-view";
 import { drawPennywiseGate, projectPennywiseGateTableau } from "./pennywise-gate";
 import { projectSmithyJobScene, type SmithyJobScene } from "../ui/smithy-job-view";
@@ -696,6 +697,7 @@ export class GameRenderer {
       this.host.dataset.dungeonPerspectiveExits = JSON.stringify(view.exits);
       this.host.dataset.dungeonPerspectiveCurrentTrap = JSON.stringify(view.currentTrap);
       this.host.dataset.dungeonPerspectivePassage = JSON.stringify(view.secretPassage);
+      this.host.dataset.dungeonPerspectiveGuardian = JSON.stringify(view.guardian);
       this.host.dataset.dungeonPerspectiveViewport = [drawing.viewport.x, drawing.viewport.y, drawing.viewport.width, drawing.viewport.height].join(",");
       this.host.dataset.dungeonFraming = "first-person-room";
       this.host.dataset.dungeonFrameRooms = "1";
@@ -1223,6 +1225,8 @@ export class GameRenderer {
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonPerspectiveLabels = [];
+    for (const key of ["dungeonGuardianPhase", "dungeonGuardianCommand", "dungeonGuardianDungeon", "dungeonGuardianCell",
+      "dungeonGuardianCombat", "dungeonGuardianId", "dungeonGuardianName", "dungeonGuardianVisual", "dungeonLairMark", "dungeonPerspectiveGuardian"]) delete this.host.dataset[key];
     this.dungeonAlertTexts.length = 0;
     this.host.dataset.sceneMode = presentedMode;
     this.host.dataset.liveSceneMode = state.scene.mode;
@@ -6097,6 +6101,17 @@ export class GameRenderer {
     this.host.dataset.dungeonMedicineVisual = "stationary-hero|held-tonic-vial|actual-hp-recovery";
   }
 
+  private setDungeonGuardianAttributes(scene: DungeonGuardianScene, visual: "native-known-room" | "native-stone-chamber"): void {
+    this.host.dataset.dungeonGuardianPhase = scene.phase;
+    this.host.dataset.dungeonGuardianCommand = scene.commandId;
+    this.host.dataset.dungeonGuardianDungeon = scene.dungeonId;
+    this.host.dataset.dungeonGuardianCell = scene.cellId;
+    this.host.dataset.dungeonGuardianCombat = scene.combatId;
+    this.host.dataset.dungeonGuardianId = scene.guardianId;
+    this.host.dataset.dungeonGuardianName = scene.guardianName;
+    this.host.dataset.dungeonGuardianVisual = visual;
+  }
+
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(34, 19, 252, 142, 0x0b1117));
     const dungeon = state.depth.dungeon;
@@ -6122,11 +6137,15 @@ export class GameRenderer {
     const traps = projectDungeonTraps(dungeon);
     const search = projectDungeonSearchView(state);
     const medicine = projectDungeonFieldMedicineScene(state);
+    const guardian = projectDungeonGuardianScene(state);
+    const lair = projectDungeonLairMark(dungeon);
+    this.host.dataset.dungeonLairMark = JSON.stringify(lair);
+    if (guardian !== null) this.setDungeonGuardianAttributes(guardian, "native-known-room");
     const passage = projectDungeonSecretPassageScene(state);
     const publicPassage = projectCurrentDungeonSecretPassage(dungeon);
     const stationaryPassage = passage !== null && passage.phase !== "crossed";
     const quietPassageOpening = passage?.phase === "opened";
-    const showRoute = search === null && medicine === null && !stationaryPassage;
+    const showRoute = search === null && medicine === null && guardian === null && !stationaryPassage;
     const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
     const currentKnownTrap = traps.find((trap) => trap.current);
     const triggeredTrap = medicine === null && !quietPassageOpening && currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
@@ -6140,7 +6159,9 @@ export class GameRenderer {
     const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
     const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
     const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
-    const mechanismBeat = medicine !== null
+    const mechanismBeat = guardian !== null
+      ? { title: guardian.headline, detail: guardian.detail, compact: guardian.compactDetail, color: 0x614341 }
+      : medicine !== null
       ? { title: medicine.headline, detail: medicine.detail, compact: medicine.compactDetail, color: 0x563c27 }
       : passage !== null
       ? { title: passage.headline, detail: passage.detail, compact: passage.compactDetail, color: 0x31545d }
@@ -6162,7 +6183,7 @@ export class GameRenderer {
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
     this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status !== "armed").length);
-    this.host.dataset.dungeonTraversalMode = medicine !== null ? "field-medicine" : stationaryPassage ? "secret-passage" : search === null ? wayfinding.mode : "search";
+    this.host.dataset.dungeonTraversalMode = guardian !== null ? "guardian" : medicine !== null ? "field-medicine" : stationaryPassage ? "secret-passage" : search === null ? wayfinding.mode : "search";
     this.host.dataset.dungeonBreadcrumbLength = showRoute ? String(Math.max(0, wayfinding.routeCellIds.length - 1)) : "0";
     this.host.dataset.dungeonNextDirections = showRoute ? wayfinding.nextPassageDirections.join(",") : "";
     if (passage !== null) {
@@ -6406,6 +6427,16 @@ export class GameRenderer {
             sprung.stroke({ color: trap.kind === "mana-siphon" ? 0x88aeca : 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
             this.worldLayer.addChild(sprung);
           }
+        } else if (lair?.cellId === cell.id) {
+          const x0 = x + cellSize / 2, y0 = y + cellSize / 2, r = Math.max(1.6, cellSize * 0.19);
+          const color = lair.status === "cleared" ? 0x9fd0a6 : lair.status === "unbeaten" ? 0xc9a77d : 0xe09a89;
+          const glyph = new Graphics().circle(x0, y0, r).stroke({ color, width: Math.max(0.8, cellSize * 0.06) });
+          if (lair.status === "cleared") glyph.moveTo(x0 - r * 0.65, y0).lineTo(x0 - r * 0.1, y0 + r * 0.45).lineTo(x0 + r * 0.7, y0 - r * 0.6);
+          else if (lair.status === "unbeaten") glyph.moveTo(x0 - r * 0.7, y0 + r * 0.7).lineTo(x0 + r * 0.7, y0 - r * 0.7);
+          else glyph.moveTo(x0 - r * 0.4, y0 - r * 0.4).lineTo(x0 - r * 0.4, y0 + r * 0.4)
+            .moveTo(x0 + r * 0.4, y0 - r * 0.4).lineTo(x0 + r * 0.4, y0 + r * 0.4);
+          glyph.stroke({ color, width: Math.max(0.8, cellSize * 0.06) });
+          this.worldLayer.addChild(glyph);
         } else if (cell.feature === "shrine") {
           const centerX = x + cellSize / 2;
           const centerY = y + cellSize / 2;
@@ -6421,7 +6452,7 @@ export class GameRenderer {
           else rune.fill({ color: 0x6ba3b8, alpha: 0.96 }).stroke({ color: 0xbcebf0, width: Math.max(0.7, cellSize * 0.055) });
           rune.circle(centerX, centerY, Math.max(0.7, radius * 0.28)).fill({ color: spent ? 0x243039 : 0xd7fbf7, alpha: 0.95 });
           this.worldLayer.addChild(rune);
-        } else if (cell.feature !== "empty" && cell.feature !== "trap") {
+        } else if (cell.feature !== "empty" && cell.feature !== "trap" && (cell.feature !== "lair" || dungeon.lair === undefined)) {
           const featureColor =
             cell.feature === "treasure"
               ? 0xd7b35c
@@ -6488,7 +6519,7 @@ export class GameRenderer {
         }
       }
 
-      if (search === null && medicine === null && wayfinding.frontierCellId !== null) {
+      if (search === null && medicine === null && guardian === null && wayfinding.frontierCellId !== null) {
         const frontier = cellsById.get(wayfinding.frontierCellId);
         if (frontier !== undefined) {
           const x = offsetX + frontier.x * cellSize;
@@ -6645,7 +6676,20 @@ export class GameRenderer {
       this.drawCounterDuel(state, counterDuel, palette);
       return;
     }
-    this.worldLayer.addChild(rect(0, 128, designWidth, 52, 0x3b3034));
+    const guardian = projectDungeonGuardianScene(state);
+    if (guardian !== null) {
+      this.setDungeonGuardianAttributes(guardian, "native-stone-chamber");
+      this.host.dataset.dungeonLairMark = JSON.stringify(state.depth.dungeon === null ? null : projectDungeonLairMark(state.depth.dungeon));
+      // Actual combat remains on its familiar stage, enclosed by the room that admitted it.
+      this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x202b30), rect(0, 128, designWidth, 52, 0x45453e));
+      const masonry = new Graphics();
+      for (const y of [44, 72, 100, 128]) masonry.moveTo(0, y).lineTo(designWidth, y);
+      for (let row = 0; row < 4; row += 1) {
+        for (let x = row % 2 === 0 ? 12 : 40; x < designWidth; x += 56) masonry.moveTo(x, 16 + row * 28).lineTo(x, 44 + row * 28);
+      }
+      masonry.stroke({ color: 0x111c22, width: 1.5, alpha: 0.7 });
+      this.worldLayer.addChild(masonry);
+    } else this.worldLayer.addChild(rect(0, 128, designWidth, 52, 0x3b3034));
     const combat = state.depth.combat ?? state.depth.completedCombats.at(-1);
     if (combat === undefined) {
       this.drawHero(state, 91, 139, palette);
@@ -6658,7 +6702,7 @@ export class GameRenderer {
     this.host.dataset.combatThreatRating = combat.threat.rating;
     const threatText = describeEncounterThreat(combat.threat);
     this.host.dataset.combatThreatEquation = threatText;
-    if (combat.threat.rating === "place-bound") {
+    if (combat.threat.rating === "place-bound" || combat.threat.rating === "dungeon-bound") {
       this.host.dataset.combatThreatScore = String(combat.threat.encounterScore);
       this.host.dataset.combatThreatBand = combat.threat.band;
     }
@@ -6698,7 +6742,7 @@ export class GameRenderer {
     this.host.dataset.combatRosterSurface = "native-hud";
     const battleInformation = this.addStageInformation(this.worldLayer);
     const threatMarker = new Graphics();
-    const band = combat.threat.rating === "place-bound" ? combat.threat.band : "legacy-unrated";
+    const band = combat.threat.rating === "place-bound" || combat.threat.rating === "dungeon-bound" ? combat.threat.band : "legacy-unrated";
     if (band === "minor") threatMarker.circle(12, 8.5, 3.2).stroke({ color: 0xffdf8a, width: 1 });
     else if (band === "guarded") threatMarker.rect(8.8, 5.3, 6.4, 6.4).stroke({ color: 0xffdf8a, width: 1 });
     else if (band === "perilous") threatMarker.poly([12, 4.7, 15.8, 8.5, 12, 12.3, 8.2, 8.5]).stroke({ color: 0xffdf8a, width: 1 });

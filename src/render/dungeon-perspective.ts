@@ -128,6 +128,17 @@ export function drawDungeonPerspective(view: DungeonPerspectiveView): DungeonPer
     label(compass, 116, 114, passage?.relative === "back" ? 0xbce5e8 : 0xe9dfc9);
     if (back?.trap !== null && back?.trap !== undefined) layer.addChild(trapGlyph(back.trap, 176, 114, 5));
     if (view.keyStatus === "carried") layer.addChild(keyGlyph(55, 104));
+    if (view.guardian !== null) {
+      // A floor mark remembers this room's encounter; it is not a live enemy or an extra doorway.
+      const status = view.guardian.status, x = 116, y = 94;
+      const color = status === "cleared" ? 0x9fd0a6 : status === "unbeaten" ? 0xc9a77d : 0xe09a89;
+      const glyph = new Graphics().ellipse(x, y, 12, 5).stroke({ color, width: 1.4 });
+      if (status === "cleared") glyph.moveTo(x - 7, y).lineTo(x - 1, y + 3).lineTo(x + 8, y - 4);
+      else if (status === "unbeaten") glyph.moveTo(x - 7, y + 3).lineTo(x + 7, y - 3);
+      else glyph.moveTo(x - 4, y - 3).lineTo(x - 4, y + 3).moveTo(x + 4, y - 3).lineTo(x + 4, y + 3);
+      glyph.stroke({ color, width: 1.4 }); glyph.label = `lair-${status}`; layer.addChild(glyph);
+      label(status === "revealed" ? "LAIR" : status.toUpperCase(), x, 107, color);
+    }
     // First-person hands use the existing hero's identity, not an invented actor or item.
     const hero = projectHeroIdentityAppearance({ id: view.heroId });
     layer.addChild(new Graphics().poly([0, 124, 0, 114, 18, 109, 31, 124]).fill(hero.cloak)

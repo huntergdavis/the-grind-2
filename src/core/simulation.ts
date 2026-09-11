@@ -6,6 +6,7 @@ import { isValidDungeonSecretPassage } from "../depth/dungeon";
 import { isValidCampaignPennywiseGate } from "../depth/pennywise-gate";
 import { isValidCampaignSmithyJob } from "../depth/smithy-job";
 import { innBluffClaim, innBluffTellText, isValidCampaignInnBluff } from "../depth/inn-bluff";
+import { isValidCampaignDungeonLair } from "../depth/dungeon-lair";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
 import {
   abilityExperienceCeiling,
@@ -404,6 +405,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "unlock-dungeon-gate":
       return "dungeon";
     case "start-combat":
+    case "start-dungeon-guardian":
     case "combat-action":
     case "start-counter-duel":
     case "counter-duel-action":
@@ -458,6 +460,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "wait":
       return needsCriticalRoadsideRecovery(before) || selectPaidInnRest(before) !== null ? 0 : 1;
     case "start-combat":
+    case "start-dungeon-guardian":
       return 8;
     case "combat-action":
       return command.action.actorId === before.hero.id && command.action.type !== "item" ? 8 : 0;
@@ -490,6 +493,13 @@ function describeBeat(
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
+  const guardian = depth.dungeon?.lair?.encounter;
+  if (guardian?.arrival.tick === depth.tick && choice.command.type === "move-dungeon") {
+    return { mode: "dungeon", location: depth.dungeon!.name, goal: "Face the guardian of the entered lair",
+      headline: "The room is taken",
+      action: `${state.hero.name} enters ${guardian.cellId} and finds ${guardian.guardian.name}. “The map said lair. I had hoped it meant former lair.”`,
+      consequence: "One actual guardian has been encountered. The room is not cleared, and no combat reward has been earned.", sensoryIntensity: 2 };
+  }
   const bluff = depth.innBluff;
   if (bluff != null && (bluff.resolution?.tick ?? bluff.admission.tick) === depth.tick) {
     const result = bluff.resolution;
@@ -939,6 +949,20 @@ function describeBeat(
     },
   };
 
+  const guardianCombat = guardian != null && combat?.id === guardian.combatId && opportunity.mode === "battle";
+  if (guardianCombat) {
+    const result = guardian.resolution;
+    const battle = descriptions.battle;
+    return { mode: "battle", location: depth.dungeon!.name, goal: "Resolve this lair, then continue the same maze", ...battle,
+      headline: choice.command.type === "start-dungeon-guardian" ? `${guardian.guardian.name} holds the lair`
+        : result?.tick === depth.tick ? result.outcome === "victory" ? "At last, a former lair" : "The guardian remains unbeaten"
+        : battle.headline,
+      action: choice.command.type === "start-dungeon-guardian"
+        ? `${state.hero.name} faces ${guardian.guardian.name} in the actual entered room.` : battle.action,
+      consequence: result?.tick === depth.tick
+        ? `${battle.consequence}. ${result.outcome === "victory" ? "This lair is cleared; ordinary battle rewards settle once, with no extra room bonus." : "The lair is not cleared. No victory reward; later visits skirt this guardian without another challenge."}`
+        : battle.consequence };
+  }
   return {
     mode: opportunity.mode,
     location: opportunity.location,
@@ -1635,7 +1659,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 35 ||
-    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) ||
+    !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) || !isValidCampaignDungeonLair(state.depth) ||
     !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
     !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||

@@ -2,6 +2,71 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## The Room Is Taken — v0.5.174 implementation review
+
+**Runtime implemented; release validation pending. Not yet shipped or publicly
+source-verified.** Reuses the original 2026-09-11 08:55:31 PDT council proposal,
+recalled with `deja "The Room Is Taken"`, and the
+[bounded D5 scope](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken).
+Separate rules, presentation and acceptance owners work within the existing
+dungeon/combat flow; no LLM, extra Watch panel or general encounter framework.
+
+The unchanged v173 `shared-road-playful:7` / `campaign:browser-repartee-memory`
+source proof passes in 2.808 seconds under the original T320/20-second bound.
+At T104→T105, Aster actually moves west from Salt Labyrinth cell (2,6) into
+new lair (1,6), solo, HP42/42, MP24/24, gold20 and without owed recovery.
+No room, enemy or resource was staged. Recovery checkpoints remain ignored in
+`scratch/dungeon-lair-baseline-checkpoints.json`; the shared fixture pins T112
+rather than expanding the original journey ceiling.
+
+The 3.787-second integrated source proof admits the actual Inkcap Mimic at
+T106; Aster casts Ember Arc at T107 and genuinely loses at T108 (hero HP0,
+guardian HP85). T109 performs the existing entrance recovery, HP11/MP25, with
+no guardian scene. The retained result is **unbeaten**, not a claimed victory
+or live surveillance of the former room. This one-attempt rule also excludes
+rechallenge, enemy resets, repeated loot and a separate room-clear payout.
+Real victory alone earns a cleared mark; ordinary combat rewards stay intact.
+
+Presentation review: entry owns the existing dungeon caption; battle uses the
+real combatants and native stone chamber with existing threat/turn rails.
+Only the actually entered room receives a source-bound remembered mark in 2D
+or first-person. Stationary battle transitions retain heading; terminal prose
+belongs only to the exact final combat source, never a later camp/recovery.
+Old lair-absent saves keep their prior behavior. All **20/20** focused guardian
+and perspective checks pass (19.22s runner; 5.14s test bodies), including exact
+action IDs, strict packet omissions, reloads, unchanged source state and Status
+history. The initial 19/20 run missed only the new approved `guardian` key in
+an existing strict allowlist expectation; its correction changes no runtime.
+The first type check exposed a reducer nullability issue, corrected to use the
+already-validated moved dungeon. Final integration reuses the canonical terminal
+combat-source helper. A last review found that a resolved lair could accept a
+different forged dungeon-bound combat; the one-line guard now rejects any such
+active fight. Its negative test uses a separately valid, living-hero combat to
+prove the missing receipt join, rather than relying on an invalid dead actor.
+
+Local validation: **94 focused checks pass across nine files** (64 rules/combat,
+20 presentation, two core flow and eight narrator checks). Clearly labeled
+stronger-equipment and both-sides-guard unit cases exercise real legal victory
+and the existing 128-turn stalemate; neither replaces the natural defeat proof.
+Initial unit expectations incorrectly exceeded the existing equipment modifier
+cap and overlooked ordinary max-MP reconciliation; corrected expectations stay
+within those unchanged rules. Version/boundaries, final TypeScript/build and
+local exact-source maps pass. Ten original 1,000-command campaigns complete in
+193.438 seconds and refresh whole-state anchors without normalization, seed
+changes or increased scope. The prompt fingerprint remains `084f88cba6c5180e`;
+model workers and CSS are unchanged. Production browser acceptance passes in
+81.9 seconds of scenario work (1.8-minute runner), within its original 150-second
+limit. All three desktop/320px/Focus captures are inspected: one entered-room
+mark, a compact first-person caption, and real actors/HP in the stone battle.
+Exact arrival/result reloads, Status sources, ordinary recovery and no repeat
+pass, with zero external requests, model calls or runtime errors. CI and public
+source verification remain pending; local preview port 19898 is released.
+
+After D5 release verification, the next backlog action is a **read-only Road
+Supper scope check**: determine whether actual ingredients and an existing rest
+boundary support one finite preparation effect. It is not implemented or
+claimed naturally reachable. Larger cooking systems remain separate ideas.
+
 ## The Cup Is Exaggerating — v0.5.173 final delivery
 
 **Live and publicly source-verified 2026-09-11 09:14:36 PDT.** Feature
@@ -30,7 +95,8 @@ Reuse: `deja "The Cup Is Exaggerating B1 inn"` recovered the
 That earlier recommendation was not implementation or admission evidence.
 Separate rules, presentation and acceptance owners implemented the bounded
 encounter; root integrated and verified the release. LLM and protected ledger work
-remain untouched. The later read-only D5 proposal below is not implementation.
+remain untouched. The historical D5 proposal below was read-only at B1 delivery;
+its separate implementation status is recorded above.
 
 The single unchanged v172 `shared-road-playful:7` / `campaign:browser-repartee-memory`
 baseline stops at T4 in 456 ms, inside its original 64-command/10-second
@@ -139,7 +205,7 @@ Ignored recovery artifacts: `scratch/cup-bluff-baseline-evidence.json`,
 a production deployment by themselves. The independent successful CI and
 public-source verification above establish the actual B1 release.
 
-### Next proposal — D5, The Room Is Taken
+### Historical next proposal at B1 delivery — D5, The Room Is Taken
 
 Read-only acceptance-owner recommendation at 2026-09-11 08:55:31 PDT, checked
 against current code by root. Reuse: `deja "dungeon lair guardian inhabitants"`
@@ -152,9 +218,9 @@ that existing guard, actual combat costs/rewards and defeat recovery intact.
 [The bounded proposal](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken)
 selects one real inhabited lair, actual tactical fight and same-maze return,
 with a source-bound cleared-room glyph rather than another panel or mandatory
-town prelude. Its existing-journey T320/20-second admission proof has not run;
-defeat/revisit and retained-guardian behavior need explicit rules before coding.
-No source journey, runtime change, new research or implementation is claimed.
+town prelude. At proposal time its T320/20-second proof had not run and its
+defeat/revisit rules were unresolved. The separate implementation review above
+records their later resolution; none of that work was claimed by this proposal.
 The larger Echo Cache and last-known-threat proposals retain their missing
 retreat/storage and roaming/sensing dependencies, respectively.
 

@@ -24,7 +24,9 @@ live in v0.5.172: actual admission, exact MP/wages, all four legal stroke
 sequences, source-preserving saves, native browser, CI and public verification
 pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
 browser, CI and public-source verification pass. D5's inhabited dungeon lair
-is proposed next; its source admission remains unproven. T1's ferry
+is implemented for v0.5.174, with release validation pending; it is not yet live.
+The next larger-backlog scoping check is Road Supper's actual supplies/rest
+boundary, not a claimed cooking implementation. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -36,7 +38,35 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest delivery — The Cup Is Exaggerating (v0.5.173)
+## Current implementation — The Room Is Taken (v0.5.174)
+
+**Runtime implemented; release validation pending. Not yet shipped or publicly
+verified.** One newly entered lair in a new solo expedition admits one actual
+guardian combat. Its recorded victory clears the room; defeat or stalemate
+retains an unbeaten memory. Later traversal skirts that encounter without a
+retry, enemy reset, new loot roll or extra room-completion payout. Old saves
+without the opt-in record remain unchanged.
+
+The unchanged v173 known journey reaches Salt Labyrinth's lair at T105 from
+T104, cell (2,6)→(1,6), in 2.808 seconds within the original T320/20-second
+source cap. Actual solo Aster has HP42/42 and MP24/24. Integrated source proof
+then admits Inkcap Mimic at T106, records Ember Arc at T107 and a real defeat
+at T108. T109 uses the existing entrance recovery: HP11, MP25, no replayed
+guardian scene. This is a genuine loss, not a staged natural victory.
+
+Existing caption/Status, actual combat actors in a stone chamber, and public
+2D/first-person room marks carry the event; no panel, model or extra reading
+clock is added. All 20 focused guardian/perspective presentation checks pass.
+Final build and the production browser pass, with three inspected views and
+no external/model requests. CI and public-source delivery evidence remain for
+the release owner to append in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+Next: scope the existing **Road Supper** inventory item against real supplies
+and an actual rest boundary before committing another playable slice.
+
+<details>
+<summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
+
+## Prior delivery — The Cup Is Exaggerating (v0.5.173)
 
 Reuses the council's 2026-09-11 07:56:32 PDT B1 scope, recovered with
 `deja "The Cup Is Exaggerating B1 inn"` and retained in
@@ -76,14 +106,11 @@ local replay timeouts are preserved in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
 The challenge-win outcome is covered by explicitly separate literal unit
 fixtures, not represented as another natural outcome of this same cup.
 B1 is complete; historical delivery receipts stay below.
-The next read-only council proposal is
+The next read-only council proposal at B1 delivery was
 [D5 — The Room Is Taken](docs/design/ADVENTURE_FORMS.md#d5-proposed-next-slice--the-room-is-taken):
 one actually inhabited dungeon lair, a real fight and same-maze continuation.
-Its bounded source admission and retained-guardian/revisit rules are unproven;
-it adds no current runtime or release requirement to B1.
-
-<details>
-<summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
+Its then-unproven source admission and retained-guardian/revisit rules were
+resolved in the separate v0.5.174 implementation above, not added to B1's gate.
 
 ## Prior delivery — Surely I Can Make One Nail (v0.5.172)
 

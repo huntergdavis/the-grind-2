@@ -18,6 +18,20 @@ export interface EncounterThreatContext {
   readonly questModifier: 0 | 1;
 }
 
+export interface DungeonEncounterThreatContext {
+  readonly kind: "dungeon";
+  readonly dungeonId: string;
+  readonly cellId: string;
+  readonly locationId: string;
+  readonly placeDanger: number;
+}
+
+export function isDungeonThreatLocation(dungeonId: string, locationId: string): boolean {
+  const prefix = `dungeon:${locationId}`;
+  return dungeonId === prefix || dungeonId.startsWith(`${prefix}:quest:`)
+    && /^[1-9]\d*$/.test(dungeonId.slice(`${prefix}:quest:`.length));
+}
+
 export interface EncounterThreatSpecies {
   readonly combatantId: string;
   readonly speciesId: string;
@@ -104,13 +118,41 @@ export function createEncounterThreatProfile(
   });
 }
 
+export function createDungeonEncounterThreatProfile(
+  context: DungeonEncounterThreatContext,
+  enemies: readonly EncounterThreatSpecies[],
+): EncounterThreatProfile {
+  if (context.kind !== "dungeon" || !isDungeonThreatLocation(context.dungeonId, context.locationId)
+    || !context.cellId.startsWith(`${context.dungeonId}:cell:`) || !safeInteger(context.placeDanger, 1, 10)
+    || enemies.length !== 1) throw new TypeError("Dungeon threat needs one guardian at a real dungeon cell");
+  const factors = enemies.map((enemy): RatedEncounterThreatFactor => {
+    const speciesBias = speciesThreatBias(enemy.speciesId);
+    const score = encounterThreatScore(context.placeDanger, 0, speciesBias);
+    return { ...enemy, speciesBias, score, mechanicalTier: mechanicalTierForThreatScore(score) };
+  });
+  const encounterScore = factors[0]!.score;
+  return { schemaVersion: 1, rating: "dungeon-bound", rulesVersion: "dungeon-threat-v1",
+    dungeonId: context.dungeonId, cellId: context.cellId, locationId: context.locationId,
+    placeDanger: context.placeDanger, questModifier: 0, encounterScore,
+    band: encounterThreatBand(encounterScore), factors };
+}
+
 export function isValidEncounterThreatProfile(
   value: unknown,
   combatants: readonly CombatantState[],
 ): value is EncounterThreatProfile {
   if (!isRecord(value) || value.schemaVersion !== 1) return false;
   if (value.rating === "legacy-unrated") return Object.keys(value).length === 2;
-  if (
+  const dungeonBound = value.rating === "dungeon-bound";
+  if (dungeonBound) {
+    if (value.rulesVersion !== "dungeon-threat-v1" || typeof value.dungeonId !== "string"
+      || typeof value.locationId !== "string" || typeof value.cellId !== "string"
+      || !isDungeonThreatLocation(value.dungeonId, value.locationId)
+      || !new RegExp(`^${value.dungeonId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:cell:\\d+,\\d+$`).test(value.cellId)
+      || value.questModifier !== 0
+      || Object.keys(value).sort().join(",") !== ["schemaVersion", "rating", "rulesVersion", "dungeonId", "cellId", "locationId",
+        "placeDanger", "questModifier", "encounterScore", "band", "factors"].sort().join(",")) return false;
+  } else if (
     value.rating !== "place-bound" || value.rulesVersion !== encounterThreatRulesVersion ||
     typeof value.edgeId !== "string" || value.edgeId.length === 0 ||
     typeof value.fromLocationId !== "string" || value.fromLocationId.length === 0 ||
@@ -121,12 +163,15 @@ export function isValidEncounterThreatProfile(
     (value.questModifier === 1 && (
       typeof value.questLeadId !== "string" || value.questLeadId.length === 0 ||
       typeof value.questInstanceId !== "string" || value.questInstanceId.length === 0
-    )) ||
+    ))
+  ) return false;
+  if (
+    !safeInteger(value.placeDanger, 1, 10) ||
     !safeInteger(value.encounterScore, 1, 10) || typeof value.band !== "string" ||
     !threatBands.includes(value.band as EncounterThreatBand) || !Array.isArray(value.factors)
   ) return false;
   const enemies = combatants.filter((combatant) => combatant.side === "enemies");
-  if (value.factors.length !== enemies.length || value.factors.length < 1 || value.factors.length > 5) return false;
+  if (value.factors.length !== enemies.length || value.factors.length < 1 || value.factors.length > (dungeonBound ? 1 : 5)) return false;
   const factors = value.factors;
   const factorIds = factors.map((factor) => isRecord(factor) ? factor.combatantId : null);
   if (new Set(factorIds).size !== factorIds.length) return false;
@@ -159,6 +204,11 @@ export function isValidEncounterThreatProvenance(
   atlas: AtlasState,
 ): boolean {
   if (profile.rating === "legacy-unrated") return true;
+  if (profile.rating === "dungeon-bound") {
+    return isDungeonThreatLocation(profile.dungeonId, profile.locationId)
+      && atlas.locations.some((location) => location.id === profile.locationId && location.kind === "dungeon"
+        && location.danger === profile.placeDanger) && atlas.discoveredLocationIds.includes(profile.locationId);
+  }
   const edge = atlas.edges.find((candidate) => candidate.id === profile.edgeId);
   const destination = atlas.locations.find((candidate) => candidate.id === profile.destinationLocationId);
   return edge !== undefined && destination !== undefined &&
@@ -175,5 +225,7 @@ export function describeEncounterThreat(profile: EncounterThreatProfile): string
   ))[0];
   const bias = decisive?.speciesBias ?? 0;
   const biasText = bias === 0 ? "+ species 0" : bias > 0 ? `+ species ${bias}` : `− species ${Math.abs(bias)}`;
-  return `Threat ${profile.encounterScore} ${encounterThreatBandLabel(profile.band)} · place ${profile.placeDanger} + quest ${profile.questModifier} ${biasText}`;
+  return profile.rating === "dungeon-bound"
+    ? `Threat ${profile.encounterScore} ${encounterThreatBandLabel(profile.band)} · dungeon ${profile.placeDanger} ${biasText}`
+    : `Threat ${profile.encounterScore} ${encounterThreatBandLabel(profile.band)} · place ${profile.placeDanger} + quest ${profile.questModifier} ${biasText}`;
 }

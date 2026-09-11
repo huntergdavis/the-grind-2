@@ -29,6 +29,7 @@ import { createChroniclePlateView } from "./ui/chronicle-plate-view";
 import { projectDungeonSearchView } from "./ui/dungeon-search-view";
 import { projectDungeonFieldMedicineScene } from "./ui/dungeon-field-medicine-view";
 import { projectDungeonSecretPassageScene } from "./ui/dungeon-secret-passage-view";
+import { projectDungeonGuardianScene } from "./ui/dungeon-guardian-view";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { projectSmithyJobScene } from "./ui/smithy-job-view";
 import { projectInnBluffScene } from "./ui/inn-bluff-view";
@@ -4180,7 +4181,8 @@ function checkpointKey(campaignId: string): string {
 
 async function catchUp(world: WorldState): Promise<WorldState> {
   // Foreground conversations, jobs and board turns resume from saved facts, never hidden-time debt.
-  if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null
+  if (projectDungeonGuardianScene(world) !== null
+    || world.depth.repartee.active !== null || projectReparteeScene(world) !== null
     || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.roomChallenge !== null && world.depth.roomChallenge.result === null
     || selectCompanionReunion(world.depth) !== null
@@ -4239,7 +4241,7 @@ function presentCombatRoster(projection: CombatRosterProjection | null, combat: 
   delete elements.battleThreat.dataset.pattern;
   if (combat !== null) {
     elements.battleThreat.dataset.rating = combat.threat.rating;
-    if (combat.threat.rating === "place-bound") {
+    if (combat.threat.rating === "place-bound" || combat.threat.rating === "dungeon-bound") {
       elements.battleThreat.dataset.score = String(combat.threat.encounterScore);
       elements.battleThreat.dataset.band = combat.threat.band;
       elements.battleThreat.dataset.pattern = combat.threat.band;
@@ -4479,6 +4481,7 @@ function present(): void {
   const dungeonSearch = projectDungeonSearchView(state);
   const dungeonMedicine = projectDungeonFieldMedicineScene(state);
   const dungeonPassage = projectDungeonSecretPassageScene(state);
+  const dungeonGuardian = projectDungeonGuardianScene(state);
   const pennywiseGate = projectPennywiseGateScene(state);
   const smithyJob = projectSmithyJobScene(state);
   const innBluff = projectInnBluffScene(state);
@@ -4811,6 +4814,13 @@ function present(): void {
     elements.traversalDirective.dataset.reason = `pennywise-gate-${pennywiseGate.phase}`;
     elements.traversalDirective.dataset.directions = "";
     elements.traversalDirective.dataset.frontierCell = "";
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (dungeonGuardian !== null) {
+    elements.traversalDirective.textContent = `${dungeonGuardian.headline} · ${dungeonGuardian.detail}`;
+    elements.traversalDirective.title = state.scene.consequence;
+    elements.traversalDirective.dataset.reason = `dungeon-guardian-${dungeonGuardian.phase}`;
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = dungeonGuardian.cellId;
     elements.traversalDirective.dataset.routeLength = "0";
   } else if (dungeonMedicine !== null) {
     elements.traversalDirective.textContent = `${dungeonMedicine.headline} · ${dungeonMedicine.detail}`;

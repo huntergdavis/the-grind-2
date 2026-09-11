@@ -339,6 +339,8 @@ export interface DungeonSecretPassageState {
 }
 
 export interface DungeonState {
+  /** Explicitly enabled for new expeditions; absent legacy dungeons remain inert. */
+  lair?: import("./dungeon-lair").DungeonLairState;
   layoutVersion: DungeonLayoutVersion;
   /** Absent legacy fixtures use rules 1; generated dungeons record their family rules explicitly. */
   trapRulesVersion?: 1 | 2;
@@ -1046,6 +1048,19 @@ export type EncounterThreatProfile =
       encounterScore: number;
       band: EncounterThreatBand;
       factors: readonly RatedEncounterThreatFactor[];
+    }
+  | {
+      schemaVersion: 1;
+      rating: "dungeon-bound";
+      rulesVersion: "dungeon-threat-v1";
+      dungeonId: string;
+      cellId: string;
+      locationId: string;
+      placeDanger: number;
+      questModifier: 0;
+      encounterScore: number;
+      band: EncounterThreatBand;
+      factors: readonly RatedEncounterThreatFactor[];
     };
 
 export interface CombatState {
@@ -1306,6 +1321,7 @@ export type DepthCommand =
   | { type: "buy-disarming-kit"; smithId: string }
   | { type: "unlock-dungeon-gate" }
   | { type: "start-combat"; encounterId: string; enemyCount: number }
+  | { type: "start-dungeon-guardian"; dungeonId: string; cellId: string; encounterId: string }
   | { type: "combat-action"; action: CombatAction }
   | { type: "start-counter-duel"; encounterId: string }
   | { type: "counter-duel-action"; prediction: CounterDuelStance }

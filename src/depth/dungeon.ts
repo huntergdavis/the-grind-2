@@ -1,6 +1,7 @@
 import { pick, randomInt } from "../core/rng";
 import { isDisarmingKit } from "./disarming-kit";
 import { isValidDungeonFieldMedicineUse } from "./dungeon-field-medicine";
+import { createDungeonLairState, isValidDungeonLair } from "./dungeon-lair";
 import type { DungeonDisarmKitUseV1, ItemState } from "./types";
 import type {
   DungeonKeyGateState,
@@ -871,10 +872,12 @@ export function generateDungeon(
   layoutVersion: 2 | 3 = 2,
   trapRulesVersion: 1 | 2 = 1,
   secretPassageRulesVersion?: 1,
+  lairRulesVersion?: 1,
 ): DungeonState {
   if (layoutVersion !== 2 && layoutVersion !== 3) throw new RangeError("Generated dungeon layout version must be 2 or 3");
   if (trapRulesVersion !== 1 && trapRulesVersion !== 2) throw new RangeError("Generated trap rules must be 1 or 2");
   if (secretPassageRulesVersion !== undefined && secretPassageRulesVersion !== 1) throw new RangeError("Generated secret passage rules must be 1");
+  if (lairRulesVersion !== undefined && lairRulesVersion !== 1) throw new RangeError("Generated lair rules must be 1");
   const width = dimension(requestedWidth);
   const height = dimension(requestedHeight);
   const exitSets = Array.from({ length: width * height }, () => new Set<MazeDirection>());
@@ -926,6 +929,7 @@ export function generateDungeon(
     latestDisarmKitUse: null,
     latestFieldMedicineUse: null,
     ...(secretPassageRulesVersion === 1 ? { secretPassage: createDungeonSecretPassageState() } : {}),
+    ...(lairRulesVersion === 1 ? { lair: createDungeonLairState() } : {}),
     search: createDungeonSearchState(),
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
@@ -1279,6 +1283,7 @@ export function isValidDungeonTrapRules(value: unknown): boolean {
 
 export function isValidDungeonState(value: unknown): value is DungeonState {
   if (!isRecord(value) || !isValidDungeonTrapRules(value)) return false;
+  if (!isValidDungeonLair(value as unknown as DungeonState)) return false;
   if (!isValidDungeonSecretPassage(value as unknown as DungeonState)) return false;
   if (Object.hasOwn(value, "latestFieldMedicineUse")
     && !isValidDungeonFieldMedicineUse(value.latestFieldMedicineUse, value as unknown as DungeonState)) return false;
