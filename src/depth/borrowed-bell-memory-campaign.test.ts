@@ -177,7 +177,7 @@ describe("one delivery memory at an existing real rest", () => {
   it("migrates released v31 saves to no invented memory while rejecting malformed present receipts", () => {
     const before = ready.depth, { bellMemory: _memory, ...prior } = before, legacy = { ...prior, schemaVersion: 31 };
     const loaded = upgradeDepthState(legacy, before.seed, before.hero.id, before.hero.name);
-    expect(loaded.schemaVersion).toBe(34);
+    expect(loaded.schemaVersion).toBe(35);
     expect(loaded.bellMemory).toBeNull();
     expect(loaded.bellExpedition).toEqual(before.bellExpedition);
     expect(loaded.hero).toEqual(before.hero);

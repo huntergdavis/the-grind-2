@@ -2,6 +2,67 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## A familiar face — v0.5.167 implementation checkpoint
+
+Reusing the committed R1 scope and the actual Fara Ash oath/farewell journey.
+The new-turn `deja "companion reunion familiar face"` query found no recovered
+implementation. Independent rules, presentation and acceptance agents own
+bounded pieces; root integrates, builds and verifies deployment.
+
+One unchanged v0.5.166 probe from real T38 through T320 found no return to the
+healthy fulfilled former companion's farewell town. Five full arrivals instead
+reached locations 7, 3, 11, 6 and 11. Source execution was 7.207 seconds. The
+ignored diagnostic is `scratch/companion-reunion-baseline-evidence.json`; no
+seed scan, longer journey or staged travel was used. Accordingly, R1 now scopes
+one ordinary return route after existing obligations/dungeon entry and before
+generic onward travel. Normal encounters, distance and recovery remain real.
+
+Actual completed travel earns a nullable reunion receipt. One later foreground
+exchange remembers the fulfilled oath and recorded shared victories, with the
+former companion explicitly retained at the farewell town. It does not invent
+a trip home, re-recruitment, off-screen accomplishments or another reward.
+Use the existing two-actor caption/stage and collapsed Journal → Company entry.
+Migration, source validation, natural reachability, presentation and public
+delivery are pending. LLM work and protected ledger changes remain out of scope.
+
+The first new natural journey passes without staging: Fara's original join T22
+and fulfilled farewell T40 lead to an actual return from location 7 to Elderwatch
+at T154, then the greeting at T155. The real route is 99 miles; the final travel
+command covers the remaining two. One shared victory is remembered. HP 42/42,
+MP 24/24 and the original roster are unchanged; exact JSON upgrade/reload passes,
+and the next normal action is a Disarming Kit purchase. Source execution was
+3.794 seconds, within the unchanged 20-second cap and T320 journey ceiling.
+
+Presentation passed 34 focused tests across four files (42.29-second runner,
+16.85-second test bodies), plus TypeScript and scoped diff checks. Two actual
+actors share the existing caption at the farewell-town threshold; the visible
+note is “Two roads cross again.” Detailed provenance remains collapsed in
+Journal → Company. The initial boundary check identified five newly reached
+atlas/companion dependencies missing from the two source manifests; the recall
+query found no match. Adding the exact sorted dependencies made boundaries and
+version checks pass without weakening the checker. Browser/deployment pending.
+
+The final eight focused rules tests pass (8.99-second bodies, 19.97-second
+runner). The first run passed seven; its one failure was test-only: JSON had
+removed an explicit undefined field before migration. Calling the upgrader
+directly now tests that malformed boundary. The initial build also caught two
+unused test imports during the handoff; both were removed. No runtime rules
+changed in either repair. Fourteen existing test files update only the current
+Depth output version; historical migration inputs remain intact.
+
+Production build passes (Vite 22.88 seconds). Three emitted assets and nine
+runtime source-map entries match the frozen files. The natural browser journey
+passes in 46.0 seconds (1.2-minute runner): actual T154 arrival, pending reload,
+T155 dialogue, completed reload, exact Company history, unchanged old facts,
+and ordinary smith purchase continuation. There are zero runtime errors, model
+activity or external requests. All three desktop/320px/Focus captures were
+directly inspected: clear actors and complete readable dialogue. Fixture-fast
+mode is explicit, not a new normal eight-second hold measurement. The isolated
+preview closed afterward. CSS, LLM workers and optional dungeon-view chunks
+are unchanged. Ten existing full-state canonical anchors are regenerated for
+Depth35 and actual new turns; no normalization or timeout expansion. Clean CI
+replay and public delivery remain pending.
+
 ## Let the room answer — v0.5.166 final delivery
 
 **Live and publicly source-verified 2026-09-11 at 02:02:19 PDT.** Feature

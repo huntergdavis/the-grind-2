@@ -1,5 +1,6 @@
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCall } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge } from "../depth/room-challenge";
+import { isValidCampaignCompanionReunion } from "../depth/companion-reunion";
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
@@ -347,6 +348,7 @@ export function legacyTownRevisitCandidate(
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "reunite-companion":
     case "start-room-challenge":
     case "answer-room-challenge":
     case "read-useful-book":
@@ -401,6 +403,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "reunite-companion":
     case "start-room-challenge":
     case "answer-room-challenge":
     case "read-useful-book":
@@ -492,6 +495,14 @@ function describeBeat(
       consequence: "The exchange is remembered, not rewarded again. Regard, bond and resources unchanged.",
       sensoryIntensity: 0,
     };
+  }
+  if (choice.command.type === "reunite-companion" && depth.companionReunion?.completed != null) {
+    const reunion = depth.companionReunion, completed = reunion.completed!;
+    const location = depth.atlas.locations.find((entry) => entry.id === reunion.locationId);
+    return { mode: "chronicle", location: location?.name ?? opportunity.location,
+      goal: "A hello after the shared road", headline: `A familiar face: ${reunion.companionName}`,
+      action: `${state.hero.name}: “${completed.heroLine}” ${reunion.companionName}: “${completed.companionLine}”`,
+      consequence: "The fulfilled oath stays fulfilled. No new journey, reward or relationship change is claimed.", sensoryIntensity: 0 };
   }
   if ((choice.command.type === "start-room-challenge" || choice.command.type === "answer-room-challenge") && depth.roomChallenge !== null) {
     const challenge = depth.roomChallenge, result = challenge.result;
@@ -1532,8 +1543,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 34 ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) ||
+    state.depth.schemaVersion !== 35 ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||

@@ -1239,7 +1239,8 @@ export class GameRenderer {
       "reparteeHero", "reparteeResident", "reparteeOutcome", "reparteeSafeRect", "reparteeVisual",
       "reparteeWitness", "reparteeWitnessPose", "reparteeRegard", "reparteeMemorySource", "reparteeMemoryLocation",
       "reparteeHeroPosition", "reparteeWitnessPosition", "reparteeResidentPosition", "reparteeLesson", "reparteeClassification",
-      "reparteeChallenge", "reparteeScore", "reparteeResultMarks"]) delete this.host.dataset[key];
+      "reparteeChallenge", "reparteeScore", "reparteeResultMarks",
+      "reunionId", "reunionCommand", "reunionCompanion", "reunionLocation", "reunionHeroPosition", "reunionCompanionPosition"]) delete this.host.dataset[key];
     for (const key of ["bellPhase", "bellCommand", "bellInstance", "bellCell", "bellTurn", "bellRoll", "bellOutcome",
       "bellPath", "bellSafeRect", "bellVisual", "bellHeroPosition", "bellKnownEffects", "bellMemorySource",
       "bellMemoryLocation", "bellMemoryInn", "bellMemoryRestKind", "bellCarried"]) delete this.host.dataset[key];
@@ -4935,7 +4936,8 @@ export class GameRenderer {
   private drawRepartee(state: WorldState, scene: ReparteeSceneView, palette: readonly [number, number, number]): void {
     this.host.dataset.reparteePhase = scene.phase;
     this.host.dataset.reparteeCommand = scene.commandId;
-    this.host.dataset.reparteeBook = scene.bookId;
+    if (scene.bookId === null) delete this.host.dataset.reparteeBook;
+    else this.host.dataset.reparteeBook = scene.bookId;
     this.host.dataset.reparteeRound = String(scene.marks.filter((mark) => mark !== null).length);
     this.host.dataset.reparteeMomentum = String(scene.momentum);
     this.host.dataset.reparteeHero = scene.heroId;
@@ -4945,6 +4947,25 @@ export class GameRenderer {
     this.host.dataset.reparteeWitnessPose = scene.witness?.reaction?.pose ?? (scene.witness === null ? "none" : "watching");
     this.host.dataset.reparteeRegard = scene.witness?.reaction === null || scene.witness === null
       ? "unestablished" : String(scene.witness.reaction.regardAfter);
+    if (scene.phase === "reunion") {
+      for (const key of ["reparteeRound", "reparteeMomentum", "reparteeOutcome", "reparteeResident", "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
+      this.host.dataset.reunionId = scene.reunionId;
+      this.host.dataset.reunionCommand = scene.commandId;
+      this.host.dataset.reunionCompanion = scene.companion.id;
+      this.host.dataset.reunionLocation = scene.locationId;
+      this.host.dataset.reunionHeroPosition = "102,144";
+      this.host.dataset.reunionCompanionPosition = "222,144";
+      this.host.dataset.reparteeVisual = "actual-hero|actual-former-companion|farewell-town-threshold|fulfilled-oath|no-inn|no-score|no-new-oath|no-new-reward";
+      this.worldLayer.addChild(rect(0, 0, 320, 180, 0x172331), rect(0, 138, 320, 42, 0x343d39));
+      this.worldLayer.addChild(rect(14, 42, 232, 96, 0x293944), rect(0, 136, 320, 4, 0x65706a));
+      this.worldLayer.addChild(new Graphics().roundRect(246, 24, 52, 114, 20).fill(0x42515a)
+        .roundRect(254, 34, 36, 104, 16).fill(0x101b28)
+        .moveTo(156, 180).quadraticCurveTo(186, 155, 270, 139).stroke({ color: 0x867e67, width: 13, alpha: 0.55 }));
+      this.drawHero(state, 102, 144, palette, 1.7, scene.heroId, false);
+      const companion = this.drawCompanion(state, scene.companion.id, scene.companion.role, 222, 144, palette, 1.7);
+      companion.scale.x = -1.7;
+      return;
+    }
     if (scene.phase === "lesson-reading" || scene.phase === "lesson-practice") {
       for (const key of ["reparteeRound", "reparteeMomentum", "reparteeOutcome", "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
       this.host.dataset.reparteeLesson = scene.lessonId;

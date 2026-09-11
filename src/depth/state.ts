@@ -132,6 +132,7 @@ import { borrowedBellCommandCandidates, describeBorrowedBell, isValidCampaignBor
 import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-bell-memory";
 import { isValidCampaignUsefulReply, stepCampaignUsefulReply, usefulReplyBook, usefulReplyCall, usefulReplyCommandCandidates } from "./useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeCommandCandidates, stepCampaignRoomChallenge } from "./room-challenge";
+import { captureCompanionReunionArrival, isValidCampaignCompanionReunion, selectCompanionReturn, selectCompanionReunion, stepCampaignCompanionReunion } from "./companion-reunion";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -843,9 +844,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34 && value.schemaVersion !== 35) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34 && value.schemaVersion !== 35) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -928,6 +929,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 34) {
+    // A completed oath proves a farewell, not a later return or conversation.
+    return upgradeDepthState({ ...value, schemaVersion: 35,
+      companionReunion: Object.hasOwn(value, "companionReunion") ? value.companionReunion : null,
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 35) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -941,7 +948,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) ||
+      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
       !isValidDisarmingKitState(state) ||
       !isValidFieldResearchState(value.fieldResearch, heroId, value.tick as number) ||
@@ -1426,7 +1433,8 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 34,
+    schemaVersion: 35,
+    companionReunion: null,
     roomChallenge: null,
     usefulReply: null,
     bellExpedition: null,
@@ -1530,6 +1538,11 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "reunite-companion": {
+      const companionReunion = stepCampaignCompanionReunion(input, command), completed = companionReunion.completed!;
+      return appendLog({ ...state, companionReunion }, "town",
+        `${input.hero.name}: “${completed.heroLine}” ${companionReunion.companionName}: “${completed.companionLine}” The old oath remains fulfilled; this hello earns no reward.`);
+    }
     case "start-room-challenge":
     case "answer-room-challenge": {
       const next = stepCampaignRoomChallenge(input, command), challenge = next.roomChallenge, result = challenge.result;
@@ -1648,6 +1661,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
             }],
           };
       state = { ...state, atlas, companions };
+      state = { ...state, companionReunion: captureCompanionReunionArrival(input, state, command) };
       const arrived = before !== state.atlas.currentLocationId;
       const lead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
       const reachedLead = arrived &&
@@ -2486,7 +2500,7 @@ function isValidDisarmingKitState(state: DepthState): boolean {
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   if (
-    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) ||
+    !isValidCampaignRepartee(input) || !isValidCampaignReparteeCallback(input) || !isValidCampaignBorrowedBell(input) || !isValidBellDeliveryMemory(input) || !isValidCampaignUsefulReply(input) || !isValidCampaignRoomChallenge(input) || !isValidCampaignCompanionReunion(input) ||
     (input.dungeon !== null && !isValidDungeonTrapRules(input.dungeon)) ||
     !isValidDisarmingKitState(input) ||
     !isValidFieldResearchState(input.fieldResearch, input.hero.id, input.tick) ||
@@ -2498,7 +2512,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
   const output = reduceDepth(input, command);
   if (
-    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) ||
+    !isValidCampaignRepartee(output) || !isValidCampaignReparteeCallback(output) || !isValidCampaignBorrowedBell(output) || !isValidBellDeliveryMemory(output) || !isValidCampaignUsefulReply(output) || !isValidCampaignRoomChallenge(output) || !isValidCampaignCompanionReunion(output) ||
     (output.dungeon !== null && !isValidDungeonTrapRules(output.dungeon)) ||
     !isValidDisarmingKitState(output) ||
     !isValidFieldResearchState(output.fieldResearch, output.hero.id, output.tick) ||
@@ -2946,6 +2960,13 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       { type: "wait" },
     )];
   }
+  const reunionCompletion = selectCompanionReunion(state);
+  if (reunionCompletion !== null && state.companionReunion !== null) {
+    const reunion = state.companionReunion;
+    return [{ id: reunionCompletion.sourceCommandId, deciderId: state.hero.id,
+      label: `say hello again to ${reunion.companionName} at the farewell town`,
+      command: { type: "reunite-companion", residentId: reunion.residentId, joinedTick: reunion.joinedTick, arrivalTick: reunion.arrival.tick } }];
+  }
   const reparteeCandidates = reparteeCommandCandidates(state);
   if (reparteeCandidates !== null) return reparteeCandidates;
   const lessonCandidates = usefulReplyCommandCandidates(state);
@@ -3009,6 +3030,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       `enter the maze at ${state.atlas.locations.find((entry) => entry.id === dungeonPlan.locationId)?.name ?? dungeonPlan.locationId}`,
       { type: "enter-dungeon", dungeonId: dungeonPlan.dungeonId, width: dungeonPlan.width, height: dungeonPlan.height },
     )];
+  }
+  const returnVisit = selectCompanionReturn(state);
+  if (returnVisit !== null) {
+    return [commandCandidate(state, `companion:return:${returnVisit.residentId}:${returnVisit.joinedTick}:${returnVisit.locationId}`,
+      `return to ${returnVisit.companionName} at ${returnVisit.locationName}, the recorded farewell town`,
+      { type: "plan-route", destinationId: returnVisit.locationId })];
   }
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);
   if (neighbors.length === 0) return [commandCandidate(state, "wait", "watch and recover", { type: "wait" })];

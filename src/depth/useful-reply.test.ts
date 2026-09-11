@@ -105,7 +105,7 @@ describe("one useful book and an unscored actual-resident practice reply", () =>
 
   it("rejects malformed or rewritten saves while old Depth32 saves migrate to no lesson", () => {
     const { usefulReply: _lesson, ...old } = ready.depth;
-    expect(reload({ ...old, schemaVersion: 32 } as unknown as DepthState)).toMatchObject({ schemaVersion: 34, usefulReply: null });
+    expect(reload({ ...old, schemaVersion: 32 } as unknown as DepthState)).toMatchObject({ schemaVersion: 35, usefulReply: null });
     for (const invalid of [undefined, {}, { ...reading.depth.usefulReply!, contentVersion: 2 }, { ...reading.depth.usefulReply!, extra: true },
       { ...reading.depth.usefulReply!, reading: { ...reading.depth.usefulReply!.reading, frameId: "invented" } },
       { ...reading.depth.usefulReply!, reading: { ...reading.depth.usefulReply!.reading, sourceCommandId: "foreign-reading" } },

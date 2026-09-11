@@ -5,11 +5,13 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Next proposal: R1 — A familiar face.** A genuine return to a former
+1. **In progress: R1 — A familiar face (v0.5.167).** A genuine return to a former
    companion's farewell town can lead to one source-backed reunion, without
    recruiting them again or resetting their history. No flyting/Bell prerequisite.
    [Council scope](docs/design/LIFETIME_STORIES.md#r1-proposed-next-slice--a-familiar-face);
-   a natural return route remains unverified. Not part of v0.5.166.
+   the unchanged v0.5.166 journey did not return by T320. One explicit ordinary
+   return route is now scoped after existing obligations, before generic onward
+   travel. The new journey and release are not yet verified.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
@@ -50,7 +52,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **R1 — A familiar face** | Reunite with a former companion and recall an actual shared experience | Scoped proposal; no re-recruitment or extra relationship meters; later return not yet verified |
+| **R1 — A familiar face** | Reunite with a former companion and recall an actual shared experience | In progress for v0.5.167; one ordinary return trip, no re-recruitment or extra relationship meters |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

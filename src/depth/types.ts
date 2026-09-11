@@ -1205,7 +1205,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 34;
+  schemaVersion: 35;
+  companionReunion: import("./companion-reunion").CompanionReunion | null;
   roomChallenge: import("./room-challenge").RoomChallenge | null;
   usefulReply: import("./useful-reply").UsefulReplyLesson | null;
   bellExpedition: import("./borrowed-bell").BellExpedition | null;
@@ -1239,6 +1240,7 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "reunite-companion"; residentId: string; joinedTick: number; arrivalTick: number }
   | { type: "start-room-challenge"; encounterId: string; locationId: string; buildingId: string; residentId: string }
   | { type: "answer-room-challenge"; encounterId: string; responseId: string }
   | { type: "read-useful-book"; lessonId: string; locationId: string; buildingId: string; residentId: string }

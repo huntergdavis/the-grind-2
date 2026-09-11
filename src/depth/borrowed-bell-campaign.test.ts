@@ -222,7 +222,7 @@ describe("the Borrowed Bell in the actual campaign", () => {
     const before = ready.depth, { bellExpedition: _board, ...prior } = before;
     const legacy = { ...prior, schemaVersion: 30 };
     const loaded = upgradeDepthState(legacy, before.seed, before.hero.id, before.hero.name);
-    expect(loaded.schemaVersion).toBe(34);
+    expect(loaded.schemaVersion).toBe(35);
     expect(loaded.bellExpedition).toBeNull();
     expect(loaded.hero).toEqual(before.hero);
     expect(loaded.reparteeCallback).toEqual(before.reparteeCallback);

@@ -7,6 +7,7 @@ import {
 import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyResponses } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeResponses } from "../depth/room-challenge";
+import { projectCompanionReunionScene, type CompanionReunionSceneView } from "./companion-reunion-view";
 
 export interface ReparteeContestSceneView {
   readonly phase: "reading" | "challenge" | "round" | "result";
@@ -71,7 +72,7 @@ export interface ReparteeRoomSceneView extends Omit<ReparteeContestSceneView, "p
   readonly encore: false;
 }
 
-export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView;
+export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView | CompanionReunionSceneView;
 
 export interface ReparteeWitnessView {
   readonly id: string;
@@ -233,6 +234,7 @@ export function projectRoomChallengeScene(state: WorldState): ReparteeRoomSceneV
 
 /** The current command must own the receipt; revisiting town cannot replay a duel. */
 export function projectReparteeScene(state: WorldState): ReparteeSceneView | null {
+  if (state.chronicle.at(-1)?.commandType === "reunite-companion") return projectCompanionReunionScene(state);
   if (["start-room-challenge", "answer-room-challenge"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectRoomChallengeScene(state);
   if (["read-useful-book", "practice-useful-reply"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectUsefulReplyScene(state);
   if (state.chronicle.at(-1)?.commandType === "recall-repartee") return projectReparteeMemory(state);
@@ -350,12 +352,13 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     }
     if (scene === null) {
       caption.replaceChildren();
-      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score"]) delete caption.dataset[key];
+      for (const key of ["phase", "command", "book", "round", "momentum", "outcome", "hero", "resident", "witness", "reaction", "regard", "encore", "memorySource", "memoryLocation", "lesson", "classification", "readingSource", "challenge", "score", "reunion", "companion", "location"]) delete caption.dataset[key];
       return;
     }
     caption.dataset.phase = scene.phase;
     caption.dataset.command = scene.commandId;
-    caption.dataset.book = scene.bookId;
+    if (scene.bookId === null) delete caption.dataset.book;
+    else caption.dataset.book = scene.bookId;
     caption.dataset.round = String(scene.marks.filter((mark) => mark !== null).length);
     caption.dataset.momentum = String(scene.momentum);
     caption.dataset.outcome = scene.outcome ?? "pending";
@@ -373,8 +376,23 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     delete caption.dataset.readingSource;
     delete caption.dataset.challenge;
     delete caption.dataset.score;
+    delete caption.dataset.reunion;
+    delete caption.dataset.companion;
+    delete caption.dataset.location;
     const title = doc.createElement("h2");
     title.textContent = scene.title;
+    if (scene.phase === "reunion") {
+      for (const key of ["round", "momentum", "outcome", "resident", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
+      caption.dataset.reunion = scene.reunionId;
+      caption.dataset.companion = scene.companion.id;
+      caption.dataset.location = scene.locationId;
+      const heroLine = dialogue(scene.heroName, scene.call, "repartee-call reunion-line");
+      heroLine.dataset.speaker = scene.heroId;
+      const companionLine = dialogue(scene.companion.name, scene.reply!, "repartee-reply reunion-line");
+      companionLine.dataset.speaker = scene.companion.id;
+      caption.replaceChildren(title, heroLine, companionLine, paragraph(scene.consequence, "repartee-note"));
+      return;
+    }
     if ("challengeId" in scene) {
       for (const key of ["round", "momentum", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
       caption.dataset.challenge = scene.challengeId;

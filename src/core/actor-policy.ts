@@ -248,6 +248,9 @@ function scoreCandidate(
     if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
     if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
     reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
+  } else if (command.type === "reunite-companion") {
+    score = 60;
+    reason = "a real return has brought the hero back to a fulfilled companion's recorded farewell town; a hello honors that history without renewing the oath";
   } else if (command.type === "start-room-challenge") {
     score = 60;
     reason = "the lesson and Bell delivery are complete; this real resident offers one public claim with one declared, bounded reputation stake";
@@ -546,6 +549,7 @@ function presentationLabels(
 ): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
+    case "reunite-companion": return { actionLabel: "says hello after returning", targetLabel: state.depth.companionReunion?.companionName ?? "the recorded former companion" };
     case "start-bell": return { actionLabel: "accepts the Borrowed Bell delivery", targetLabel: "the storehouse board" };
     case "roll-bell": return { actionLabel: "rolls before choosing a pace", targetLabel: `delivery turn ${command.turn}` };
     case "move-bell": return {

@@ -11,9 +11,10 @@ shipped in v0.5.163. D2's optional first-person dungeon view shipped in v0.5.164
 F3a's second book and constructive practice exchange shipped in v0.5.165.
 The stale dungeon-search browser receipt is refreshed and passed on 2026-09-11.
 F3b's later scored public challenge shipped in v0.5.166, using the learned frame
-without forcing every character to choose the winning answer. Next proposal:
-R1, a genuine former-companion reunion on a later return; then further playable
-features one at a time.
+without forcing every character to choose the winning answer. R1, a genuine
+former-companion reunion on a later return, is implemented for v0.5.167 with
+passing natural-journey/browser checks; public deployment is pending. Further
+playable features follow one at a time.
 Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 

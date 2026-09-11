@@ -185,6 +185,8 @@ import {
 import { SimulationClient } from "./worker/simulation-client";
 import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
 import { createReparteeView, projectReparteeScene, type ReparteeSceneView } from "./ui/repartee-view";
+import { createCompanionReunionRecord } from "./ui/companion-reunion-view";
+import { selectCompanionReunion } from "./depth/companion-reunion";
 import { createBorrowedBellView, projectBorrowedBellScene, type BorrowedBellSceneView } from "./ui/borrowed-bell-view";
 import { createReparteeDwell, reparteeDwellPending, updateReparteeDwell } from "./ui/repartee-dwell";
 
@@ -1072,6 +1074,7 @@ function narrativePresentationAvailable(allowGameMenu = false): boolean {
     || state.depth.repartee.active !== null || reparteeScene !== null || bellScene !== null
     || state.depth.usefulReply !== null && state.depth.usefulReply.reply === null
     || state.depth.roomChallenge !== null && state.depth.roomChallenge.result === null
+    || selectCompanionReunion(state.depth) !== null
     || state.depth.bellExpedition !== null && state.depth.bellExpedition.completion === null
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
     || document.querySelector(allowGameMenu ? "dialog[open]:not(#game-menu)" : "dialog[open]") !== null) return false;
@@ -3424,6 +3427,8 @@ function presentViewScreens(): void {
   if (companyRecordFocused) {
     elements.journalCompanionActive.querySelector<HTMLElement>("details > summary")?.focus({ preventScroll: true });
   }
+  const previousReunion = elements.journalCompanionFormer.querySelector<HTMLDetailsElement>("details[data-companion-reunion]");
+  const reunionRecordFocused = previousReunion?.querySelector("summary") === document.activeElement;
   elements.journalCompanionFormer.replaceChildren(...party.former.map((companion) => {
     const item = document.createElement("li");
     item.className = "journal-companion-record";
@@ -3442,8 +3447,18 @@ function presentViewScreens(): void {
       ? ""
       : describeRoadcraftEffectiveness(companion.roadcraftEffectiveness);
     item.append(name, route, facts, ...(companion.roadcraftEffectiveness === null ? [] : [roadcraft]));
+    const reunionRecord = createCompanionReunionRecord(document, state, companion.id, companion.joinedTick);
+    if (reunionRecord !== null) {
+      reunionRecord.open = previousReunion?.dataset.campaign === state.campaignId
+        && previousReunion.dataset.companionReunion === reunionRecord.dataset.companionReunion
+        && previousReunion.open;
+      item.append(reunionRecord);
+    }
     return item;
   }));
+  if (reunionRecordFocused) {
+    elements.journalCompanionFormer.querySelector<HTMLElement>("details[data-companion-reunion] > summary")?.focus({ preventScroll: true });
+  }
   const mentorArc = state.legacyManifestations.mentorArc;
   const mentorLegend = mentorArc === null
     ? undefined
@@ -4128,6 +4143,7 @@ async function catchUp(world: WorldState): Promise<WorldState> {
   if (world.depth.repartee.active !== null || projectReparteeScene(world) !== null
     || world.depth.usefulReply !== null && world.depth.usefulReply.reply === null
     || world.depth.roomChallenge !== null && world.depth.roomChallenge.result === null
+    || selectCompanionReunion(world.depth) !== null
     || world.depth.bellExpedition !== null && world.depth.bellExpedition.completion === null
     || projectBorrowedBellScene(world) !== null) return world;
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));

@@ -63,7 +63,7 @@ and a general relationship system are not implemented by this slice.
 
 ## R1 proposed next slice — A familiar face
 
-Read-only council scope, 2026-09-11. Not implemented or a v0.5.166 release gate.
+Council scope, 2026-09-11; implementation in progress for v0.5.167, not yet live.
 This picks up the larger backlog's actual former-companion reunions; it does
 not require F3a, F3b or the Borrowed Bell. Existing code forbids re-recruiting a
 former companion. A short reunion must not bypass that rule or reset the oath.
@@ -102,6 +102,23 @@ before implementation rather than teleport either character or scan many seeds.
 Recovery: the council's `deja`/`rg` review found older recurring-companion
 proposals, not an existing reunion command. This scope is grounded in current
 `src/depth/companion.ts`, `src/depth/types.ts` and the named companion renderer.
+
+### Approved return opportunity
+
+The single unchanged v0.5.166 continuation (`shared-road-playful:7`, real T38
+arrival through T320) never returned to Fara Ash's farewell town. Five completed
+routes reached locations 7, 3, 11, 6 and 11 instead. The bounded probe took
+7.207 seconds; no seed scan, staged travel or larger journey limit was used.
+
+Offer one explicit normal `plan-route` to the oldest healthy fulfilled former
+companion's farewell town while solo and away, after dungeon entry and all
+earlier existing obligations, before generic neighboring routes. Name the
+companion and destination in the route label. Existing route distances,
+encounters and recovery still apply. Capture only an actual completed travel
+arrival; that receipt ends further return offers. There is no teleport,
+re-recruitment, new routing framework or invented trip home. The first exchange
+uses the fulfilled oath and actual shared victories; optional witnessed-reply
+quotations remain later work.
 
 ## The point
 
