@@ -1,6 +1,44 @@
 # The Grind 2 — Red-Team Council Report
 
-Status: council reviews, latest update 2026-09-10
+Status: council reviews, latest update 2026-09-11
+
+## Through their eyes — v0.5.164 final delivery
+
+**Live and publicly source-verified 2026-09-11 at 00:02:46 PDT.** Feature
+`54519e7b3d8f946ef6038972f600e56448f3fe25` is pushed to `origin/main`.
+[Pages run 34571954359](https://github.com/huntergdavis/the-grind-2/actions/runs/34571954359)
+passed 248 release test files and 3,567 tests, with two explicitly opt-in long
+audits skipped. All four canonical tests passed in 12.410 seconds with unchanged
+limits. Main suite: 262.28 seconds; deployment job: 5 minutes 17 seconds.
+The implementation checkpoint below preserves the initial local failures.
+
+The corrected main browser journey passed in 53.6 seconds; the separate
+failed-load continuation passed in 25.4 seconds on the same production build.
+All three final desktop/320px/Focus captures were directly inspected. Tests
+prove unchanged saved campaign bytes and selected-command hashes across view
+switches, actual search versus movement, disclosed-only hazards, preference
+reload and intact 2D fallback. The generated dungeon uses an explicitly staged
+location/health handoff, not uninterrupted natural travel. The older
+`tests/dungeon-search.spec.ts` is not claimed passed; its bounded refresh is next.
+
+The public [game](https://hunterdavis.com/the-grind-2/) returned v0.5.164.
+Five assets matched local release bytes: `assets/index-CAqCItL0.js`,
+`assets/index-B9m_5Qf5.css`, `simulation.worker-fC7YhDy5.js`,
+`dungeon-framing-BRVJpcm_.js` and `dungeon-perspective-Dq6VxrjQ.js`.
+Nine source-map entries matched committed sources, including the unchanged
+simulation/depth state and new preference, public adapter and optional renderer.
+Simulation and both narrator worker identities remain unchanged; protected
+ledger sources are absent from the checked game maps. The owned 19884 preview
+is closed; the user's 4174 preview and unrelated edits are untouched.
+
+A read-only rules follow-up scoped the next book expansion. The existing
+repartee validator freezes the original twelve expressions and rederives saved
+scores; appending words to that catalogue could invalidate past transcripts.
+The smaller next story is one new original public book and an explicitly
+unscored constructive practice exchange, with separate learning/reply receipts
+and unchanged F1/F2 history. This is a proposal, not shipped vocabulary or a
+new victory. See [F3a](docs/design/FLYTING.md#f3a-proposed-next-slice--a-useful-reply).
+No LLM work or broad engine/matrix is a gate for that next slice.
 
 ## Through their eyes — v0.5.164 implementation checkpoint
 

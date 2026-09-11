@@ -26,6 +26,39 @@ Native dialogue and a dedicated book/two-person stage replace duplicate Watch pa
 
 Recovery evidence reused before implementation: `deja "flyting"`, the committed design below and the pinned Herder reading/vocabulary findings (Claude session `7dc8bf11-9b0`). The runtime content here is original; no sibling book prose was copied.
 
+## F3a proposed next slice — A useful reply
+
+Scoped by the read-only council follow-up on 2026-09-11; not implemented.
+One new original short public book teaches a constructive counter about useful
+leadership versus loud boasting. At a real safe, visited hall/inn, the hero
+reads it and then demonstrates the newly learned reply to an actual resident's
+public claim. This is explicitly an **unscored practice exchange**, not a new
+contest victory. Reuse the book/two-person stage and Journal, with no new panel.
+
+Keep one finite learning/reply record separate from F1/F2: exact content/rules
+version, book, hero, place/building/resident, learned expression/frame and each
+reading/reply command and tick. The reading must actually unlock the reply;
+neither migration nor a past contest supplies retrospective learning. Admit
+the once-only solo scene after owed encounters and farewell, preserve ordinary
+recovery priority, and resume the usual adventure afterward. No XP, reputation,
+regard, bond or invented witness is granted for this practice.
+
+The current `repartee.ts`, `repartee-campaign.ts` and `repartee-witness.ts`
+validate the original book's exact twelve expressions/two frames and rederive
+historical scores. Do not append new content to those old tables or rewrite
+saved transcripts. A future scored expansion needs explicit content-version
+resolution; this smaller lesson can add one nullable receipt while preserving
+old reading, contest, witness and callback bytes.
+
+Acceptance: a real reading changes the legal reply; Journal retains the exact
+words and both sources; reload cannot relearn or repeat the scene; normal
+gameplay resumes; desktop/mobile/Focus stay readable. The existing
+`naturalReparteeMemoryFixture()` is a bounded venue lead after recall/farewell,
+not yet proof of an eligible lesson location. Inspect that continuation once;
+if it lacks a real venue, label any staged boundary honestly rather than run a
+seed sweep. Reused `deja "flyting"` and the pinned Herder reading evidence above;
+no sibling prose or new model dependency is part of the proposal.
+
 ## What the sibling game actually does
 
 The requested sibling path was absent. The inspected checkout is

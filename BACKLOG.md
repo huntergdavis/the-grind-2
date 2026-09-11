@@ -7,9 +7,10 @@ active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
 encore and directional regard shipped in v0.5.160. The later source-bound
 safe-rest callback shipped in v0.5.161. D1a's original Borrowed Bell board
 delivery loop shipped in v0.5.162; D1b's later private inn/camp recollection
-shipped in v0.5.163. D2's optional first-person dungeon view is in implementation
-for v0.5.164, followed
-by further playable features one at a time. Shipped work, held experiments and paused LLM work do
+shipped in v0.5.163. D2's optional first-person dungeon view shipped in v0.5.164.
+Next: refresh the stale dungeon-search browser receipt, then one new book-led
+constructive practice scene, followed by further playable features one at a time.
+Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
 
 The historical specifications and release receipts below are preserved in full
@@ -20,7 +21,28 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Remember the delivery (v0.5.163)
+## Latest delivery — Through their eyes (v0.5.164)
+
+Publicly verified 2026-09-11 at 00:02:46 PDT. Menu → Dungeon view now offers
+an optional first-person 2.5D preview of the same dungeon. The saved preference
+defaults to 2D; one lazy-loaded drawing module shows the current room and known
+doorways/hazards, turning only after actual adjacent movement. Search stays
+stationary. Existing captions and portrait/resource bars remain shared, and
+failed loading falls back to the map. No new game rules, campaign fields or LLM work.
+
+Feature `54519e7b3d8f946ef6038972f600e56448f3fe25` is on `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34571954359):
+248 release test files, 3,567 tests passed, two long audits opt-in/skipped;
+all four canonical tests passed in 12.410 seconds with unchanged limits.
+Main suite 262.28 seconds; deployment job 5 minutes 17 seconds. Same-build
+browser acceptance passed in 53.6 seconds and failed-load continuation in
+25.4 seconds; three final desktop/mobile/Focus captures were inspected.
+Five public assets and nine source-map entries match the feature commit.
+The staged dungeon handoff, initial stale assertion and separately queued old
+browser-test refresh are recorded in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+D2's first preview is complete; wider 3D and LLM work are not part of this release.
+
+## Prior delivery — Remember the delivery (v0.5.163)
 
 Publicly verified 2026-09-10 at 23:10:08 PDT. An already-needed solo inn or
 roadside rest now gives the hero one private thought about the actual Borrowed

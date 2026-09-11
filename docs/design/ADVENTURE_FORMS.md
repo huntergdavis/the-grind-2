@@ -380,9 +380,9 @@ reduced-motion, paused/resumed, and static fallback modes. Prove unknown effects
 stay out of policy and party-only views. These are targeted scenario checks,
 not a requirement to build a general simulation test framework first.
 
-## Optional first-person view: a separate later proof
+## Optional first-person view: shipped preview and wider proposal
 
-### D2 implementation — v0.5.164, public delivery pending
+### Delivered D2 scope — v0.5.164
 
 Menu → Dungeon view selects `2D map` or `First-person preview`. The choice is
 stored separately from the campaign and narrator consent; malformed or
@@ -404,7 +404,13 @@ loading/drawing keeps 2D available and is not retried every frame. Two same-buil
 browser scenarios prove the exact save/choice invariants, real search/movement,
 preference reload, one failed-load fallback and desktop/mobile/Focus layouts.
 The main journey passed in 53.6 seconds; failed-load continuation in 25.4 seconds.
-Three final captures were directly inspected. CI/public delivery is still pending.
+Three final captures were directly inspected. Publicly source-verified
+2026-09-11 at 00:02:46 PDT: [release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34571954359)
+passed 3,567 tests across 248 files and all four canonical tests; two long audits
+remain opt-in/skipped. Five public assets and nine source-map entries match
+feature `54519e7b3d8f946ef6038972f600e56448f3fe25`. Simulation and both narrator
+workers are unchanged. The older dungeon-search browser test's stale trap
+expectations remain a separately queued maintenance item, not a claimed pass.
 Wider 3D asset, animation and named-device performance proposals below are not
 claimed implemented by this small 2.5D preview.
 

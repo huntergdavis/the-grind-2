@@ -1,26 +1,36 @@
 # The Grind 2 — Gameplay & Story Roadmap
 
-Updated 2026-09-10. This is the clean, current feature inventory. Historical
+Updated 2026-09-11. This is the clean, current feature inventory. Historical
 delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKLOG.md).
 
 ## Execution lane
 
-1. **In implementation: D2 — Through their eyes (v0.5.164).** An optional first-person preview of the same known dungeon and committed actions. Start with one room and visible doorways in the existing renderer, a saved menu preference and 2D fallback. No new dungeon rules, hidden-room disclosure or camera-driven turns. The bounded first-slice design is in [Adventure forms](docs/design/ADVENTURE_FORMS.md#d2-first-playable-boundary--read-only-council-follow-up-2026-09-10).
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **Next, bounded maintenance: refresh dungeon-search browser receipts.** The
+   old fixture still expects a rune ward and HP loss; v0.5.158 deliberately
+   generates a mana siphon here. Update only the stale expectations, retain
+   search/entry/disarm, exact save and readability checks, and rerun that journey.
+   No new dungeon rules or broad test matrix.
+2. **Next gameplay proposal: F3a — A useful reply.** One new original public
+   book teaches a constructive counter, followed by one unscored practice
+   exchange with a real resident. Show learning changing what the hero can say;
+   retain both sources in the existing Journal. Preserve the old scored
+   transcripts. [Bounded scope](docs/design/FLYTING.md#f3a-proposed-next-slice--a-useful-reply).
+3. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**D1b — Remember the delivery is live in v0.5.163**, publicly verified
-on 2026-09-10 at 23:10 PDT. The original board expedition now leaves one later
-private recollection during an already-needed inn or roadside rest. Actual
-choices, result and source evidence survive in Journal; the memory adds no
-reward or absent witness. Final browser acceptance passed in 38.9 seconds,
-including exact reload, normal-speed resume and the same following encounter.
-Three corrected native desktop/mobile/Focus captures were inspected.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34568327841)
-passed 3,552 tests and canonical replay, with two long audits explicitly opt-in.
-Public asset bytes and seventeen source-map entries match the feature commit.
-The finite Books & Flyting/witness/memory arc and both D1 board slices are shipped.
+**D2 — Through their eyes is live in v0.5.164**, publicly verified on
+2026-09-11 at 00:02:46 PDT. Menu → Dungeon view selects an optional first-person
+2.5D room preview; the saved choice defaults to 2D. Only known facts are drawn,
+only actual movement turns the view, and failed optional loading keeps the map.
+The existing captions and portrait/resource card remain shared. Main browser
+acceptance passed in 53.6 seconds, failed-load continuation in 25.4 seconds;
+three final desktop/mobile/Focus captures were inspected.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34571954359)
+passed 3,567 tests and canonical replay, with two long audits explicitly opt-in.
+Five public assets and nine source-map entries match the feature commit.
+The finite Books & Flyting/witness/memory arc, both D1 board slices and D2's
+first preview are shipped. Wider 3D remains a separate proposal.
 Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
@@ -38,7 +48,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Implementing v0.5.164; bounded one-room preview, not new dungeon rules |
+| **F3a — A useful reply** | A new book opens a constructive reply in a brief resident practice scene | Scoped proposal; original content, unscored, no changes to old contest results |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -165,7 +175,7 @@ general framework. All remain client-side and work without an LLM.
 
 Each is a real ruleset with consequences—not just another battle animation.
 
-- **Flyting / repartee expansion:** additional rivals and claim families beyond F1's one original three-round contest; witnessed reactions follow separately in F2.
+- **Flyting / repartee expansion:** additional rivals and claim families beyond the shipped finite F1/F2 contests and witnessed reactions.
 - **Poker-like showdowns:** original bluffing, tells, wagers and reveals.
 - **Card-based RPG battles:** bounded decks assembled from earned campaign content.
 - **Microgame gauntlets:** short dodge, catch, balance, repair, memory and escape challenges.
