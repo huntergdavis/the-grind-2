@@ -2,21 +2,28 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Last exchange — v0.5.176 release candidate
+## Last exchange — v0.5.176 verified release
+
+**Live and publicly source-verified 2026-09-11 12:58:54 PDT.** Feature
+`03f4ff6a7b692b010046f06a7e9c339086874d46` is pushed to `origin/main`.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34641107562)
+passes **3,771 tests in 283 files**, with the same two optional audits skipped.
+The main suite takes **315.84s**, canonical replay **4/4 in 24.766s**, and
+forward motion **8/8 in 9.006s**. The complete deployment job takes **6m15s**.
 
 The implemented slice is a concise battle aftermath in the existing Watch
 ribbon, with the same source evidence under the existing terminal Status row.
 It describes the retained last exchange, not a supposed decisive mistake or
 an unused alternative. Initial coverage is direct-damage endings; unsupported
 endings keep the existing presentation. No new panel, archive, timer, model,
-canonical state, policy or random draw is planned.
+canonical state, policy or random draw was added.
 
 The council's read-only presentation review identified the existing ribbon,
 combat event packets and Status details as sufficient. Projector and UI work
 are separated, with bounded acceptance reusing the already-earned Road Supper
 T64 → T65 defeat → T66 recovery. This reuses the larger recap backlog recovered
 by `deja "post-battle turning-point recaps"` from session `01a06835-15f`.
-Public deployment is not yet verified. Independent source review found a
+Independent source review found a
 missing campaign-to-combat hero-membership check in the initial projector;
 the one-line guard and focused negative assertion were added before building.
 Existing combat validation establishes internal consistency but cannot alone
@@ -39,7 +46,23 @@ Local verification matches three assets and five emitted source entries.
 Main JavaScript is `index-9y7BJlYO.js`; stylesheet `index-DHdBcD1H.css`, simulation
 worker `simulation.worker-CuF0UUmg.js` and both narrator workers are unchanged
 from v175. No replay hashes, narrative baselines, test caps or CI configuration
-were changed. CI and public source verification remain pending.
+were changed. Public version, service-worker cache, all three named assets and
+their five checked source-map entries match the exact feature commit/local
+build. Protected ledger sources are absent from the emitted maps, and the
+pre-existing local ledger edits remain unmodified and uncommitted.
+
+### Next gameplay proposal — A thought in a bottle
+
+During release CI, the presentation council recommended the existing
+MP-restorative backlog as the next small gameplay slice: one actual purchased
+mana draught, then stationary consumption at a living solo hero's low-MP
+dungeon boundary. The proposed three-gold cost and quarter-max-MP recovery
+require explicit mana item capability, truthful inventory text and the existing
+drink/MP-bar presentation. No free bottle, healing, combat consumable expansion,
+forced spell, extra panel or model. The read-only review reuses the MP-restorative
+lane and deferred V04.20k scope recovered by `deja` from a September 6 session.
+Its actual acquisition-to-use path has not been checked; no implementation or
+new journey probe was performed during this release.
 
 ### Known-danger detour — negative admission evidence
 

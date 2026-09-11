@@ -26,10 +26,10 @@ pass. B1's short inn bluff is live in v0.5.173: exact wagers and saves, native
 browser, CI and public-source verification pass. D5's inhabited dungeon lair
 is live in v0.5.174, with browser, CI and public-source verification passed.
 Road Supper is live in v0.5.175; browser, CI and public-source verification pass.
-Last exchange, v0.5.176, is ready for CI after 23 focused tests, a production
-build and a passing 51.5-second desktop/mobile/Focus browser scenario. It adds
-a factual terminal recap to the existing Watch ribbon and source notes to
-Status; no canonical or LLM changes. Public deployment is not yet verified.
+Last exchange is live in v0.5.176: 23 focused tests, the 51.5-second production
+browser scenario, full CI and public-source verification pass. It adds a factual
+terminal recap to the existing Watch ribbon and source notes to Status; no
+canonical or LLM changes. The next scoped proposal is one purchased mana draught.
 Known-danger detours are deferred: the unchanged T160 bounded journey found
 only current-room traps requiring disarming, not an eligible bypass. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
@@ -43,7 +43,22 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest verified release — Road Supper (v0.5.175)
+## Latest verified release — Last exchange (v0.5.176)
+
+Publicly source-verified **2026-09-11 12:58:54 PDT**. Feature `03f4ff6` replaces
+the ordinary terminal Watch headline with the actual closing exchange, using
+real actors, targets, abilities and applied HP loss. Supported Status rows hold
+the full text and source IDs in a collapsed disclosure. Unsupported endings
+and unbound historical fights retain the existing display; there is no new
+archive, panel, clock or model request.
+
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34641107562):
+**3,771 passing tests / 283 files / 2 optional skips**. The first 51.5-second
+browser scenario passes with exact T64→T65→T66 saves and three inspected layouts.
+Three assets and five source-map entries match the release. Full evidence and
+the source-review correction remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+
+## Previous verified release — Road Supper (v0.5.175)
 
 **Live and source-verified 2026-09-11 11:32:37 PDT.** One later-market purchase spends
 two actual gold for two canonical Road Rations, after existing owed story and

@@ -6,8 +6,8 @@ is one small board expedition; the project-wide order lives in
 [ROADMAP.md](../../ROADMAP.md). The broader collection is a direction for authored
 adventures, not a request to build five engines together.
 
-Latest release: [Road Supper](#road-supper--v05175) is live in v0.5.175,
-publicly source-verified 2026-09-11 11:32:37 PDT. D5 and earlier explicitly
+Latest release: [Last exchange](#last-exchange--v05176) is live in v0.5.176,
+publicly source-verified 2026-09-11 12:58:54 PDT. Road Supper, D5 and earlier explicitly
 marked deliveries are shipped; unimplemented proposals retain their separate status.
 
 The promise is a familiar hero entering an unfamiliar situation: carrying a
@@ -921,7 +921,7 @@ No eligible journey or runtime change was established by this review.
 
 ## Last exchange — v0.5.176
 
-**Implemented; CI/public deployment pending.** The first battle-aftermath slice replaces
+**Live; publicly source-verified 2026-09-11 12:58:54 PDT.** The first battle-aftermath slice replaces
 the ordinary terminal Watch headline with two short clauses from the last
 recorded exchange. The previous actual attack can set up the closing blow,
 but is not described as a mistake, revenge, or the cause of losing. Names,
@@ -943,7 +943,10 @@ special encounter presentation remain authoritative. The bounded acceptance
 uses the actual Road Supper T64 → T65 defeat → T66 recovery; it does not reroll
 the result. Its first browser run passes in 51.5 seconds, with three inspected
 desktop/mobile/Focus captures and exact saves. Twenty-three focused tests,
-TypeScript, module boundaries and production/source-match checks pass.
+TypeScript, module boundaries and production/source-match checks pass. Full
+[release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34641107562)
+passes 3,771 tests in 283 files, with two optional audits skipped; public assets
+and source maps match feature commit `03f4ff6`.
 Wider turning-point analysis, unused alternatives and Chronicle
 Plates remain future backlog items.
 

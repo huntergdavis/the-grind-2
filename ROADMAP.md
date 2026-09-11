@@ -5,15 +5,33 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **Ready for CI: Last exchange, v0.5.176.** A short, source-backed battle
-   aftermath in the existing Watch ribbon, with its receipts in Status history.
-   Direct-damage endings first; no invented tactical mistake or new panel.
+1. **Next proposal: A thought in a bottle.** One purchased mana draught and
+   visible, stationary use at a real low-MP dungeon boundary. Check the actual
+   acquisition-to-use path; no free bottle, forced spell or new panel.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
 <details>
-<summary>Latest verified release: Road Supper, v0.5.175</summary>
+<summary>Latest verified release: Last exchange, v0.5.176</summary>
+
+Publicly source-verified **2026-09-11 12:58:54 PDT**. Direct-damage battle endings
+now show their actual closing exchange in the existing Watch ribbon. A collapsed
+Status disclosure keeps the full text and exact event sources where an existing
+timestamped receipt can identify the fight. Ordinary recovery clears the live
+recap; exact reload restores eligible history. No extra panel or gameplay change.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34641107562)
+passes **3,771 tests in 283 files**, with two optional audits skipped. The first
+51.5-second browser run and three inspected desktop/mobile/Focus captures pass.
+Three public assets and five emitted source entries match the exact feature
+commit. Simulation, CSS and LLM workers are unchanged; no replay or narrative
+baseline was regenerated. Wider tactical turning points and unused alternatives
+remain future work. [Scope](docs/design/ADVENTURE_FORMS.md#last-exchange--v05176).
+</details>
+
+<details>
+<summary>Previous release: Road Supper, v0.5.175</summary>
 
 Publicly source-verified **2026-09-11 11:32:37 PDT**. Two gold buys two actual
 rations at a later market; one solo camp consumes both for the next road
@@ -97,7 +115,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **Last exchange** | Read the actual closing exchange of a battle, then inspect its receipts in Status | Local tests and browser acceptance pass; CI/public deployment pending |
+| **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Next scoped proposal; acquisition/use path not yet checked |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 
 The detour probe completed 160 actual commands in 4,640 ms. Its only two
@@ -105,6 +123,15 @@ revealed armed traps (T125 and T139) were already in the current room and
 correctly required disarming. No remote armed trap or known alternate route
 was observed. This is a negative result for that journey, not proof that
 detours are impossible; no seed sweep or larger test gate was added.
+
+The next mana-restorative proposal is one purchased dose (proposed cost: three
+gold), consumed between dungeon actions by a living solo hero at half MP or
+below. Restore a quarter of maximum MP, rounded up and clamped; no healing,
+movement, XP or bond reward. Reuse the existing drink gesture, caption and MP
+bar. Give the item an explicit mana capability and truthful inventory label;
+do not route it through the current health-only combat consumable path. The
+actual purchase-to-use journey is not established yet. No free starter bottle,
+new vendor panel, crafting system or forced successful spell belongs to this slice.
 
 This is an individual delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior
@@ -151,7 +178,7 @@ general framework. All remain client-side and work without an LLM.
 - Tactics that exploit genuinely learned weaknesses and status interactions.
 - Better route decisions using supplies, health, terrain, known danger and deadlines.
 - Post-battle turning-point recaps, including a clearly labeled unused alternative.
-  First source-backed **Last exchange** slice is in progress; it does not yet
+  First source-backed **Last exchange** slice shipped in v0.5.176; it does not yet
   judge tactical turning points or invent counterfactual outcomes.
 - Learned tactical instincts with limited slots and replacement rules.
 - **Adventure Impressions:** experiences gradually create bounded behavioral traits.
