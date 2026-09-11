@@ -5,6 +5,7 @@ import type { WorldState } from "../core/types";
 import { naturalBorrowedBellFixture } from "../../tests/borrowed-bell-fixtures";
 import { borrowedBellMemoryRecoveryBoundaryFixture } from "../../tests/borrowed-bell-memory-fixtures";
 import { selectBellDeliveryMemory } from "../depth/borrowed-bell-memory";
+import { selectRoadSupperCamp } from "../depth/road-supper";
 import { bellDeadlineMarks, projectBorrowedBellScene, type BorrowedBellBoardSceneView } from "./borrowed-bell-view";
 
 let actualJourney: readonly WorldState[] | undefined;
@@ -245,12 +246,36 @@ describe("Borrowed Bell presentation", () => {
     expect(projectBorrowedBellScene(JSON.parse(JSON.stringify(after)))).toEqual(scene);
     expect(projectBorrowedBellScene({ ...after, depth: { ...after.depth, atlas: { ...after.depth.atlas, route: null } } })).toBeNull();
     const counter = randomInt(4, after.seed, "depth-director", rest.encounterId, 0, "encounter-engine") === 0;
+    const enemyCount = 1 + randomInt(2, after.seed, "depth-director", rest.encounterId, 0, "enemy-count");
     const expectedCommand = counter ? { type: "start-counter-duel", encounterId: rest.encounterId }
-      : { type: "start-combat", encounterId: rest.encounterId,
-        enemyCount: 1 + randomInt(2, after.seed, "depth-director", rest.encounterId, 0, "enemy-count") };
-    const opportunity = campaignDirector(after);
+      : { type: "start-combat", encounterId: rest.encounterId, enemyCount };
+    let encounterStart = after;
+    const meal = counter ? null : selectRoadSupperCamp(after.depth, rest.encounterId, enemyCount);
+    if (meal !== null) {
+      // A later, genuinely eligible meal has its own source and must not replay
+      // this rest's memory or swap the actual waiting encounter.
+      const sourceCommandId = `depth:${after.tick + 1}:road-supper:${rest.encounterId}`;
+      const preparation = campaignDirector(after);
+      expect(preparation.candidates.map(candidate => candidate.command)).toEqual([{ type: "prepare-road-supper", encounterId: rest.encounterId }]);
+      expect(preparation.candidates[0]!.id).toBe(sourceCommandId);
+      encounterStart = advanceWorld(after);
+      expect(encounterStart.depth.roadSupper!.meal).toEqual({ ...meal, tick: after.tick + 1, sourceCommandId });
+      expect(encounterStart.chronicle.at(-1)).toMatchObject({ commandType: "prepare-road-supper",
+        commandId: `${after.campaignId}:${sourceCommandId}` });
+      expect(encounterStart.depth.hero).toEqual({ ...after.depth.hero,
+        inventory: after.depth.hero.inventory.filter(item => item.id !== meal.itemId) });
+      expect(encounterStart.depth.atlas).toEqual(after.depth.atlas);
+      expect(encounterStart.depth.quest).toEqual(after.depth.quest);
+      expect(encounterStart.depth.companions).toEqual(after.depth.companions);
+      expect(encounterStart.depth.bellExpedition).toEqual(after.depth.bellExpedition);
+      expect(encounterStart.depth.bellMemory).toEqual(memory);
+      expect(selectBellDeliveryMemory(encounterStart.depth)).toBeNull();
+      expect(projectBorrowedBellScene(encounterStart)).toBeNull();
+    }
+    const opportunity = campaignDirector(encounterStart);
     expect(opportunity.candidates.map(candidate => candidate.command)).toEqual([expectedCommand]);
-    const continued = advanceWorld(after);
+    expect(opportunity.candidates[0]!.id).toBe(`depth:${encounterStart.tick + 1}:${rest.encounterId}:${counter ? "counter-duel" : enemyCount}`);
+    const continued = advanceWorld(encounterStart);
     expect(continued.chronicle.at(-1)).toMatchObject({ commandType: expectedCommand.type,
       commandId: `${after.campaignId}:${opportunity.candidates[0]!.id}` });
     expect((counter ? continued.depth.counterDuel : continued.depth.combat)?.id).toBe(rest.encounterId);

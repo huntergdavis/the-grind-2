@@ -1,37 +1,50 @@
-import { advanceWorld, createWorld } from "../src/core/simulation";
+import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
+import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import type { WorldState } from "../src/core/types";
 import { selectDungeonFieldMedicine } from "../src/depth/dungeon-field-medicine";
+import releasedSave from "./fixtures/dungeon-lair-v174-before-arrival.json";
 
 export const dungeonLairCampaignId = "campaign:browser-repartee-memory";
+const releasedCommit = "0c1cbb381dddd0f993edf85ebecd411c55c5fb81";
+const releasedHash = "5f1e665f4245c183";
 let earned: { before: WorldState; arrived: WorldState } | undefined;
 
-/** Uninterrupted ordinary campaign, not a staged dungeon or battle. The
- * unchanged v173 source proof first entered Salt Labyrinth's lair (1,6) at
- * T105 from (2,6), with full HP/MP and no owned-tonic recovery owed. Its
- * original T320/20-second ceiling was not expanded; this pinned fixture stops
- * by T112. No health, room, enemy, inventory, companion or result is rewritten.
+/** Released-save regression, NOT fresh-current campaign reachability.
+ * v174's uninterrupted campaign earned this exact T104 checkpoint before
+ * the real T105 westward lair entry. Road Supper changes the later fresh
+ * campaign route; the original T112 fixture ceiling is not expanded.
+ * Current code must upgrade the released save without changing its canonical
+ * bytes, then execute the real entry. No lair capability, health, room,
+ * enemy, inventory, companion or outcome is rewritten. Historical exported
+ * function names remain stable for the unchanged source/renderer assertions.
  */
 function dungeonLairJourney(): { before: WorldState; arrived: WorldState } {
   if (earned !== undefined) return earned;
-  let world = createWorld("shared-road-playful:7", dungeonLairCampaignId);
-  while (world.tick < 112) {
-    const before = world;
-    world = advanceWorld(before);
-    const dungeon = world.depth.dungeon, source = world.chronicle.at(-1);
-    if (dungeon === null || before.depth.dungeon?.id !== dungeon.id || source?.commandType !== "move-dungeon") continue;
-    const cell = dungeon.cells.find(entry => entry.id === dungeon.currentCellId);
-    if (cell?.feature !== "lair" || before.depth.dungeon.visitedCellIds.includes(cell.id)) continue;
-    if (world.depth.hero.resources.health <= 0 || world.depth.companions.active.length > 0 || dungeon.completed
-      || world.depth.combat !== null || world.depth.counterDuel !== null || world.depth.atlas.route !== null
-      || world.depth.quest.status !== "active" || world.depth.pendingQuestReward !== null
-      || selectDungeonFieldMedicine(world.depth) !== null) continue;
-    if (cell.id !== "dungeon:location:7:cell:1,6" || before.depth.dungeon.currentCellId !== "dungeon:location:7:cell:2,6"
-      || source.commandId !== `${world.campaignId}:depth:${world.tick}:dungeon:${dungeon.id}:west`) {
-      throw new Error("The pinned lair arrival no longer matches its actual source and geometry");
-    }
-    earned = { before, arrived: world }; return earned;
+  if (releasedSave.provenance.releaseCommit !== releasedCommit || releasedSave.provenance.version !== "0.5.174"
+    || releasedSave.provenance.tick !== 104 || releasedSave.provenance.campaignId !== dungeonLairCampaignId
+    || releasedSave.provenance.seed !== "shared-road-playful:7" || releasedSave.provenance.canonicalHash !== releasedHash
+    || canonicalHash(releasedSave.world) !== releasedHash) {
+    throw new Error("Released v174 pre-lair checkpoint provenance or canonical hash changed");
   }
-  throw new Error("The pinned ordinary dungeon journey did not enter its eligible lair by T112");
+  const before = upgradeWorldState(structuredClone(releasedSave.world));
+  if (canonicalHash(before) !== releasedHash || canonicalStringify(before) !== canonicalStringify(releasedSave.world)) {
+    throw new Error("Current upgrade changed the exact released pre-lair save");
+  }
+  const world = advanceWorld(before), dungeon = world.depth.dungeon, source = world.chronicle.at(-1);
+  const cell = dungeon?.cells.find(entry => entry.id === dungeon.currentCellId);
+  if (dungeon === null || before.depth.dungeon?.id !== dungeon.id || source?.commandType !== "move-dungeon"
+    || world.tick !== 105 || cell?.feature !== "lair" || before.depth.dungeon.visitedCellIds.includes(cell.id)
+    || world.depth.hero.resources.health <= 0 || world.depth.companions.active.length > 0 || dungeon.completed
+    || world.depth.combat !== null || world.depth.counterDuel !== null || world.depth.atlas.route !== null
+    || world.depth.quest.status !== "active" || world.depth.pendingQuestReward !== null
+    || selectDungeonFieldMedicine(world.depth) !== null) {
+    throw new Error("Released pre-lair save did not earn its eligible lair on the next actual command");
+  }
+  if (cell.id !== "dungeon:location:7:cell:1,6" || before.depth.dungeon.currentCellId !== "dungeon:location:7:cell:2,6"
+    || source.commandId !== `${world.campaignId}:depth:${world.tick}:dungeon:${dungeon.id}:west`) {
+    throw new Error("The pinned lair arrival no longer matches its actual source and geometry");
+  }
+  earned = { before, arrived: world }; return earned;
 }
 
 export function naturalDungeonLairBeforeArrivalFixture(): WorldState { return dungeonLairJourney().before; }

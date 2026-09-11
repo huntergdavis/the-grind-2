@@ -901,6 +901,15 @@ T160/ten-second bound for both real public danger and a usable known alternative
 retain a negative result if absent. No new seed sweep, pathfinding framework,
 runtime implementation or combined release gate is authorized by this proposal.
 
+Read-only council mapping (2026-09-11): `projectDungeonTraps()` and
+`routeToKnownCell()` in `src/depth/dungeon.ts` expose known armed traps and
+visited-cell routes. Candidate generation and `move-dungeon` in
+`src/depth/state.ts` must share the same traversal plan; actor scoring alone
+cannot make a legal detour. A current-room armed trap already requires
+disarming, so avoidance must begin before entry and use an existing open loop.
+Choosing a different frontier is not evidence of bypassing the same obstacle.
+No eligible journey or runtime change was established by this review.
+
 ## Make the adventures accumulate into a life
 
 Each authored adventure should leave at most a small number of useful facts:

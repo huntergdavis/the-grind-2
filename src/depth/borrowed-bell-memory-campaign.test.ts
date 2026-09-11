@@ -6,6 +6,7 @@ import { randomInt } from "../core/rng";
 import { advanceWorld, campaignDirector, catchUpWorld, upgradeWorldState } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-bell-memory";
+import { selectRoadSupperCamp } from "./road-supper";
 import { selectCriticalRoadsideRest } from "./roadside-rest";
 import { depthCommandCandidates, stepDepth, upgradeDepthState } from "./state";
 import { selectPaidInnRest } from "./town-rest";
@@ -89,12 +90,37 @@ describe("one delivery memory at an existing real rest", () => {
     // Derive the actual waiting road engine independently from its stable
     // route ID. Recovery cannot swap a tactical fight for a Pattern Duel.
     const counter = randomInt(4, after.seed, "depth-director", encounterId, 0, "encounter-engine") === 0;
+    const enemyCount = 1 + randomInt(2, after.seed, "depth-director", encounterId, 0, "enemy-count");
     const expectedCommand = counter ? { type: "start-counter-duel", encounterId }
-      : { type: "start-combat", encounterId,
-        enemyCount: 1 + randomInt(2, after.seed, "depth-director", encounterId, 0, "enemy-count") };
-    const opportunity = campaignDirector(after);
+      : { type: "start-combat", encounterId, enemyCount };
+    let encounterStart = after;
+    const meal = counter ? null : selectRoadSupperCamp(after.depth, encounterId, enemyCount);
+    if (meal !== null) {
+      // Owned supplies may now earn one real preparation after recovery, but
+      // neither the memory nor supper can replace or reroll the waiting fight.
+      const sourceCommandId = `depth:${after.tick + 1}:road-supper:${encounterId}`;
+      const preparation = campaignDirector(after);
+      expect(preparation.candidates.map(candidate => candidate.command)).toEqual([{ type: "prepare-road-supper", encounterId }]);
+      expect(preparation.candidates[0]!.id).toBe(sourceCommandId);
+      encounterStart = advanceWorld(after);
+      expect(encounterStart.depth.roadSupper!.meal).toEqual({ ...meal, tick: after.tick + 1, sourceCommandId });
+      expect(encounterStart.chronicle.at(-1)).toMatchObject({ commandType: "prepare-road-supper",
+        commandId: `${after.campaignId}:${sourceCommandId}` });
+      expect(encounterStart.depth.hero).toEqual({ ...after.depth.hero,
+        inventory: after.depth.hero.inventory.filter(item => item.id !== meal.itemId) });
+      expect(encounterStart.depth.atlas).toEqual(after.depth.atlas);
+      expect(encounterStart.depth.quest).toEqual(after.depth.quest);
+      expect(encounterStart.depth.companions).toEqual(after.depth.companions);
+      expect(encounterStart.depth.bellMemory).toEqual(memory);
+      expect(encounterStart.depth.bellExpedition).toEqual(board);
+      expect(selectBellDeliveryMemory(encounterStart.depth)).toBeNull();
+      expect(reload(encounterStart.depth)).toEqual(encounterStart.depth);
+      expect(upgradeWorldState(JSON.parse(canonicalStringify(encounterStart)))).toEqual(encounterStart);
+    }
+    const opportunity = campaignDirector(encounterStart);
     expect(opportunity.candidates.map(candidate => candidate.command)).toEqual([expectedCommand]);
-    const continued = advanceWorld(after);
+    expect(opportunity.candidates[0]!.id).toBe(`depth:${encounterStart.tick + 1}:${encounterId}:${counter ? "counter-duel" : enemyCount}`);
+    const continued = advanceWorld(encounterStart);
     expect(continued.chronicle.at(-1)).toMatchObject({ commandType: expectedCommand.type,
       commandId: `${after.campaignId}:${opportunity.candidates[0]!.id}` });
     expect((counter ? continued.depth.counterDuel : continued.depth.combat)?.id).toBe(encounterId);

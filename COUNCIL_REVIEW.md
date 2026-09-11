@@ -19,6 +19,34 @@ geometry assertions; no production behavior was changed for this test fix.
 Earlier failed attempts remain recorded below and in separate scratch outputs.
 Final focused presentation count is **27**, including the mobile regression.
 
+Feature `ee699c1ab0e20d14eb7860fe35057cb840759359` is pushed to `origin/main`.
+Initial [CI run](https://github.com/huntergdavis/the-grind-2/actions/runs/34632043961)
+stopped before deployment: **3,740 passed, 12 failed, 8 skipped** across
+**276 passing/5 failing files**, with one guardian suite setup failure. Six
+skips follow that failed setup; only two are the existing optional audits.
+Canonical serialization/replay passes all four checks in **22.83s**; the main
+run takes **296.69s**. Two bell-memory tests assumed immediate battle entry
+instead of the newly owed supper. The remaining failures share a guardian
+fixture that assumed the original fresh-game route still reached its lair by
+T112. Test-only corrections retain the eventual exact encounter and use the
+previously earned v174 T104 save for guardian compatibility, without changing
+gameplay, seeds, test caps or the new supper journey. Public delivery remains
+pending until the corrected CI and exact-source verification pass.
+
+The two named bell-memory checks pass in **11.42s**, with TypeScript passing.
+All **17 unchanged guardian checks in three files pass in 23.00s** (9.05s test
+bodies) against the exact released T104 checkpoint
+`5f1e665f4245c183`, recovered from commit
+`0c1cbb381dddd0f993edf85ebecd411c55c5fb81`. All 51 loaded modules came from that
+commit; recovery took 3,343ms inside the original T112/20s bound. An export
+channel closed before transferring bytes; an identical 2,758ms serialization
+transfer produced the single 213,329-byte provenance-wrapped fixture. Its
+loader requires canonical hash and unchanged upgrade bytes before executing
+the actual T105 move. This is explicitly a released-save regression, not a
+claim that fresh v175 games still take the v174 route. No guardian assertions,
+gameplay, seeds or caps were weakened. The initial CI forward-motion checks
+also passed **8/8 in 8.388s**.
+
 Reuses the V04.12a meal premise and its official-manual references, recovered
 by the 2026-09-11 10:02:41 PDT council review retained below. A fresh
 `deja "Road Supper v175 first direct hit"` has no indexed match; the committed
