@@ -600,7 +600,8 @@ callbacks. Those are separate possible slices, not gates for this proposal.
 
 ## T2 current slice — The Pennywise Gate
 
-In progress for v0.5.171. A self-service wooden road barrier offers an honest
+Delivered in v0.5.171, publicly source-verified 2026-09-11 07:22:21 PDT.
+A self-service wooden road barrier offers an honest
 choice: put two owned gold into its counterweight and pass in one action, or
 lift it by hand, remain in place, and walk through on the next action. No
 spectator button, invented gatekeeper, injury, HP/MP/XP reward or bond change.
@@ -624,8 +625,54 @@ gate at T8. The map, supplies, road encounter and outcome were not staged.
 Native wood, honor box and the actual hero use a readable road close-up, the
 existing caption, route progress and Status. Lifting stays stationary; paid
 and free crossing show the far side. No new Watch panel, CSS drawer, LLM or
-adventure engine. Verify one short desktop/mobile/Focus journey and both legal
-choices, with exact reloads and ordinary onward travel; keep existing CI limits.
+adventure engine. The final desktop/mobile/Focus journey and both legal choices
+pass, with exact reloads and ordinary onward travel. All three native captures
+were inspected; existing CI limits remain unchanged. The successful release
+passes 3,681 tests, with two long audits opt-in; three public assets and nine
+emitted runtime source entries match the pushed release.
+
+## W1 proposed next slice — Surely I Can Make One Nail
+
+Read-only council recommendation, 2026-09-11 07:02:38 PDT. This is a small
+original job/microgame from the roadmap's crafting/jobs lane and the workshop
+premise above, not implementation of the full guardian-house encounter.
+Reuse the existing visited-smithy admission pattern in
+`src/depth/town-disarming-kit.ts`, town action priority in `src/depth/state.ts`
+and the native town stage in `src/render/game-renderer.ts`. No new research,
+source probe, crafting framework or LLM work has been performed for W1.
+
+At an actual visited smithy, its actual resident offers one two-gold job:
+produce a straight nail. A living solo hero makes two autonomous strokes.
+A gentle tap adds one shaping point for no MP; a focused drive adds two and
+spends one owned MP, representing deliberate technique rather than an injury
+or an invented stamina resource. Driving is unavailable without that MP;
+gentle tapping always lets the finite job finish. Exactly three points makes
+the straight nail and pays two gold once. Two leaves an unfinished piece and
+no pay; four bends it and earns no pay: “Excellent. A corner nail.” Do not call
+every failure bent when the actual problem was underworking. No XP, health
+loss, permanent ability, inventory filler, regard or companion participation.
+
+Admit once per campaign with at least one MP, in a visited smithy with a real
+resident and no active route/combat/dungeon. Recovery, rewards, oaths and existing
+owed conversations retain priority. Record the actual location/resident, both
+stroke sources, MP deltas, resulting shape and payment. Old absent saves remain
+absent until the genuine job; reload never repeats a stroke or wage. The known
+sequence and costs are public to policy. Resource-aware behavior and personality
+may differ, but the rules do not silently upgrade a poor result to success.
+
+Show the actual hero at a native anvil, two discrete hammer strokes and the
+correct unfinished/straight/bent result beside the resident. Existing portrait
+MP/gold, one short caption and Status carry the consequences; no new Watch panel,
+spectator input, precision timing, minigame engine or ongoing workshop economy.
+
+Before implementation, one unchanged known journey must prove real admission
+within T320 and 20 seconds after imports. Stop on negative evidence; no seed
+sweep, staged smith/resident/MP or expanded search. Four legal stroke sequences
+cover the three shapes and exact costs; separately check zero-MP legality,
+once-only payment, exact boundary reloads and ordinary onward activity. One
+compact desktop/mobile/Focus browser scenario is sufficient for presentation.
+Admission frequency and natural personality-policy variety remain unproven.
+This is the next proposal, not a blocker for shipping T2.
 
 ## Make the adventures accumulate into a life
 

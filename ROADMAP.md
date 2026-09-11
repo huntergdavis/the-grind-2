@@ -5,31 +5,30 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: T2 — The Pennywise Gate (v0.5.171).** At one real interior road site,
-   pay two owned gold for quick passage or lift the barrier and pass in two actions.
-   Use real route progress, a native travel scene and existing Status history.
-   The actual first solo road reaches the approach at T8; implementation is wired.
-   Final acceptance/release checks are underway. T1's ferry is deferred: the
-   known map has no road-river crossings. No geography was fabricated.
-   [Council scope](docs/design/ADVENTURE_FORMS.md#t2-current-slice--the-pennywise-gate).
+1. **Next proposed: W1 — Surely I Can Make One Nail.** One actual smithy job,
+   two autonomous hammer strokes, real MP and a once-only two-gold wage.
+   A straight nail succeeds; unfinished and bent results receive different
+   truthful comic endings. Use the existing town stage and Status history.
+   Prove ordinary admission before implementing; no crafting framework or LLM.
+   [Council scope](docs/design/ADVENTURE_FORMS.md#w1-proposed-next-slice--surely-i-can-make-one-nail).
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**D4 — A draught in the wall is live in v0.5.170**, publicly source-verified
-2026-09-11 06:07:04 PDT. A solo explorer notices a draught, opens the wall
-while staying in the room, then actually traverses a shorter route between two
-familiar rooms. New expeditions opt in; old expeditions and the key gate stay
-unchanged. The real T121 → T122 → T123 sequence shortens the known route six
-→ four moves. 2D, first-person, desktop/320px/Focus and exact reloads pass.
-No extra Watch panel, model, resource change or teleport.
-[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34601841131)
-passed 3,662 tests; two long audits stay opt-in. Four public assets and ten
-runtime source-map entries match the final release. The initial stale
-mana-siphon fixture expectation and exact correction remain in
-[COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+**T2 — The Pennywise Gate is live in v0.5.171**, publicly source-verified
+2026-09-11 07:22:21 PDT. At a real road barrier, spend two gold for quick passage
+or lift it by hand and pass in two actions. Natural paid and explicitly legal
+free branches use the same actual road distance. Native desktop/320px/Focus
+scenes, exact reloads, once-only payment and existing Status history pass.
+No extra Watch panel, model, HP/MP/XP reward or invented water.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34609161464)
+passed 3,681 tests; two long audits stay opt-in. Three public assets and nine
+runtime source-map entries match the corrected release. Source-fixture drift
+and exact test-only corrections remain in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md).
+T1's ferry is deferred: the bounded known journey and all 14 roads on its map
+have no recorded river crossings. That negative evidence is preserved.
 The finite Books & Flyting/witness/memory arc, both D1 board slices, D2's
-optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2 and D4 are shipped.
+optional first-person preview, F3a's lesson, F3b's scored use, R1, D3, R2, D4 and T2 are shipped.
 Wider 3D remains a separate proposal. Older delivery evidence is below the fold
 in [BACKLOG.md](BACKLOG.md).
 Shipped features, explicitly held work and
@@ -49,7 +48,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **T2 — The Pennywise Gate** | Trade two gold for speed or lift a roadside barrier for free | In progress for v0.5.171; final verification pending |
+| **W1 — Surely I Can Make One Nail** | Two smithy strokes produce a real wage or a comic, unpaid result | Proposed; ordinary admission not yet demonstrated |
 
 This is a proposed delivery sequence, not a combined release gate. Each
 slice must be entertaining on its own. Vocabulary, wider relationship behavior

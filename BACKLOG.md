@@ -17,8 +17,10 @@ field medicine is live in v0.5.168 with natural-use, browser, CI and public-sour
 verification passed. R2 — Share the credit is live in v0.5.169 with browser,
 CI and public-source verification passed. D4 — A draught in the wall is live in
 v0.5.170 with actual clue/open/traverse, exact reload, browser, CI and public-source
-verification passed. T2 — The Pennywise Gate is in progress for v0.5.171,
-using actual road progress and a two-gold versus two-action choice. T1's ferry
+verification passed. T2 — The Pennywise Gate is live in v0.5.171, with actual
+road progress, two-gold versus two-action choices, exact reloads, native browser
+acceptance, CI and public-source verification passed. W1's small smithy job is
+proposed next; ordinary admission is not yet demonstrated. T1's ferry
 is deferred: the bounded known journey and its map have no road-river crossing.
 That negative evidence is preserved; no water or route was fabricated. Further playable features follow
 one at a time.
@@ -33,7 +35,32 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — A draught in the wall (v0.5.170)
+## Latest delivery — The Pennywise Gate (v0.5.171)
+
+Publicly source-verified 2026-09-11 07:22:21 PDT. One real interior road site
+offers quick passage for two owned gold or a stationary lift followed by free
+passage. Actual T8 approach → natural T9 pay → ordinary T10 travel, and the
+separate legal T9 lift → T10 free crossing, both pass. The same seven-mile
+passage is recorded honestly; gate actions change no HP/MP/XP or prior story.
+The wood barrier, honor box and actual hero share the existing travel stage,
+caption, route bar and Status history, with no extra Watch panel or model.
+
+Feature `1891046b74aa77a9ccb22ed830fc0dff8f4fc035` and test-only correction
+`de54654df13706c30abbaac4cb6408b2e26ebc1d` are pushed to `origin/main`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34609161464):
+265 release files and 3,681 tests pass, two long audits opt-in/skipped.
+Canonical: four tests, 14.432 seconds; forward motion: eight tests, 5.213 seconds.
+Main suite: 215.53 seconds; deployment job: 4m34s. No limits changed.
+The final production browser scenario passes in 1.8 minutes; all three native
+desktop/320px/Focus captures are inspected. Exact reloads and once-only costs
+pass; no external/model requests or errors occur. Three public assets and nine
+emitted runtime source-map entries match the corrected commit. LLM workers,
+CSS and optional dungeon chunks remain unchanged. Initial CI expectation drift,
+the preserved released companion save, and exact memory-test corrections are
+recorded in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md). T2 is complete; W1 is the
+next proposal. T1 remains deferred for actual crossing geography; LLM work stays paused.
+
+## Prior delivery — A draught in the wall (v0.5.170)
 
 Publicly source-verified 2026-09-11 06:07:04 PDT. One useful draught in a
 new solo expedition leads to a stationary latch opening and an actual ordinary

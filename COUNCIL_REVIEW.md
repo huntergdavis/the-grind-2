@@ -2,7 +2,34 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## The Pennywise Gate — v0.5.171 implementation checkpoint
+## The Pennywise Gate — v0.5.171 final delivery
+
+**Live and publicly source-verified 2026-09-11 07:22:21 PDT.** Feature
+`1891046b74aa77a9ccb22ed830fc0dff8f4fc035` and test-only shared-memory correction
+`de54654df13706c30abbaac4cb6408b2e26ebc1d` are pushed to `origin/main`.
+[Pages run 34609161464](https://github.com/huntergdavis/the-grind-2/actions/runs/34609161464)
+passes all 265 release files and 3,681 tests; two long audits remain opt-in.
+Canonical: four tests, 14.432 seconds. Forward motion: eight tests, 5.213 seconds.
+Main suite: 215.53 seconds; deployment job: 4m34s. All limits remain unchanged.
+
+Actual T8 approach → natural T9 paid passage → ordinary T10 travel passes,
+alongside the explicitly legal T9 stationary lift → T10 free crossing branch.
+Both use the same real road points and seven-mile passage; pay spends two gold,
+lift spends one extra action. Gate actions award no HP/MP/XP. Exact reloads,
+Status sources, once-only payment and unchanged prior history pass. The final
+production browser scenario passes in 1.8 minutes; all three native desktop,
+320px and Focus captures were inspected. No extra Watch panel, model activity,
+external request or browser error is introduced.
+
+Public entry `index-CeJVWjNr.js`, CSS `index-B9m_5Qf5.css` and simulation worker
+`simulation.worker-Ce7wdz7q.js` match the local build byte-for-byte. Nine emitted
+runtime source-map entries match the corrected commit; protected ledger sources
+are absent. LLM workers and optional dungeon chunks remain unchanged. Owned
+test/build/browser processes are closed. The initial CI failure and exact
+test-only repair remain below, not relabeled as a successful run. T2 is complete;
+W1's small smithy job is separately proposed. T1's ferry remains deferred.
+
+## The Pennywise Gate — implementation and verification history
 
 Reuse: the council's 2026-09-11 05:51:05 PDT proposal recovered by
 `deja "Pennywise Ferry"` (Codex 2026-09-10T1), committed in
@@ -105,6 +132,19 @@ joke is hard-coded there. The natural helper's obsolete 38-turn comment is
 removed, while its 64-turn ceiling and behavior remain unchanged.
 The failed run is not counted as a release. No runtime/build/browser/anchor
 change, invented reaction or extended journey search is needed.
+
+### Next-slice council recommendation
+
+The 2026-09-11 07:02:38 PDT read-only follow-up recommends
+[W1 — Surely I Can Make One Nail](docs/design/ADVENTURE_FORMS.md#w1-proposed-next-slice--surely-i-can-make-one-nail),
+a two-stroke smithy job from the roadmap's jobs/microgames lane. An actual
+resident, two legal techniques, real MP and a once-only two-gold wage produce
+an unfinished, straight or bent nail. Root distinguishes underworking from a
+bent result, so the “corner nail” joke describes only the latter. Existing town
+admission/stage code and the committed workshop premise are the sources; no
+new probe or research was performed. Prove ordinary admission before building.
+It is separate from T2, with no LLM, new panel, companion credit or general
+crafting framework implied. T1 remains deferred for actual crossing geography.
 
 ## A draught in the wall — v0.5.170 final delivery
 
