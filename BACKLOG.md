@@ -4,7 +4,7 @@
 
 The clean, current gameplay/UI catalog is [ROADMAP.md](ROADMAP.md). It is the
 active planning source: Books & Flyting shipped in v0.5.159; F2a's witnessed
-encore and directional regard are under release verification. A later source-bound
+encore and directional regard shipped in v0.5.160. A later source-bound
 safe-rest callback is the separate F2b follow-up, followed by further playable features
 one at a time. Shipped work, held experiments and paused LLM work do
 not belong in that execution queue.
@@ -17,7 +17,24 @@ from the roadmap and is not proof of shipped gameplay.
 <details>
 <summary>Older specifications, shipped features, held experiments and delivery evidence</summary>
 
-## Latest delivery — Books & Flyting (v0.5.159)
+## Latest delivery — A companion judges the encore (v0.5.160)
+
+Publicly verified 2026-09-10 at 20:14 PDT. One actual companion watches a finite
+encore and records a declared-preference judgment, separate from the contest
+score and existing bond. A loyal hero can knowingly sacrifice one round for
+a playful companion's laugh. Both transcripts and the exact cause remain in
+Journal; the three-person stage stays readable in normal and Focus mobile views.
+F2b's later safe-rest callback remains next, not part of this delivered slice.
+
+Feature `982335ab082b96d2208cbe34c9e9863ebb91e4df`; test-only migration correction
+`f018aa70ae00d475db857caeb5a756aed95f5631`.
+[Successful Pages run](https://github.com/huntergdavis/the-grind-2/actions/runs/34557315138):
+238 files and 3,491 tests passed; two opt-in long audits skipped. The final natural
+browser journey passed in 64.2 seconds, and public assets plus eleven runtime
+source-map entries matched the committed build. See [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md)
+for the initial stale test expectation, visual correction and delivery receipt.
+
+## Prior delivery — Books & Flyting (v0.5.159)
 
 Live verification passed on 2026-09-10 at 18:37 PDT. One original book unlocks
 twelve expressions and two semantic counter frames for one autonomous

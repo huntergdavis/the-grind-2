@@ -2,6 +2,33 @@
 
 Status: council reviews, latest update 2026-09-10
 
+## A companion judges the encore — v0.5.160 final delivery
+
+**Live and publicly verified 2026-09-10 at 20:14:43 PDT.** Feature
+`982335ab082b96d2208cbe34c9e9863ebb91e4df` and test-only correction
+`f018aa70ae00d475db857caeb5a756aed95f5631` are pushed to `origin/main`.
+[Pages run 34557315138](https://github.com/huntergdavis/the-grind-2/actions/runs/34557315138)
+succeeded: 238 release test files and 3,491 tests passed, with the two explicitly
+opt-in long audits skipped. The main suite took 262.59 seconds; the entire deploy
+job took 5 minutes 21 seconds. All version/boundary checks, builds and publication
+steps passed. Neither skipped audit nor the capped local broad run is claimed
+as a pass; the clean GitHub run is the full release receipt.
+
+The public [game](https://hunterdavis.com/the-grind-2/) returned v0.5.160 and
+matched the approved build's `assets/index-CSrkqZK5.js`,
+`assets/index-BsBIllhf.css` and `simulation.worker-DpyySw5S.js` byte-for-byte.
+Eleven browser/worker source-map entries matched the committed runtime,
+including witness rules, both campaign contests, policy, state, inbox and stage.
+Both narrator worker identities remain unchanged. The test-only correction
+changed no browser-approved runtime source.
+
+The 64.2-second natural browser journey and four final visually inspected
+captures passed, including the strengthened normal/Focus 320-pixel actor-size
+and occlusion checks. The owned preview is closed and protected local ledger
+and probe work remains untouched. F2a is delivered; F2b's later source-backed
+rest callback is now first in the active roadmap. The earlier checkpoint,
+failed assertion and layout investigation below are retained as history.
+
 ## A companion judges the encore — v0.5.160 implementation review
 
 The first clean-checkout [Pages run 34556891281](https://github.com/huntergdavis/the-grind-2/actions/runs/34556891281)

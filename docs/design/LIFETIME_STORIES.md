@@ -1,9 +1,9 @@
 # Lifetime stories: regard, humor and consequences
 
-Status: F2a implemented locally for v0.5.160, 2026-09-10; release verification in progress. Broader systems below remain proposals unless included in the scope note.
+Status: F2a shipped in v0.5.160, publicly verified 2026-09-10 at 20:14 PDT. Broader systems below remain proposals unless included in the scope note.
 Owner: gameplay/story roadmap. LLM work remains paused.
 
-## F2a implementation scope — a companion judges the encore
+## F2a shipped scope — a companion judges the encore
 
 After the original solo contest, one later eligible road-oath departure may
 offer an autonomous encore in its actual visited origin town. The hero carries

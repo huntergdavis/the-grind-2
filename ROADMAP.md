@@ -5,19 +5,19 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. Finish **F2a — A companion judges the encore (v0.5.160)**: one actual pre-departure witness, a declared preference and an exact saved reaction. Implementation is under release verification; public delivery is not yet claimed. **F2b — Recall it at a later safe rest** follows separately.
+1. **Next: F2b — Recall it at a later safe rest.** Let the same present companion recall the actual witnessed exchange once, with retained-source and presence checks. F2a's encore and recorded judgment are delivered; the later callback is new work.
 2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
 
-**F1 — Books & Flyting is live in v0.5.159**, publicly verified on 2026-09-10
-at 18:37 PDT: one original book teaches twelve expressions and two counter
-frames, then the hero plays one autonomous three-round verbal duel. Native
-dialogue and the Adventure journal show the actual exchange and result.
-Desktop/mobile acceptance and exact deployed-source checks pass;
-[release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34551019389)
-passed 3,465 tests, with two long journey audits explicitly opt-in. This follows
-the delivered v0.5.158 mana-siphon dungeon trap. Shipped features, explicitly held work and
+**F2a — A companion judges the encore is live in v0.5.160**, publicly verified
+on 2026-09-10 at 20:14 PDT. One later pre-departure encore gives an actual
+companion a cause-bound reaction and directional regard, preserving the original
+book and solo transcript. Winning, respect and amusement remain distinct.
+Desktop/mobile normal and Focus acceptance and exact public-source checks pass;
+[release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34557315138)
+passed 3,491 tests, with two long journey audits explicitly opt-in. This follows
+v0.5.159 Books & Flyting and the v0.5.158 mana-siphon trap. Shipped features, explicitly held work and
 LLM improvements are excluded from this active inventory. Some entries are
 scoped proposals; others are larger ideas needing smaller implementation slices.
 Dependencies are not evidence of implementation. No model is required to play.
@@ -34,7 +34,6 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **F2a — A companion judges the encore** | One real travelling companion watches a finite encore and records a cause-bound directional judgment, separate from winning and bond | Implemented for v0.5.160; release verification |
 | **F2b — The witness remembers** | The same present companion recalls the actual exchange once at a later eligible safe rest | Next; requires retained source and renewed presence |
 | **D1 — Board expedition** | A compact original board-style dungeon with route decisions, event spaces and consequences | Research/design; not a reskin of movement |
 | **D2 — Through their eyes** | Optional first-person rendering of the same known dungeon and committed actions | Separate rendering experiment; not new dungeon rules |
