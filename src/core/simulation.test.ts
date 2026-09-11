@@ -479,7 +479,7 @@ describe("autonomous simulation", () => {
     expect(upgraded).toMatchObject({
       schemaVersion: 9,
       hero: { experience: 30_000, level: 51 },
-      depth: { schemaVersion: 28, hero: { experience: 30_000, level: 51 } },
+      depth: { schemaVersion: 29, hero: { experience: 30_000, level: 51 } },
     });
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });

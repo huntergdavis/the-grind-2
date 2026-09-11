@@ -4,6 +4,15 @@ Status: council reviews, latest update 2026-09-10
 
 ## A companion judges the encore — v0.5.160 implementation review
 
+The first clean-checkout [Pages run 34556891281](https://github.com/huntergdavis/the-grind-2/actions/runs/34556891281)
+passed 3,490 tests and failed one nested current-schema expectation, with two
+opt-in audits skipped across 238 files (244.28 seconds). The schema-five world
+envelope test correctly loaded current Depth 29 but still expected Depth 28
+inside its object match. The follow-up changes that single expected version;
+runtime code, original input, hero level/XP and exact reload assertions stay
+unchanged. All four canonical serialization/replay tests passed in CI, including
+the exact ten-seed anchors. Deployment was correctly withheld on the failed run.
+
 Three independent owners handled pure rules/policy, presentation and acceptance;
 root integrated the finite campaign admission and save graph. Recovery reused
 `deja`'s Codex session 06 and the committed [lifetime-story contract](docs/design/LIFETIME_STORIES.md),
