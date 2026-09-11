@@ -82,6 +82,30 @@ the lift is stationary and the completed crossing actually changes road progress
 The owned preview is closed. Deployment and public verification remain pending
 at this checkpoint.
 
+### Initial release check — shared-memory expectation drift
+
+Feature `1891046b74aa77a9ccb22ed830fc0dff8f4fc035` is pushed. The initial
+[Pages run 34608038182](https://github.com/huntergdavis/the-grind-2/actions/runs/34608038182)
+fails one old journey-specific shared-memory expectation; 264 files and 3,680
+tests pass, two long audits remain skipped. Canonical replay passes all four
+tests in 21.817 seconds and forward motion all eight in 6.765 seconds, with
+unchanged limits. Main suite: 285.50 seconds; the job stops before deployment.
+The natural journey now earns a draw and an unmoved witness (regard0), not
+the earlier culinary-absurdity defeat (regard1). No production narrative rule
+failed: the assertion described the old outcome rather than the actual source.
+The test-only correction asserts the exact new natural reaction and keeps
+the failed-joke/laughter branch explicit in the existing command-driven rule
+fixture, preserving source, history, resources, reload and farewell checks.
+Its former direct/category/near sequence also draws; explicitly choosing the
+legal direct/category/category sequence truly loses while retaining the spoken
+spoon joke and its genuine laugh. It never edits outcome or reaction fields.
+All 15 focused memory checks and final typecheck pass after that argument
+change. Existing browser expectations already derive the real source; no stale
+joke is hard-coded there. The natural helper's obsolete 38-turn comment is
+removed, while its 64-turn ceiling and behavior remain unchanged.
+The failed run is not counted as a release. No runtime/build/browser/anchor
+change, invented reaction or extended journey search is needed.
+
 ## A draught in the wall — v0.5.170 final delivery
 
 **Live and publicly source-verified 2026-09-11 06:07:04 PDT.** Feature

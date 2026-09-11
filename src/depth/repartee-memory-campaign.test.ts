@@ -16,7 +16,7 @@ describe("one source-backed shared memory before the actual oath farewell", () =
   let ready: WorldState;
   beforeAll(() => { ready = naturalReparteeMemoryFixture(); });
 
-  it("recalls the actual failed joke at the reached destination without changing regard, bond, resources, or other rewards", () => {
+  it("recalls the actual drawn contest and quiet reaction without changing regard, bond, resources, or other rewards", () => {
     const before = ready.depth, reaction = before.reparteeWitness.reaction!;
     const witness = before.companions.active[0]!, proposed = selectReparteeCallback(before)!;
     expect(before.reparteeCallback).toBeNull();
@@ -24,7 +24,7 @@ describe("one source-backed shared memory before the actual oath farewell", () =
     expect(witness.resources.health).toBeGreaterThan(0);
     expect(before.atlas.currentLocationId).toBe(witness.destination.locationId);
     expect(before.atlas.currentLocationId).not.toBe(reaction.locationId);
-    expect(reaction).toMatchObject({ reactionId: "culinary-absurdity", outcome: "defeat", regardAfter: 1 });
+    expect(reaction).toMatchObject({ reactionId: "unmoved", outcome: "draw", regardAfter: 0 });
     const after = advanceWorld(ready), receipt = after.depth.reparteeCallback!;
     expect(receipt).toEqual(proposed);
     expect(receipt).toMatchObject({ encounterId: reaction.encounterId, heroId: before.hero.id,
@@ -32,8 +32,9 @@ describe("one source-backed shared memory before the actual oath farewell", () =
       sourceReactionCommandId: reaction.completionCommandId, sourceReactionTick: reaction.completedTick,
       sourceReactionId: reaction.reactionId, evidenceSourceCommandId: reaction.evidence!.sourceCommandId,
       evidenceRoundIndex: reaction.evidence!.roundIndex, rememberedReply: reaction.evidence!.reply,
-      restLocationId: witness.destination.locationId, tick: before.tick + 1, pose: "laugh" });
-    expect(receipt.line).toContain("Then I demand a smaller spoon.");
+      restLocationId: witness.destination.locationId, tick: before.tick + 1, pose: "quiet" });
+    const actualQuote = reaction.evidence!.reply.match(/^[\s\S]*?[.!?](?=\s|$)/u)?.[0] ?? reaction.evidence!.reply;
+    expect(receipt.line).toBe(`“${actualQuote}” I remember it clearly. I am still not sure what to make of it.`);
     expect(after.depth.hero).toEqual(before.hero);
     expect(after.hero).toEqual(ready.hero);
     expect(after.depth.companions).toEqual(before.companions);

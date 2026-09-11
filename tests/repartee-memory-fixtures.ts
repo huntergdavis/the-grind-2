@@ -3,7 +3,7 @@ import type { WorldState } from "../src/core/types";
 
 export const reparteeMemoryCampaignId = "campaign:browser-repartee-memory";
 
-/** One known 38-turn natural journey, not a staged level, roster, injury or memory.
+/** One bounded natural journey, not a staged level, roster, injury or memory.
  * The book, both contests, recruitment, shared battle and arrival are all actual
  * autonomous commands. The small ceiling detects drift without seed searches.
  */

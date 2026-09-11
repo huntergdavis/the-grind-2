@@ -33,10 +33,15 @@ function committed(state: DepthState, callback = selectReparteeCallback(state)!)
 }
 
 describe("one source-backed memory at the actual oath destination", () => {
-  it("builds one exact next-tick scene from the witnessed answer without touching any game state", () => {
-    const state = rememberedArrival(), before = JSON.stringify(state);
+  it("recalls the legally chosen failed joke with an exact laugh and no second reward or rewritten history", () => {
+    const state = rememberedArrival("shared-road-playful:7", ["direct", "category", "category"]), before = JSON.stringify(state);
     const callback = selectReparteeCallback(state)!;
     const reaction = state.reparteeWitness.reaction!, evidence = reaction.evidence!, witness = state.companions.active[0]!;
+    // This explicit command fixture really chose the losing culinary answer;
+    // unlike the natural journey, its outcome is not an autoplay assumption.
+    expect(reaction).toMatchObject({ reactionId: "culinary-absurdity", outcome: "defeat", regardAfter: 1, pose: "laugh" });
+    expect(evidence).toMatchObject({ roundIndex: 1,
+      reply: "Then I demand a smaller spoon. No proper pudding should require this much shouting." });
     expect(callback).toMatchObject({
       schemaVersion: 1, rulesVersion: "repartee-callback-v1", encounterId: reaction.encounterId,
       heroId: reaction.heroId, witnessId: witness.identity.residentId, witnessName: witness.identity.name,
@@ -44,16 +49,25 @@ describe("one source-backed memory at the actual oath destination", () => {
       sourceReactionTick: reaction.completedTick, sourceReactionId: reaction.reactionId,
       evidenceSourceCommandId: evidence.sourceCommandId, evidenceRoundIndex: evidence.roundIndex,
       rememberedReply: evidence.reply, restLocationId: witness.destination.locationId,
-      tick: state.tick + 1, pose: reaction.pose,
+      tick: state.tick + 1, pose: "laugh",
     });
     expect(callback.sourceCommandId).toBe(reparteeCallbackCommandId(callback.tick, callback.encounterId, callback.witnessId));
     expect(callback.restLocationId).not.toBe(reaction.locationId);
-    expect(callback.line).toContain(evidence.reply.split(".")[0]);
-    expect(callback.line).toContain("still the bit that makes me laugh");
+    expect(callback.line).toBe("“Then I demand a smaller spoon.” All that road, and that is still the bit that makes me laugh.");
     expect(callback).not.toHaveProperty("regardDelta");
     expect(callback).not.toHaveProperty("restBuildingId");
     expect(JSON.stringify(state)).toBe(before);
     expect(selectReparteeCallback(state)).toEqual(callback);
+    const after = stepDepth(state, { type: "recall-repartee", encounterId: callback.encounterId, witnessId: callback.witnessId });
+    expect(after.reparteeCallback).toEqual(callback);
+    expect(after.hero).toEqual(state.hero);
+    expect(after.companions).toEqual(state.companions);
+    expect(after.reparteeWitness).toEqual(state.reparteeWitness);
+    expect(after.repartee).toEqual(state.repartee);
+    expect(after.towns).toEqual(state.towns);
+    expect(after.quest).toEqual(state.quest);
+    expect(isValidCampaignReparteeCallback(after)).toBe(true);
+    expect(selectReparteeCallback(after)).toBeNull();
   });
 
   it("preserves disagreement, regard despite defeat and a quiet unresolved opinion instead of congratulating everyone", () => {
