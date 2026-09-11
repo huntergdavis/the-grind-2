@@ -5,17 +5,31 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In verification: News from the oven (v0.5.180).** On a newly earned matching reunion,
-   the former baker reports the exact completed bake. Preserve existing dialogue,
-   witnessed memory and old completed greetings; no invented delivery or reward.
-   Actual bake T74 precedes arrival T85 and reunion T86 in the known journey.
-   The report is implemented; browser, CI and public deployment are not yet verified.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
+2. News from the oven is shipped, not an outstanding task. LLM work remains
+   paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
-<summary>Latest verified release: Elsewhere — The Experimental Loaf, v0.5.179</summary>
+<summary>Latest verified release: News from the oven, v0.5.180</summary>
+
+Publicly source-verified **2026-09-11 16:51:16 PDT**. On a newly earned matching
+reunion, the former baker reports the actual completed loaf. Original witnessed
+dialogue and older completed greetings remain unchanged. A separate short line
+and existing Company history join the off-screen activity to the hero's story.
+No extra panel, timer, LLM request, reward or invented delivery.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34659280008)
+passes **3,834 tests in 296 files**, with two optional skips. Forty-two focused
+checks, the 58.7-second production browser and three inspected layouts pass.
+Complete public HTML, three assets and five emitted source entries match
+`1f90a1c`. All golden hashes and test limits remain unchanged.
+[Scope](docs/design/LIFETIME_STORIES.md#news-from-the-oven--v05180).
+</details>
+
+<details>
+<summary>Previous release: Elsewhere — The Experimental Loaf, v0.5.179</summary>
 
 Publicly source-verified **2026-09-11 16:11:17 PDT**. One healthy former baker
 undertakes an inn-supplied trial while the hero is away. A steady or experimental
@@ -173,7 +187,7 @@ watch without making the viewer operate the game or read a wall of panels.
 
 | Slice | Visible result | Status |
 | --- | --- | --- |
-| **News from the oven** | On a real later reunion, the same baker tells the hero how the recorded bake turned out | v0.5.180 in verification; original dialogue and old greetings preserved, no delivery or reward |
+| **News from the oven** | On a real later reunion, the same baker tells the hero how the recorded bake turned out | Shipped v0.5.180; browser, CI and public-source verification passed |
 | **A thought in a bottle** | Buy one mana draught, then visibly drink it at a real low-mana dungeon boundary | Deferred: market found, but no low-MP dungeon use in the bounded journey |
 | **Known-danger detour** | Remember a revealed danger and take an actual known way around it | Deferred: the bounded unchanged journey found no eligible bypass; no implementation |
 
@@ -255,6 +269,10 @@ general framework. All remain client-side and work without an LLM.
 
 - Small class skill trees with meaningful prerequisites and competing choices.
 - Prepared ability loadouts changed at appropriate rest/training opportunities.
+  Dependency: a broader earned repertoire and preservation of unprepared mastery.
+  The 2026-09-11 single known journey has only two techniques at every training
+  opportunity, so two slots add no decision. No loadout is implemented; see
+  [the council assessment](COUNCIL_REVIEW.md#next-lane-assessment-prepared-abilities).
 - Clear acquisition histories, repertoire swapping and technique retirement.
 - Equipment-taught abilities and permanent certification of learned techniques.
 - Spell and technique evolution: delivery, status and cost branches.

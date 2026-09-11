@@ -2,7 +2,16 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## News from the oven — v0.5.180 in verification
+## News from the oven — v0.5.180 verified release
+
+**Live and publicly source-verified 2026-09-11 16:51:16 PDT.** Feature
+`1f90a1c6e47845caa1ea6869671fc5e525ef1e8c` is pushed to `origin/main`.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34659280008)
+passes **3,834 tests in 296 files**, with two optional audits skipped.
+The main suite takes **227.87s**, canonical replay **4/4 in 18.295s**, and
+forward motion **8/8 in 6.615s**. Deployment completes in **4m39s**. Complete
+public HTML, three assets and five emitted source entries match the exact
+feature commit. Both LLM workers remain unchanged.
 
 Reuses the previous council's committed narrow proposal in
 [Lifetime stories](docs/design/LIFETIME_STORIES.md#news-from-the-oven--v05180),
@@ -55,7 +64,26 @@ Actual T85 arrival advances to the T86 report, reloads exactly, then returns to
 ordinary T87 route planning. The original witnessed lines, regard and callback
 stay intact. Company retains separate bake T74 and report T86 sources. No
 browser errors, model calls or external requests occur. The owned preview port
-19905 is confirmed closed. CI and public deployment remain the final gates.
+19905 is confirmed closed. CI and public deployment pass as recorded above.
+The local commit-verifier invocation initially supplied its flag before the
+commit; correcting the argument order passes without any application change.
+
+### Next-lane assessment: prepared abilities
+
+The council's proposed two-slot preparation needs a broader repertoire before
+it becomes a meaningful choice. One unchanged known campaign through T320
+completes in **10,767 ms** under the existing 20-second post-import bound.
+All four observed training opportunities retain only Ember Arc and Horizon
+Step. The safe T58 town checkpoint is genuine, but choosing two of two adds
+no decision. Later training checkpoints do not establish the proposed safe
+three-technique admission. No second journey, supplied technique or new rule
+is added to force the proposal.
+
+Current combat synchronization replaces the full learned repertoire with its
+combat copy. A future loadout must preserve every earned technique/mastery,
+using a separate legal-use selection or an explicit by-ID merge. This remains
+a dependency in the larger backlog, not a blocker for other gameplay lanes.
+No implementation or new test gate follows from this assessment.
 
 ## Elsewhere: The Experimental Loaf — v0.5.179 verified release
 

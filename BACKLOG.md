@@ -38,8 +38,10 @@ Browser acceptance, CI and public-source verification pass; old greetings remain
 unchanged. **Elsewhere: The Experimental Loaf (v0.5.179)** is live: one
 recorded former-baker activity at a supplied inn worksite, a compact NPC-only
 cutaway and permanent Company history. Browser, CI and public-source
-verification pass. **News from the oven (v0.5.180)**, a source-bound reunion
-report, is implemented and entering verification; it is not yet a verified release.
+verification pass. **News from the oven (v0.5.180)** is live: a newly earned
+matching reunion lets the former baker report the completed loaf. Original
+dialogue and older greetings stay intact. Browser, CI and public-source
+verification pass.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.
@@ -56,7 +58,21 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest verified release — Elsewhere: The Experimental Loaf (v0.5.179)
+## Latest verified release — News from the oven (v0.5.180)
+
+Publicly source-verified **2026-09-11 16:51:16 PDT**. Feature `1f90a1c`
+connects an actual earlier bake with a later reunion report. Original witnessed
+dialogue is preserved; the extra short line and exact bake/report sources use
+the existing caption, adventure log and Company history. Older completed saves
+remain unchanged. No reward, delivery, new panel or LLM request.
+
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34659280008):
+**3,834 passing tests / 296 files / 2 optional skips**. Forty-two focused
+checks, the 58.7-second browser, three inspected layouts and full public
+HTML/asset/source comparison pass. All golden hashes remain unchanged.
+[Scope](docs/design/LIFETIME_STORIES.md#news-from-the-oven--v05180).
+
+## Previous verified release — Elsewhere: The Experimental Loaf (v0.5.179)
 
 Publicly source-verified **2026-09-11 16:11:17 PDT**. Feature `9e83634`
 adds one independent baker's attempt and outcome while the hero is away.

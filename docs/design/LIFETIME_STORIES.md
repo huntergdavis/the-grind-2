@@ -1,7 +1,7 @@
 # Lifetime stories: regard, humor and consequences
 
-Latest: [Elsewhere: The Experimental Loaf](#elsewhere-the-experimental-loaf--v05179)
-shipped in v0.5.179, publicly source-verified 2026-09-11 16:11:17 PDT. Earlier explicitly delivered
+Latest: [News from the oven](#news-from-the-oven--v05180)
+shipped in v0.5.180, publicly source-verified 2026-09-11 16:51:16 PDT. Earlier explicitly delivered
 scopes remain shipped; broader systems below remain proposals.
 Owner: gameplay/story roadmap. LLM work remains paused.
 
@@ -36,8 +36,8 @@ three assets and eight source entries match `9e83634`. No new model or scheduler
 
 ## News from the oven — v0.5.180
 
-Implemented, in verification; not yet a verified release. A newly earned
-matching reunion lets the former baker report the actual completed loaf.
+Shipped and publicly source-verified. A newly earned matching reunion lets
+the former baker report the actual completed loaf.
 The report references its exact bake event, command and tick, and the new
 reunion supplies the separate source for telling the hero. Matching resident,
 oath, farewell and town are required; baking must finish before actual arrival.
@@ -53,7 +53,12 @@ remain report-free on load; retained proof does not depend on Chronicle length.
 The unchanged known journey establishes Ada's bake T74, actual return T85,
 reunion T86 and ordinary route planning T87 in 3.409 seconds. Original full-state
 hashes and dialogue were captured before implementation, including exact reload.
-Final verification evidence will be recorded in the council release receipt.
+Forty-two focused checks, the 58.7-second production browser, three inspected
+desktop/mobile/Focus layouts and exact old/new saves pass.
+[CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34659280008)
+passes 3,834 tests in 296 files with two optional skips. Complete public HTML,
+three assets and five source entries match `1f90a1c`; all golden hashes and
+existing test limits remain unchanged. Details stay in the council receipt.
 
 ## F2b shipped scope — a shared memory before parting
 
