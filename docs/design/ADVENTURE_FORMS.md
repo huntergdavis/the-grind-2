@@ -1027,7 +1027,7 @@ rule or test limit was weakened to pass it. Wider equipment lessons remain backl
 
 ## A weakened answer — v0.5.182
 
-**In progress.** Make a control technique's place in the exchange legible. The
+**Delivered in v0.5.182.** Make a control technique's place in the exchange legible. The
 existing Watch caption briefly links the hero's actual weakening technique to the
 same foe's next qualifying attack while that weakening is still active. Show the
 actual HP lost, not an imagined saving. Existing status glyphs and HP bars remain
@@ -1047,6 +1047,12 @@ terminal archives govern joining; a reusable combat ID alone is insufficient.
 Exact reload reconstructs eligible detail without changing saves. Generic old
 road fights are not promised a permanent new control archive. Numeric alternatives,
 tactical judgment and broader turning-point analysis remain future backlog.
+
+Public source verification completed **2026-09-11 18:57:18 PDT**. Feature
+`94b4828`, its 29 focused checks, the 78.5-second production browser scenario
+and three inspected responsive layouts pass. [Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34665930635)
+passes 3,868 tests in 302 files with two optional skips. No simulation, LLM,
+CSS or canonical-state changes were introduced.
 
 ## Make the adventures accumulate into a life
 

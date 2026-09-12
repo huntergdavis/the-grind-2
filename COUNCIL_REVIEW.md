@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## A weakened answer — v0.5.182 in progress
+## A weakened answer — v0.5.182 verified release
 
 Reuses the committed combat-recap backlog, v176's Last exchange projector and
 v181's actual Turning Check journey. `deja "the_grind_2 prepared abilities Turning
@@ -41,8 +41,13 @@ browser check passes on its first attempt in 78.5 seconds: live T277, defeat and
 reload T278, and stale-history clearing T279. All three desktop/narrow captures
 were inspected by the lead and acceptance reviewer; no browser errors, external
 requests or model requests occurred, and the owned preview port is closed.
-Public release verification remains pending. The simulation worker, both LLM workers,
-CSS and canonical snapshots remain unchanged; no local golden replay is added.
+**Live and publicly source-verified 2026-09-11 18:57:18 PDT.** Feature
+`94b48282aabfa2b63f2f1028953183b9234aded2` is pushed to `origin/main`.
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34665930635)
+passes 3,868 tests in 302 files with two optional skips. Public HTML, emitted
+assets and the five relevant source-map entries match the exact feature commit.
+The simulation worker, both LLM workers, CSS and canonical snapshots remain
+unchanged; no local golden replay is added.
 
 ## Turning Check — v0.5.181 verified release
 

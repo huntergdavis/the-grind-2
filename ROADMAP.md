@@ -5,18 +5,31 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In progress: A weakened answer (v0.5.182).** The existing Watch caption
-   links an actual technique to the same foe's still-weakened reply and HP lost.
-   Collapsed Status details preserve eligible source events alongside the actual
-   ending. No speculative saved-HP claim, new panel, simulation or LLM change.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
-3. Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
+2. A weakened answer, Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
-<summary>Latest verified release: Turning Check, v0.5.181</summary>
+<summary>Latest verified release: A weakened answer, v0.5.182</summary>
+
+Publicly source-verified **2026-09-11 18:57:18 PDT**. The Watch caption now
+links a hero's actual weakening technique to the same foe's still-weakened reply,
+reporting actual HP lost rather than a speculative saving. A collapsed Status
+detail preserves its source chain. The known battle still ends in defeat to a
+different wolf; the existing Last exchange stays intact. No rule, canonical
+state, extra panel, simulation or LLM change.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34665930635)
+passes **3,868 tests in 302 files**, with two optional skips. Twenty-nine focused
+checks, the 78.5-second production browser and three inspected layouts pass.
+Public HTML, emitted assets and five source entries match `94b4828`.
+[Scope](docs/design/ADVENTURE_FORMS.md#a-weakened-answer--v05182).
+</details>
+
+<details>
+<summary>Previous release: Turning Check, v0.5.181</summary>
 
 Publicly source-verified **2026-09-11 18:25:50 PDT**. An actually used Roadworn
 Blade teaches one permanent control technique at safe training. Two MP and half
