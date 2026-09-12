@@ -1,26 +1,26 @@
-import { captureChroniclePlateRecipe, type ChroniclePlateRecipeV1 } from "./chronicle-plate";
+import { captureChroniclePlateRecipe, type ChroniclePlateEntryV1 } from "./chronicle-plate";
 
 export const chroniclePlateArchiveKey = "the-grind-2:chronicle-plates:v1";
 export const chroniclePlateMaximumEntries = 48;
 export const chroniclePlateMaximumBytes = 128 * 1_024;
 
 export interface ChroniclePlateArchiveSnapshot {
-  readonly entries: readonly ChroniclePlateRecipeV1[];
+  readonly entries: readonly ChroniclePlateEntryV1[];
   readonly persistent: boolean;
 }
 
 type PlateStorage = Pick<Storage, "getItem" | "setItem">;
 const encoder = new TextEncoder();
 
-function identity(recipe: ChroniclePlateRecipeV1): string {
+function identity(recipe: ChroniclePlateEntryV1): string {
   return JSON.stringify([recipe.campaignId, recipe.sourceEventId]);
 }
 
-function serialize(entries: readonly ChroniclePlateRecipeV1[]): string {
+function serialize(entries: readonly ChroniclePlateEntryV1[]): string {
   return JSON.stringify({ schemaVersion: 1, entries });
 }
 
-function readEntries(stored: string): readonly ChroniclePlateRecipeV1[] | null {
+function readEntries(stored: string): readonly ChroniclePlateEntryV1[] | null {
   if (stored.length > chroniclePlateMaximumBytes || encoder.encode(stored).byteLength > chroniclePlateMaximumBytes) return null;
   const value: unknown = JSON.parse(stored);
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
@@ -28,7 +28,7 @@ function readEntries(stored: string): readonly ChroniclePlateRecipeV1[] | null {
   if (Object.keys(envelope).length !== 2 || envelope.schemaVersion !== 1
     || !Object.hasOwn(envelope, "entries") || !Array.isArray(envelope.entries)
     || envelope.entries.length > chroniclePlateMaximumEntries) return null;
-  const entries: ChroniclePlateRecipeV1[] = [];
+  const entries: ChroniclePlateEntryV1[] = [];
   const seen = new Set<string>();
   for (const source of envelope.entries) {
     const entry = captureChroniclePlateRecipe(source);
@@ -41,7 +41,7 @@ function readEntries(stored: string): readonly ChroniclePlateRecipeV1[] | null {
 
 /** A bounded local memento archive, never a canonical save or historical replay source. */
 export function createChroniclePlateArchive(getStorage: () => PlateStorage = () => localStorage) {
-  let entries: readonly ChroniclePlateRecipeV1[] = Object.freeze([]);
+  let entries: readonly ChroniclePlateEntryV1[] = Object.freeze([]);
   let persistent = false;
   let writable = true;
   try {

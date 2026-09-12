@@ -1,4 +1,5 @@
 import type { TownBuilding } from "../depth/types";
+import type { FirstSharedVictory } from "../narrator/first-shared-victory";
 import { isTownItineraryPacketV1 } from "./town-itinerary";
 
 export interface ChroniclePlateLandmarkV1 {
@@ -9,7 +10,7 @@ export interface ChroniclePlateLandmarkV1 {
 }
 
 /** An illustrated landmark reconstruction, not a photograph or a canonical save. */
-export interface ChroniclePlateRecipeV1 {
+export interface TownChroniclePlateRecipeV1 {
   readonly schemaVersion: 1;
   readonly kind: "town-visit";
   readonly templateId: "town-landmarks@1";
@@ -22,7 +23,26 @@ export interface ChroniclePlateRecipeV1 {
   readonly landmarks: readonly ChroniclePlateLandmarkV1[];
 }
 
-const recipeKeys = ["schemaVersion", "kind", "templateId", "sourceEventId", "campaignId", "sourceTick", "town", "visit", "reputation", "landmarks"];
+export interface SharedVictoryChroniclePlateRecipeV1 {
+  readonly schemaVersion: 1;
+  readonly kind: "shared-victory";
+  readonly templateId: "party-first-victory@1";
+  readonly sourceEventId: string;
+  readonly campaignId: string;
+  readonly sourceTick: number;
+  readonly heroName: string;
+  readonly companionName: string;
+  readonly condition: FirstSharedVictory["condition"];
+  readonly battle: Readonly<{ location: string; headline: string; tick: number }>;
+}
+
+/** Historical town-plate API, retained for existing consumers. */
+export type ChroniclePlateRecipeV1 = TownChroniclePlateRecipeV1;
+/** Archive entries can additionally preserve a source-bound shared victory. */
+export type ChroniclePlateEntryV1 = TownChroniclePlateRecipeV1 | SharedVictoryChroniclePlateRecipeV1;
+
+const townRecipeKeys = ["schemaVersion", "kind", "templateId", "sourceEventId", "campaignId", "sourceTick", "town", "visit", "reputation", "landmarks"];
+const sharedVictoryRecipeKeys = ["schemaVersion", "kind", "templateId", "sourceEventId", "campaignId", "sourceTick", "heroName", "companionName", "condition", "battle"];
 const buildingKinds: readonly TownBuilding["kind"][] = ["inn", "smithy", "market", "shrine", "hall", "home"];
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -54,9 +74,23 @@ function landmark(value: unknown): value is ChroniclePlateLandmarkV1 {
 }
 
 /** Validate and copy every retained field; later town or caller mutations cannot repaint an old plate. */
-export function captureChroniclePlateRecipe(value: unknown): ChroniclePlateRecipeV1 | null {
+export function captureChroniclePlateRecipe(value: unknown): ChroniclePlateEntryV1 | null {
   try {
-    if (!record(value) || !exactKeys(value, recipeKeys)
+    if (!record(value)) return null;
+    if (exactKeys(value, sharedVictoryRecipeKeys) && value.schemaVersion === 1 && value.kind === "shared-victory"
+      && value.templateId === "party-first-victory@1" && text(value.sourceEventId, 512) && text(value.campaignId, 512)
+      && integer(value.sourceTick) && value.sourceEventId === `${value.campaignId}:${value.sourceTick}`
+      && text(value.heroName, 128) && text(value.companionName, 128)
+      && (value.condition === "healthy" || value.condition === "injured")
+      && record(value.battle) && exactKeys(value.battle, ["location", "headline", "tick"])
+      && text(value.battle.location, 120) && text(value.battle.headline, 160) && integer(value.battle.tick)
+      && value.battle.tick === value.sourceTick) {
+      return Object.freeze({ schemaVersion: 1, kind: "shared-victory", templateId: "party-first-victory@1",
+        sourceEventId: value.sourceEventId, campaignId: value.campaignId, sourceTick: value.sourceTick,
+        heroName: value.heroName, companionName: value.companionName, condition: value.condition,
+        battle: Object.freeze({ location: value.battle.location, headline: value.battle.headline, tick: value.battle.tick }) });
+    }
+    if (!exactKeys(value, townRecipeKeys)
       || value.schemaVersion !== 1 || value.kind !== "town-visit" || value.templateId !== "town-landmarks@1"
       || !text(value.sourceEventId, 512) || !text(value.campaignId, 512) || !integer(value.sourceTick)
       || value.sourceEventId !== `${value.campaignId}:${value.sourceTick}`
@@ -84,6 +118,25 @@ export function captureChroniclePlateRecipe(value: unknown): ChroniclePlateRecip
   }
 }
 
+/** A verified first win becomes a local memento; it neither adds campaign facts nor narrates feelings. */
+export function projectFirstSharedVictoryChroniclePlate(
+  packet: FirstSharedVictory | null,
+  context: { readonly campaignId: string; readonly currentTick: number },
+): SharedVictoryChroniclePlateRecipeV1 | null {
+  try {
+    if (packet === null || packet.kind !== "first-shared-victory" || !text(context.campaignId, 512) || !integer(context.currentTick)
+      || packet.campaignId !== context.campaignId || packet.tick > context.currentTick) return null;
+    return captureChroniclePlateRecipe({
+      schemaVersion: 1, kind: "shared-victory", templateId: "party-first-victory@1",
+      sourceEventId: packet.eventId, campaignId: packet.campaignId, sourceTick: packet.tick,
+      heroName: packet.heroName, companionName: packet.companionName, condition: packet.condition,
+      battle: packet.battle,
+    }) as SharedVictoryChroniclePlateRecipeV1 | null;
+  } catch {
+    return null;
+  }
+}
+
 /** The host calls this only after saving the packet's validated world transition. */
 export function projectTownChroniclePlate(
   packet: unknown,
@@ -98,7 +151,7 @@ export function projectTownChroniclePlate(
       town: { id: packet.town.id, locationId: packet.town.locationId, name: packet.town.name, specialty: packet.town.specialty },
       visit: packet.visit, reputation: packet.reputation,
       landmarks: packet.routeStops,
-    });
+    }) as TownChroniclePlateRecipeV1 | null;
   } catch {
     return null;
   }

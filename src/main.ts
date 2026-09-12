@@ -23,7 +23,7 @@ import { createLastPresentedStory } from "./ui/last-presented-story";
 import { createNarrativeJournal } from "./ui/narrative-journal";
 import { selectNarrativeContinuity } from "./ui/narrative-continuity";
 import { createNarrativeJournalView } from "./ui/narrative-journal-view";
-import { projectTownChroniclePlate } from "./ui/chronicle-plate";
+import { projectFirstSharedVictoryChroniclePlate, projectTownChroniclePlate } from "./ui/chronicle-plate";
 import { createChroniclePlateArchive } from "./ui/chronicle-plate-archive";
 import { createChroniclePlateView } from "./ui/chronicle-plate-view";
 import { projectDungeonSearchView } from "./ui/dungeon-search-view";
@@ -5204,6 +5204,9 @@ async function step(): Promise<void> {
     const cutawayCandidates = source === undefined
       ? Object.freeze([])
       : projectCutawayCandidates(before, state, source);
+    const firstVictoryPlate = projectFirstSharedVictoryChroniclePlate(projectFirstSharedVictory(before, state),
+      { campaignId: state.campaignId, currentTick: state.tick });
+    if (firstVictoryPlate !== null) chroniclePlateArchive.record(firstVictoryPlate);
     // Capture event-time landmarks only after the successful save above.
     // Gallery retention is independent of cutaway selection and narrator mode.
     for (const candidate of cutawayCandidates) {

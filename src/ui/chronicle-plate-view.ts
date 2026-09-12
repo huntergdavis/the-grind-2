@@ -1,5 +1,5 @@
 import type { TownBuilding } from "../depth/types";
-import type { ChroniclePlateRecipeV1 } from "./chronicle-plate";
+import type { ChroniclePlateEntryV1 } from "./chronicle-plate";
 import { chroniclePlateMaximumBytes, chroniclePlateMaximumEntries, type createChroniclePlateArchive } from "./chronicle-plate-archive";
 import "./chronicle-plate.css";
 
@@ -8,13 +8,13 @@ export interface ChroniclePlateContext {
   readonly currentTick: number;
 }
 
-export function chroniclePlatePagesForContext(entries: readonly ChroniclePlateRecipeV1[], context: ChroniclePlateContext): readonly ChroniclePlateRecipeV1[] {
+export function chroniclePlatePagesForContext(entries: readonly ChroniclePlateEntryV1[], context: ChroniclePlateContext): readonly ChroniclePlateEntryV1[] {
   if (!Number.isSafeInteger(context.currentTick) || context.currentTick < 0) return [];
   return entries.filter((entry) => entry.campaignId === context.campaignId && entry.sourceTick <= context.currentTick);
 }
 
 /** Reading stability never takes priority over hiding another hero or a future event. */
-export function holdChroniclePlateReading(shown: readonly ChroniclePlateRecipeV1[], context: ChroniclePlateContext, reading: boolean, campaignChanged: boolean): boolean {
+export function holdChroniclePlateReading(shown: readonly ChroniclePlateEntryV1[], context: ChroniclePlateContext, reading: boolean, campaignChanged: boolean): boolean {
   return reading && !campaignChanged && shown.every((entry) => entry.campaignId === context.campaignId && entry.sourceTick <= context.currentTick);
 }
 
@@ -48,7 +48,7 @@ export function createChroniclePlateView(
   const retention = required<HTMLElement>("#chronicle-plate-retention");
   retention.textContent = `Newest ${chroniclePlateMaximumEntries} pages across heroes, within ${chroniclePlateMaximumBytes / 1_024} KiB. Only this hero's recorded past is shown. The pages stay still while you read.`;
   let campaign: string | undefined;
-  let shown: readonly ChroniclePlateRecipeV1[] = [];
+  let shown: readonly ChroniclePlateEntryV1[] = [];
   let initialized = false;
   let pending = false;
 
@@ -58,7 +58,7 @@ export function createChroniclePlateView(
     node.className = className;
     return node;
   }
-  function illustration(entry: ChroniclePlateRecipeV1): SVGSVGElement {
+  function illustration(entry: ChroniclePlateEntryV1): SVGSVGElement {
     const namespace = "http://www.w3.org/2000/svg";
     const svg = doc.createElementNS(namespace, "svg");
     svg.setAttribute("viewBox", "0 0 300 104");
@@ -66,6 +66,24 @@ export function createChroniclePlateView(
     svg.setAttribute("focusable", "false");
     svg.classList.add("chronicle-plate-sketch");
     svg.dataset.template = entry.templateId;
+    if (entry.kind === "shared-victory") {
+      for (const [index, name] of [entry.heroName, entry.companionName].entries()) {
+        const group = doc.createElementNS(namespace, "g");
+        group.setAttribute("transform", `translate(${100 + index * 92} 22)`);
+        group.dataset.participant = index === 0 ? "hero" : "companion";
+        group.dataset.name = name;
+        const head = doc.createElementNS(namespace, "circle");
+        head.setAttribute("cx", "18"); head.setAttribute("cy", "14"); head.setAttribute("r", "8");
+        const body = doc.createElementNS(namespace, "path");
+        body.setAttribute("d", index === 0 ? "M18 22 L18 56 M18 30 L2 42 M18 30 L34 36 M18 56 L6 76 M18 56 L30 76" : "M18 22 L18 56 M18 30 L2 36 M18 30 L34 42 M18 56 L6 76 M18 56 L30 76");
+        group.append(head, body);
+        svg.append(group);
+      }
+      const line = doc.createElementNS(namespace, "path");
+      line.setAttribute("d", "M82 88 Q150 72 218 88");
+      svg.append(line);
+      return svg;
+    }
     const landmarks = entry.landmarks.slice(0, 3);
     const width = 260 / landmarks.length;
     for (const [index, landmark] of landmarks.entries()) {
@@ -82,7 +100,7 @@ export function createChroniclePlateView(
     }
     return svg;
   }
-  function page(entry: ChroniclePlateRecipeV1): HTMLLIElement {
+  function page(entry: ChroniclePlateEntryV1): HTMLLIElement {
     const item = element("li", "", "chronicle-plate-page");
     item.dataset.sourceEvent = entry.sourceEventId;
     item.dataset.campaign = entry.campaignId;
@@ -91,9 +109,17 @@ export function createChroniclePlateView(
     figure.append(illustration(entry));
     const caption = element("figcaption", "");
     const heading = element("div", "", "chronicle-plate-heading");
-    heading.append(element("h3", entry.town.name), element("span", `T${entry.sourceTick}`, "chronicle-plate-tick"));
-    caption.append(element("p", "Illustrated reconstruction", "chronicle-plate-label"), heading,
-      element("p", `Town visits ${entry.visit.before}→${entry.visit.after} · Reputation ${entry.reputation.before}→${entry.reputation.after}/100`, "chronicle-plate-outcome"));
+    const label = entry.kind === "shared-victory" ? "Recorded first shared victory" : "Illustrated reconstruction";
+    heading.append(element("h3", entry.kind === "shared-victory" ? entry.battle.location : entry.town.name), element("span", `T${entry.sourceTick}`, "chronicle-plate-tick"));
+    caption.append(element("p", label, "chronicle-plate-label"), heading,
+      element("p", entry.kind === "shared-victory"
+        ? `${entry.heroName} & ${entry.companionName} · ${entry.condition} companion · ${entry.battle.headline}`
+        : `Town visits ${entry.visit.before}→${entry.visit.after} · Reputation ${entry.reputation.before}→${entry.reputation.after}/100`, "chronicle-plate-outcome"));
+    if (entry.kind === "shared-victory") {
+      figure.append(caption);
+      item.append(figure);
+      return item;
+    }
     const landmarks = element("ul", "", "chronicle-plate-landmarks");
     landmarks.setAttribute("aria-label", "Recorded landmarks, not building entries");
     for (const landmark of entry.landmarks.slice(0, 3)) {
@@ -108,7 +134,7 @@ export function createChroniclePlateView(
     item.append(figure);
     return item;
   }
-  function syncStatus(entries: readonly ChroniclePlateRecipeV1[], persistent: boolean): void {
+  function syncStatus(entries: readonly ChroniclePlateEntryV1[], persistent: boolean): void {
     const retained = shown.filter((entry) => entries.some((saved) => saved.campaignId === entry.campaignId && saved.sourceEventId === entry.sourceEventId)).length;
     const storage = !persistent ? "Session only: browser storage could not be updated."
       : retained < shown.length ? `${retained} still saved in this browser; older shown pages have rolled off.`

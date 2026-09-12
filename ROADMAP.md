@@ -8,11 +8,22 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 1. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
-2. A better question, A weakened answer, Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
+2. First shared victory plate, A better question, A weakened answer, Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
-<summary>Current release candidate: A better question, v0.5.183</summary>
+<summary>Current release candidate: First shared victory plate, v0.5.184</summary>
+
+The first verified win achieved with an active companion now becomes one local
+Chronicle Plate. It preserves only the source-bound hero/companion names,
+battle place/headline/tick, and whether the companion was healthy or injured.
+The existing Plates archive and a quiet two-figure sketch are reused; this is
+not a replay, canonical save, emotion claim, LLM request, or new HUD panel.
+Town plates remain unchanged. Verification receipt pending.
+</details>
+
+<details>
+<summary>Previous release candidate: A better question, v0.5.183</summary>
 
 One later public copy of **Questions Without Traps** teaches the original
 good-faith-question frame. At the actual earlier public-challenge town, after

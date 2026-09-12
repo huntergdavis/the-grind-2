@@ -61,7 +61,16 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Current release candidate — A better question (v0.5.183)
+## Current release candidate — First shared victory plate (v0.5.184)
+
+The existing verified first-shared-victory projector now records one local
+Chronicle Plate after the durable transition saves. The plate has a compact
+two-figure sketch and retains exact source event/tick, hero/companion names,
+place/headline and health condition only. It is independent of narrator mode,
+not canonical game state, not a replay, and not a claim about private emotion.
+The existing town plate recipe remains supported. Release verification pending.
+
+## Previous release candidate — A better question (v0.5.183)
 
 One original later public book, **Questions Without Traps**, teaches a
 good-faith question: what might change a person's mind. It opens one actual

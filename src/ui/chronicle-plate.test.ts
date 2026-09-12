@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captureChroniclePlateRecipe, projectTownChroniclePlate } from "./chronicle-plate";
+import { captureChroniclePlateRecipe, projectFirstSharedVictoryChroniclePlate, projectTownChroniclePlate } from "./chronicle-plate";
 import { isTownItineraryPacketV1 } from "./town-itinerary";
 
 // A public packet fixture, not an assertion that these synthetic places were played.
@@ -106,6 +106,35 @@ describe("town-visit Chronicle Plate recipe", () => {
       { ...recipe, landmarks: [recipe.landmarks[0], recipe.landmarks[0]] },
       { ...recipe, landmarks: [{ ...recipe.landmarks[0], kind: "palace" }] },
       { ...recipe, landmarks: [{ ...recipe.landmarks[0], occupied: true }] },
+    ]) expect(captureChroniclePlateRecipe(invalid)).toBeNull();
+  });
+});
+
+describe("first shared-victory Chronicle Plate recipe", () => {
+  const victory = Object.freeze({
+    kind: "first-shared-victory" as const, campaignId: "campaign:plates", eventId: "campaign:plates:9", tick: 9,
+    combatId: "private-combat", heroName: "Mara", companionName: "Rowan", companionId: "private-companion",
+    condition: "healthy" as const, battle: { location: "Greyford Road", headline: "The party wins its first battle.", tick: 9 },
+  });
+
+  it("retains only a verified first-win memento with immutable event-time facts", () => {
+    const plate = projectFirstSharedVictoryChroniclePlate(victory, { campaignId: victory.campaignId, currentTick: 9 });
+    expect(plate).toEqual({
+      schemaVersion: 1, kind: "shared-victory", templateId: "party-first-victory@1",
+      sourceEventId: victory.eventId, campaignId: victory.campaignId, sourceTick: victory.tick,
+      heroName: "Mara", companionName: "Rowan", condition: "healthy", battle: victory.battle,
+    });
+    expect(JSON.stringify(plate)).not.toContain("private-combat");
+    deepFrozen(plate);
+  });
+
+  it("rejects cross-campaign, future, malformed, and embellished victory records", () => {
+    expect(projectFirstSharedVictoryChroniclePlate(victory, { campaignId: "other", currentTick: 9 })).toBeNull();
+    expect(projectFirstSharedVictoryChroniclePlate(victory, { campaignId: victory.campaignId, currentTick: 8 })).toBeNull();
+    const plate = projectFirstSharedVictoryChroniclePlate(victory, { campaignId: victory.campaignId, currentTick: 9 })!;
+    for (const invalid of [
+      { ...plate, condition: "celebrating" }, { ...plate, battle: { ...plate.battle, tick: 8 } },
+      { ...plate, sourceEventId: "campaign:plates:8" }, { ...plate, privateFeeling: "joy" },
     ]) expect(captureChroniclePlateRecipe(invalid)).toBeNull();
   });
 });

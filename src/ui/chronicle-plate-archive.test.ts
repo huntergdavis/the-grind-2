@@ -58,6 +58,7 @@ describe("browser-local Chronicle Plate archive", () => {
     expect(empty.entries).toEqual([]);
     const snapshot = archive.snapshot;
     const entry = snapshot.entries[0]!;
+    if (entry.kind !== "town-visit") throw new Error("Town fixture must retain a town plate");
     expect(entry.town.name).toBe("Greyford");
     expect(entry.landmarks[0]!.name).toBe("The Badger Inn");
     for (const value of [snapshot, snapshot.entries, entry, entry.town, entry.visit, entry.reputation, entry.landmarks, entry.landmarks[0]]) {
@@ -93,7 +94,7 @@ describe("browser-local Chronicle Plate archive", () => {
     const stored = local.saved.get(chroniclePlateArchiveKey)!;
     expect(new TextEncoder().encode(stored).byteLength).toBeLessThanOrEqual(chroniclePlateMaximumBytes);
     expect(createChroniclePlateArchive(() => local).snapshot).toEqual(archive.snapshot);
-    expect(archive.snapshot.entries.every((entry) => entry.landmarks[0]!.name === "橋".repeat(160))).toBe(true);
+    expect(archive.snapshot.entries.every((entry) => entry.kind === "town-visit" && entry.landmarks[0]!.name === "橋".repeat(160))).toBe(true);
   });
 
   it.each([
