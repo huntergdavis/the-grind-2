@@ -38,9 +38,21 @@ function innMemoryScenario(locationId?: string): { before: WorldState; after: Wo
   const answered = advanceWorld(started);
   expect(answered.chronicle.at(-1)?.commandType).toBe("answer-room-challenge");
   const ordinary = actorPolicy(answered, campaignDirector(answered));
-  expect(["plan-route", "train-ability"]).toContain(ordinary.command.type);
-  const next = advanceWorld(answered);
+  expect(["plan-route", "train-ability", "certify-weapon-technique"]).toContain(ordinary.command.type);
+  let next = advanceWorld(answered);
   expect(next.chronicle.at(-1)).toMatchObject({ commandType: ordinary.command.type, commandId: ordinary.commandId });
+  if (ordinary.command.type === "certify-weapon-technique") {
+    // Keep the actual learning/purchase/sale boundaries intact. This explicit
+    // low-mana/venue scenario starts after real ordinary route planning, never
+    // by relocating the hero at the exact moment of a recorded transaction.
+    const learned = next;
+    for (const commandType of ["buy-road-rations", "sell-spare-gear", "plan-route"]) {
+      next = advanceWorld(next);
+      expect(next.chronicle.at(-1)?.commandType).toBe(commandType);
+    }
+    expect(next.depth.weaponTechniqueCertification).toEqual(learned.depth.weaponTechniqueCertification);
+    expect(next.depth.hero.abilities).toEqual(learned.depth.hero.abilities);
+  }
   expect(next.depth.roomChallenge).toEqual(answered.depth.roomChallenge);
   const before: WorldState = { ...next, depth: { ...next.depth,
     atlas: { ...next.depth.atlas, currentLocationId: locationId ?? next.depth.atlas.currentLocationId, route: null },

@@ -87,6 +87,23 @@ to `a5d3f1cc364299f4`. All nine without certification retain their exact previou
 hashes. No state is normalized away; only that observed full-state anchor is
 updated. The complete unchanged replay gate still runs in release CI.
 
+First release CI [34663966239](https://github.com/huntergdavis/the-grind-2/actions/runs/34663966239)
+does not deploy: **3,851 tests pass, three fail, two optional audits skip** in
+329.91s. All three failures share one older bell-memory test helper that permits
+only route planning or ordinary ability training after T58. The actual new
+command is blade certification. The helper now accepts that genuine action and,
+before staging its explicitly synthetic low-mana/alternate-inn scenario, executes
+the next actual ration purchase, spare sale and ordinary route planning. A first
+focused correction exposed that relocating at the exact purchase moment also
+violates the older purchase provenance; moving the test setup past the complete
+known sequence preserves those real moments. It retains the learned skill and receipt;
+it does not rewrite the learning venue or remove the new feature. Production
+code, built assets, frozen old saves and test limits are unchanged. Canonical
+replay already passes **4/4 in 26.377s** on that first CI run, including all ten
+golden hashes. All eight corrected bell presentation checks pass locally in
+3.63s of test time, bringing focused coverage to 51 distinct checks. The corrected
+full release check remains required.
+
 ## News from the oven — v0.5.180 verified release
 
 **Live and publicly source-verified 2026-09-11 16:51:16 PDT.** Feature
