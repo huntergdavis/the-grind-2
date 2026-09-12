@@ -197,6 +197,7 @@ import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
 import { createReparteeView, projectReparteeScene, type ReparteeSceneView } from "./ui/repartee-view";
 import { createCompanionReunionRecord } from "./ui/companion-reunion-view";
 import { createElsewhereLoafRecord, elsewhereLoafTitle } from "./ui/elsewhere-loaf-view";
+import { createWeaponTechniqueRecord, projectWeaponTechniqueScene, weaponTechniqueEffectLabel } from "./ui/weapon-technique-view";
 import { selectCompanionReunion } from "./depth/companion-reunion";
 import { createCompanionCreditRecord } from "./ui/companion-credit-view";
 import { selectCompanionCredit } from "./depth/companion-credit";
@@ -3962,6 +3963,9 @@ function presentViewScreens(): void {
     : `${codex.hiddenCount} more encountered ${codex.hiddenCount === 1 ? "species is" : "species are"} recorded outside this bounded view.`;
 
   const spellbook = projectSpellbookView(state);
+  const previousTechniqueRecords = new Map(Array.from(elements.spellbookGrid
+    .querySelectorAll<HTMLDetailsElement>(".spellbook-weapon-technique"))
+    .map(record => [record.dataset.abilityId, { open: record.open, focused: record.contains(document.activeElement) }]));
   elements.spellbookOwned.textContent = String(spellbook.abilityCount);
   elements.spellbookSpells.textContent = String(spellbook.spellCount);
   elements.spellbookTechniques.textContent = String(spellbook.techniqueCount);
@@ -4061,6 +4065,12 @@ function presentViewScreens(): void {
     }
 
     detail.append(heading, effect, facts, mastery);
+    const techniqueRecord = createWeaponTechniqueRecord(document, state, projected.id);
+    if (techniqueRecord !== null) {
+      effect.textContent = weaponTechniqueEffectLabel;
+      techniqueRecord.open = previousTechniqueRecords.get(projected.id)?.open === true;
+      detail.append(techniqueRecord);
+    }
     if (projected.kind === "secret") {
       const provenance = document.createElement("p");
       provenance.className = "spellbook-provenance";
@@ -4079,6 +4089,9 @@ function presentViewScreens(): void {
     spellbookCards.push(empty);
   }
   elements.spellbookGrid.replaceChildren(...spellbookCards);
+  const focusedTechniqueRecord = Array.from(elements.spellbookGrid.querySelectorAll<HTMLDetailsElement>(".spellbook-weapon-technique"))
+    .find(record => previousTechniqueRecords.get(record.dataset.abilityId)?.focused === true);
+  focusedTechniqueRecord?.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
   elements.spellbookOverflow.hidden = spellbook.hiddenCount === 0;
   elements.spellbookOverflow.textContent = spellbook.hiddenCount === 0
     ? ""
@@ -5040,6 +5053,13 @@ function present(): void {
     : `${elements.stageFocusObjectiveProgress.textContent} ${elements.stageFocusObjective.textContent}`;
   elements.stageFocusHeadline.textContent = `${state.scene.location} · ${state.scene.headline}`;
   elements.stageFocusHeadline.removeAttribute("title");
+  delete elements.stageFocusHeadline.dataset.techniqueCommand;
+  const techniqueLesson = projectWeaponTechniqueScene(state);
+  if (techniqueLesson !== null) {
+    elements.stageFocusHeadline.textContent = techniqueLesson.headline;
+    elements.stageFocusHeadline.title = `${state.scene.action} ${state.scene.consequence}`;
+    elements.stageFocusHeadline.dataset.techniqueCommand = techniqueLesson.commandId;
+  }
   for (const key of ["aftermathCommand", "aftermathCombat", "aftermathTick"]) delete elements.stageFocusHeadline.dataset[key];
   const millrace = state.scene.mode === "battle" && combat !== null ? projectMillraceReversal(combat) : null;
   if (millrace !== null) {
@@ -5059,7 +5079,7 @@ function present(): void {
     }
   }
   if (combatTurn === null) {
-    elements.stageFocusAction.textContent = [
+    elements.stageFocusAction.textContent = techniqueLesson?.detail ?? [
       elements.action.textContent,
       elements.traversalDirective.textContent,
       elements.consequence.textContent,

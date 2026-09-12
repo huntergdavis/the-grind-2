@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { canonicalStringify } from "../src/core/canonical";
+import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
 import { projectSpareGearTradeScene } from "../src/ui/spare-gear-trade-view";
@@ -165,6 +165,7 @@ test("one actual spare leaves the pack while its worn weapon and earned history 
   };
   try {
     expect([before.tick, sold.tick, next.tick]).toEqual([60, 61, 62]);
+    expect(canonicalHash(before)).toBe("5efbd135868e335e");
     expect(before.depth).not.toHaveProperty("spareGearTrade");
     expect(receipt).toMatchObject({ quantityBefore: 1, quantitySold: 1, quantityAfter: 0, goldBefore: 18, goldEarned: 1, goldAfter: 19 });
     expect(receipt.soldItem).toEqual(before.depth.hero.inventory.find(item => item.id === "loot:encounter:route:location:8>location:0:0"));
@@ -176,7 +177,7 @@ test("one actual spare leaves the pack while its worn weapon and earned history 
     expect(sold.hero).toEqual({ ...before.hero, gold: before.hero.gold + 1 });
     for (const key of ["atlas", "quest", "pendingQuestReward", "companions", "completedCombats", "roadSupper", "repartee",
       "reparteeWitness", "reparteeCallback", "usefulReply", "roomChallenge", "bellExpedition", "bellMemory",
-      "companionReunion", "companionCredit", "smithyJob", "innBluff", "pennywiseGate"] as const) {
+      "companionReunion", "companionCredit", "smithyJob", "innBluff", "pennywiseGate", "weaponTechniqueCertification"] as const) {
       expect(sold.depth[key]).toEqual(before.depth[key]);
     }
     expect(sold.chronicle.at(-1)!.commandId).toBe(sold.campaignId + ":" + receipt.sourceCommandId);

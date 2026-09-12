@@ -149,6 +149,7 @@ import { createRoadRations } from "./road-rations";
 import { createCombatSupperPreparation } from "./supper-preparation";
 import { isValidCampaignSpareGearTrade, selectSpareGearTrade, stepSpareGearTrade } from "./spare-gear-trade";
 import { advanceElsewhereLoaf, isValidCampaignElsewhereLoaf } from "./elsewhere-loaf";
+import { isValidCampaignWeaponTechniqueCertification, selectWeaponTechniqueCertification, stepWeaponTechniqueCertification } from "./weapon-technique";
 import { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 export { needsCriticalRoadsideRecovery, unresolvedRouteEncounterId } from "./roadside-rest";
 
@@ -964,7 +965,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
+      !isValidCampaignWeaponTechniqueCertification(state) || !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
       !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) || !isValidCampaignSpareGearTrade(state) || !isValidCampaignElsewhereLoaf(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
@@ -2443,6 +2444,12 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         secretDiscoveryAdmissions: [...state.secretDiscoveryAdmissions, admission],
       }, "ability", `${state.hero.name} opens a repertoire slot and gives held field note ${outcome.abilityName} a living form.`);
     }
+    case "certify-weapon-technique": {
+      const learned = stepWeaponTechniqueCertification(input, command);
+      const receipt = learned.weaponTechniqueCertification;
+      return appendLog({ ...state, ...learned }, "ability",
+        `${state.hero.name} learns ${receipt.ability.name} through practice with ${receipt.weapon.name}. An actual earlier battle supplies the lesson: a checked stroke can soften a surviving foe's next retaliation. Previous techniques and weapon mastery remain unchanged.`);
+    }
     case "train-ability": {
       const before = state.hero.abilities.find((entry) => entry.id === command.abilityId);
       const hero = trainAbility(state.hero, command.abilityId);
@@ -2665,6 +2672,7 @@ export function selectAvailableDungeonSecretPassage(state: DepthState) {
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand, sourceCommandId?: string): DepthState {
+  if (!isValidCampaignWeaponTechniqueCertification(input)) throw new TypeError("Campaign state violates weapon-technique certification invariants");
   if (!isValidCampaignElsewhereLoaf(input)) throw new TypeError("Campaign state violates elsewhere-loaf invariants");
   if (!isValidCampaignSpareGearTrade(input)) throw new TypeError("Campaign state violates spare-gear-trade invariants");
   if (!isValidCampaignDungeonLair(input)) throw new TypeError("Campaign state violates dungeon-lair invariants");
@@ -2693,6 +2701,7 @@ export function stepDepth(input: DepthState, command: DepthCommand, sourceComman
       output = { ...output, elsewhereLoaf };
     }
   }
+  if (!isValidCampaignWeaponTechniqueCertification(output)) throw new TypeError("Campaign state violates weapon-technique certification invariants");
   if (!isValidCampaignElsewhereLoaf(output)) throw new TypeError("Campaign state violates elsewhere-loaf invariants");
   if (!isValidCampaignSpareGearTrade(output)) throw new TypeError("Campaign state violates spare-gear-trade invariants");
   if (!isValidCampaignDungeonLair(output)) throw new TypeError("Campaign state violates dungeon-lair invariants");
@@ -3152,6 +3161,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       `give held field note ${heldOutcome.abilityName} a living form`,
       { type: "admit-deferred-secret", outcomeId: heldOutcome.id },
     )];
+  }
+  const weaponLesson = selectWeaponTechniqueCertification(state);
+  if (weaponLesson !== null) {
+    return [{ id: weaponLesson.sourceCommandId, deciderId: state.hero.id,
+      label: `learn ${weaponLesson.ability.name} through practice with ${weaponLesson.weapon.name}`,
+      command: { type: "certify-weapon-technique", weaponId: weaponLesson.weapon.id, receiptId: weaponLesson.sourceUseReceipt.id } }];
   }
   if (state.tick > 0 && state.tick % 29 === 0 && state.hero.abilities.length > 0) {
     return [...state.hero.abilities]

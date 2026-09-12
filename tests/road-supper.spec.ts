@@ -203,12 +203,12 @@ test("actual bought rations become one road supper, one source-bound preparation
     expect([beforePurchase.tick, purchased.tick, beforeMeal.tick, meal.tick, started.tick, resolved.tick, next.tick])
       .toEqual([59, 60, 74, 75, 76, 79, 80]);
     expect([canonicalHash(purchased), canonicalHash(beforeMeal), canonicalHash(meal), canonicalHash(resolved)])
-      .toEqual(["82baa77aba72378e", "95940f1f61a29b47", "81089edaf8c0eeee", "4958005382211b46"]);
+      .toEqual(["5efbd135868e335e", "b9c05608e6bbf525", "635048c753f14c13", "810bb74ff42d9ea9"]);
     expect(advanceWorld(beforePurchase)).toEqual(purchased);
     expect(advanceWorld(beforeMeal)).toEqual(meal);
     expect(advanceWorld(meal)).toEqual(started);
     expect(advanceWorld(resolved)).toEqual(next);
-    expect(beforePurchase.chronicle.at(-1)?.commandType).toBe("train-ability");
+    expect(beforePurchase.chronicle.at(-1)?.commandType).toBe("certify-weapon-technique");
     expect(beforePurchase.depth).not.toHaveProperty("roadSupper");
     expect(Object.values(beforePurchase.depth.towns).filter(town => town.visits > 0).length).toBeGreaterThanOrEqual(2);
     const town = beforePurchase.depth.towns[purchase.locationId]!, market = town.buildings.find(building => building.id === purchase.marketId)!;
@@ -245,9 +245,9 @@ test("actual bought rations become one road supper, one source-bound preparation
     expect(hit.amount).toBe(Math.min(hit.healthBefore, spent!.damageAfter));
     // This current campaign really saves3HP and wins. The released v176
     // fatal65→48 hit/zeroHPsaved remains in combat-aftermath.spec.ts.
-    expect(spent).toMatchObject({ damageBefore: 10, damageAfter: 7, healthBefore: 37, prevented: 3, guarded: false });
+    expect(spent).toMatchObject({ damageBefore: 11, damageAfter: 8, healthBefore: 37, prevented: 3, guarded: false });
     expect(combat.outcome).toBe("victory");
-    expect(resolved.depth.hero.resources).toMatchObject({ health: 30, mana: 22 });
+    expect(resolved.depth.hero.resources).toMatchObject({ health: 29, mana: 20 });
     expect(resolved.depth.hero.gold).toBe(meal.depth.hero.gold + 5); // Existing victory gold, not a meal reward.
     const loot = generateLoot(resolved.seed, combat.id);
     expect(loot.name).toBe("Ashen Lantern");
@@ -269,7 +269,7 @@ test("actual bought rations become one road supper, one source-bound preparation
     expect(next.depth.roadSupper).toEqual(story);
     expect(next.depth.completedCombats.filter(entry => entry.id === combat.id)).toEqual([combat]);
     expect(next.depth.hero.inventory.some(item => item.id === roadRationId(next.hero.id))).toBe(false);
-    expect(next.depth.hero.resources).toMatchObject({ health: 30, mana: 22 });
+    expect(next.depth.hero.resources).toMatchObject({ health: 29, mana: 20 });
     expect(next.depth.hero.gold).toBe(resolved.depth.hero.gold);
     expect(next.depth.hero.inventory).toEqual(resolved.depth.hero.inventory);
     expect(next.chronicle.at(-1)?.commandType).toBe("travel");

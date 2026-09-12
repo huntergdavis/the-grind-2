@@ -26,6 +26,7 @@ import { innBluffCommandId, projectInnBluffDecision, selectInnBluffVenue } from 
 import { selectDungeonLairEncounter } from "../depth/dungeon-lair";
 import { roadSupperCommandId, selectRoadRationPurchase, selectRoadSupperCamp } from "../depth/road-supper";
 import { selectSpareGearTrade, spareGearTradeCommandId } from "../depth/spare-gear-trade";
+import { selectWeaponTechniqueCertification } from "../depth/weapon-technique";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -558,6 +559,14 @@ function scoreCandidate(
   } else if (command.type === "disarm-dungeon-trap") {
     score = 100;
     reason = "the detected mechanism blocks safe progress and permits one careful attempt";
+  } else if (command.type === "certify-weapon-technique") {
+    const lesson = selectWeaponTechniqueCertification(state.depth);
+    if (lesson === null || candidate.id !== lesson.sourceCommandId || candidate.deciderId !== state.hero.id
+      || command.weaponId !== lesson.weapon.id || command.receiptId !== lesson.sourceUseReceipt.id) {
+      throw new Error("Actor Policy cannot invent a weapon lesson or its effective-use source");
+    }
+    score = 50;
+    reason = "safe training with a blade actually used in battle offers a new control technique; the earned repertoire and weapon mastery stay intact";
   } else if (command.type === "train-ability") {
     const ability = state.depth.hero.abilities.find((entry) => entry.id === command.abilityId);
     score = 30 - Math.min(20, ability?.experience ?? 0);
@@ -650,7 +659,7 @@ function selectorMatches(
       const feature = dungeonMoveKnowledge(candidate, knowledge)?.feature;
       return feature === "treasure" || feature === "shrine";
     }
-    case "training": return command.type === "train-ability";
+    case "training": return command.type === "train-ability" || command.type === "certify-weapon-technique";
     case "recovery": return command.type === "wait";
     case "any": return true;
   }
@@ -811,6 +820,7 @@ function presentationLabels(
       actionLabel: "gives a held field note form",
       targetLabel: state.depth.secretDiscoveryOutcomes.find((entry) => entry.id === command.outcomeId)?.abilityName ?? command.outcomeId,
     };
+    case "certify-weapon-technique": return { actionLabel: "learns a blade lesson", targetLabel: "Turning Check" };
     case "train-ability": return { actionLabel: "practices", targetLabel: state.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.name ?? command.abilityId };
     case "fulfill-quest": return { actionLabel: "fulfills the quest", targetLabel: state.depth.quest.title };
     case "apply-quest-reward": return { actionLabel: "receives the quest reward", targetLabel: state.depth.quest.title };

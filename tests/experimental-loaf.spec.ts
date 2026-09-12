@@ -202,7 +202,7 @@ test("an actual former baker finishes one inn-supplied loaf while the hero conti
   };
   try {
     expect([before, admitted, completed, next].map(world => [world.tick, canonicalHash(world)]))
-      .toEqual([[72, "13656f8eed409523"], [73, "7b4e8a9a1dc2ea42"], [74, "95940f1f61a29b47"], [75, "81089edaf8c0eeee"]]);
+      .toEqual([[72, "ed93af27ca097d68"], [73, "2ce3d3ef2e829b27"], [74, "b9c05608e6bbf525"], [75, "635048c753f14c13"]]);
     expect(admission).not.toHaveProperty("ovenRoll"); expect(admission).not.toHaveProperty("outcome");
     expect(admission).not.toHaveProperty("completion"); expect(admission.product).toBe("dough");
     expect(completion).toMatchObject({ product: "plain-loaf", outcome: "plain-loaf", doughQuantity: 0, productQuantity: 1 });

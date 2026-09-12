@@ -15,7 +15,7 @@ let journey: ReunionWitnessMemoryJourney | undefined;
 export function naturalReunionWitnessMemoryFixture(): ReunionWitnessMemoryJourney {
   if (journey !== undefined) return journey;
   const before = naturalCompanionReunionFixture();
-  if (before.tick !== 85 || canonicalHash(before) !== "f5b9799468cf117e") throw new Error("Witness memory changed the actual reunion-ready baseline");
+  if (before.tick !== 85 || canonicalHash(before) !== "8de0bf9b87c9e26c") throw new Error("Witness memory changed the actual reunion-ready baseline");
   const completed = advanceWorld(before), next = advanceWorld(completed);
   if (completed.tick !== 86 || completed.chronicle.at(-1)?.commandType !== "reunite-companion"
       || !Object.hasOwn(completed.depth.companionReunion!.completed!, "memory")) throw new Error("Actual reunion did not retain its matching witnessed memory");

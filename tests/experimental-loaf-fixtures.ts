@@ -12,9 +12,9 @@ export interface ExperimentalLoafJourney {
 }
 let journey: ExperimentalLoafJourney | undefined;
 
-/** Test comparison only, never a save or a staged gameplay state. The original
- * v178 proof records the hero's whole world; the new independent NPC receipt is
- * the sole intended addition. Ordinary commands, logs and resources must match.
+/** Diagnostic comparison only, never a save or a staged gameplay state. Only
+ * the NPC receipt is omitted; current techniques and mastery remain included.
+ * A later gameplay feature is not expected to match an older hero-world hash.
  */
 export function heroWorldHashWithoutLoafReceipt(world: WorldState): string {
   const { elsewhereLoaf: _receipt, ...depth } = world.depth;
@@ -31,7 +31,7 @@ export function naturalExperimentalLoafFixture(): ExperimentalLoafJourney {
   while (world.tick < 320) {
     const before = world, admitted = advanceWorld(before);
     if (before.depth.elsewhereLoaf === undefined && admitted.depth.elsewhereLoaf !== undefined) {
-      if (before.tick !== 72 || canonicalHash(before) !== "13656f8eed409523"
+      if (before.tick !== 72 || canonicalHash(before) !== "ed93af27ca097d68"
           || admitted.tick !== 73 || admitted.depth.elsewhereLoaf.completion !== null) {
         throw new Error("Experimental Loaf changed its actual first away-from-baker admission");
       }

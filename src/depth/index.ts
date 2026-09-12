@@ -21,4 +21,5 @@ export * from "./terrain";
 export * from "./threat";
 export * from "./town-rest";
 export * from "./towns";
+export * from "./weapon-technique";
 export type * from "./types";

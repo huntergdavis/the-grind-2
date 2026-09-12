@@ -12,7 +12,7 @@ describe("news of an actual completed bake at an actual reunion", () => {
     const { before, completed, next } = journey, reunion = completed.depth.companionReunion!;
     const spoken = reunion.completed!, report = spoken.ovenReport!, loaf = before.depth.elsewhereLoaf!;
     expect([before.tick, completed.tick, next.tick]).toEqual([85, 86, 87]);
-    expect(canonicalHash(before)).toBe("f5b9799468cf117e");
+    expect(canonicalHash(before)).toBe("8de0bf9b87c9e26c");
     expect([before, completed, next].map(world => world.chronicle.at(-1)?.commandType))
       .toEqual(["travel", "reunite-companion", "plan-route"]);
     expect(report).toEqual({ schemaVersion: 1, rulesVersion: "reunion-oven-report-v1", loafId: loaf.id,
@@ -45,7 +45,7 @@ describe("news of an actual completed bake at an actual reunion", () => {
     for (const world of Object.values(journey)) {
       const raw = canonicalStringify(world), restored = upgradeWorldState(JSON.parse(raw));
       expect(canonicalStringify(restored)).toBe(raw);
-      expect(world.depth.hero.resources).toMatchObject({ health: 30, mana: 22 });
+      expect(world.depth.hero.resources).toMatchObject({ health: 29, mana: 20 });
       expect(world.depth.hero.gold).toBe(24);
     }
     const restored = upgradeWorldState(JSON.parse(canonicalStringify(journey.completed)))!;

@@ -3993,6 +3993,10 @@ body {
   color: #cdbf9d;
 }
 
+.spellbook-weapon-technique { font-size: 0.75rem; line-height: 1.4; overflow-wrap: anywhere; }
+.spellbook-weapon-technique > summary { cursor: pointer; }
+.spellbook-weapon-technique > p { margin-top: 0.5rem; }
+
 .spellbook-empty,
 .spellbook-overflow {
   padding: 1rem;

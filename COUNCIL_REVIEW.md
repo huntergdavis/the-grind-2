@@ -2,6 +2,91 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## Turning Check — v0.5.181 in verification
+
+Reuses the equipment-taught technique item in [ROADMAP.md](ROADMAP.md), the
+existing effective weapon-use receipts, training opportunity, status engine and
+Skills presentation. Prior sessions were recalled with `deja` before work.
+Rules, presentation and acceptance reviewers split this bounded vertical slice.
+LLM work remains paused; no loadout filter, new panel or encounter engine.
+
+The first source collector mistakenly treated the equipped item ID as the item
+itself; that is recorded as an instrumentation error, not negative gameplay
+evidence. The corrected identical known journey completes T320 in **10,891 ms**
+inside the existing 20-second bound. At actual T58, hash `e823e5bde8f2a9f6`,
+Aster is healthy and alone at visited Elderwatch, equipped with Roadworn Blade.
+Its actual T35 victory receipt records one effective basic strike and 14 damage.
+Ordinary training is next. The later sold spare is Ashen Spear, not this blade.
+
+The lesson occupies one existing periodic training opportunity and grants its
+ordinary one hero XP, not extra rewards or three XP to an old technique. It
+keeps the full repertoire, adds one permanent skill and records the exact blade,
+use receipt, town and new command. Old saves gain no retrospective knowledge.
+The certificate and learned mastery remain valid after later equipment changes;
+active combat must retain the exact current ability, never discard old skills.
+
+The first damage profile proved certification at T59 and first cast at T77,
+but killed the target. No surviving weakened retaliation was found through T320.
+It is not accepted as proof of the control payoff. The revised original mechanic
+makes the tradeoff explicit: `weapon-check-half-v1` halves damage after armor
+and before Guard, minimum one. The shared actual/forecast calculator applies
+the same rule; reduced attack strength is not falsely credited to Guard.
+Mana cost remains two. Existing Weakened(2) can soften the next retaliation,
+not two complete attacks. No seed, foe health, policy or victory is forced.
+
+The revised same journey reaches T277 in **11,241 ms**, within its original
+T320/20-second budget. T59 certification is `99d1cbe34f09527e`; the ordinary
+T60 ration purchase is `5efbd135868e335e`. The first cast at T77 still kills
+its target and is not presented as a control payoff. At T276, Turning Check
+leaves a Lantern Wolf alive at 15 HP and spends MP25→23. Its actual T277
+Moonhowl does 21 damage, versus 23 for the identical retained hit without
+Weakened: **two HP prevented**. The hero is then carrying a later dungeon
+weapon, demonstrating that the learned technique survives a real replacement.
+The counterfactual is shared damage arithmetic, not a rerolled campaign.
+
+Nine revised rules tests, six revised presentation tests, fourteen shared
+damage/forecast checks and three new core flow checks pass. TypeScript, version,
+boundaries and production build pass. The current training tableau uses the
+actual hero, blade, dummy and newly learned glyph. Skills carries the half-damage
+tradeoff and collapsed source history. The corrected production browser passes
+in **123.5s**, inside its unchanged 150s case limit; all three desktop/mobile/Focus
+captures are inspected. Exact learning, Skills/Status history, reload, the actual
+later surviving target, its retaliation and ordinary continuation pass with zero
+runtime errors, external requests or model requests. CI and public verification
+are pending. A late optional payload-export helper failed while closing; this is
+recorded separately from the already completed compact gameplay proof.
+
+Current later-playthrough anchors are refreshed from that actual journey; frozen
+v177/v179 saves keep their original full hashes. The v179 fixture now reconstructs
+its exact archived world from the existing frozen v177 world plus compact,
+independently captured additions, instead of subtracting fields from new gameplay.
+The baking isolation check compares the same actual command with and without its
+existing NPC observer. It retains every other fact, including the new technique.
+Ten neighboring checks initially pass; one reunion check exceeds its unchanged
+five-second limit during concurrent local work. The isolated two-check rerun
+passes in 3.31s of test time, so all eleven distinct neighboring checks pass,
+for **43 distinct focused checks** overall. No test budget is increased. Two
+initial integration mistakes (manifest sort order and a test source-ID property)
+were corrected before the successful production build. The first production
+browser attempt stops after 48.1s because its broad skill-ID selector matches
+both the card and its nested provenance note. The actual lesson/save, desktop
+geometry and screenshot pass; the selector is narrowed to the skill card before
+the same bounded browser scenario is rerun.
+
+Final read-only council review finds no release blocker in damage/Guard math,
+source ownership, admission priority, retained mastery or ordinary training XP.
+The production HTML/assets and eleven emitted source entries match the working
+tree. Both LLM workers remain unchanged. A single bounded neighboring supper
+fixture also confirms its actual new hit11→8, three HP prevented, T79 victory
+`810bb74ff42d9ea9` and T80 continuation; historical released battles stay intact.
+
+The one existing ten-campaign snapshot pass produces every full result in
+**185.696s**, exceeding its unchanged local **80s** limit; this is a local
+timeout, not a test pass. Only golden:4 earns the technique, at T117, and changes
+to `a5d3f1cc364299f4`. All nine without certification retain their exact previous
+hashes. No state is normalized away; only that observed full-state anchor is
+updated. The complete unchanged replay gate still runs in release CI.
+
 ## News from the oven — v0.5.180 verified release
 
 **Live and publicly source-verified 2026-09-11 16:51:16 PDT.** Feature

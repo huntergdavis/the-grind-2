@@ -416,6 +416,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "start-counter-duel":
     case "counter-duel-action":
       return "battle";
+    case "certify-weapon-technique":
+      return "training";
     case "train-ability":
       return state.depth.discoveries.at(-1)?.tick === state.depth.tick
         ? "discovery"
@@ -430,6 +432,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "certify-weapon-technique":
+      return 1; // The same ordinary hero experience as the training action this lesson occupies.
     case "start-inn-bluff":
     case "resolve-inn-bluff":
     case "start-smithy-job":
@@ -624,6 +628,15 @@ function describeBeat(
       goal: "Steady the wounded explorer before continuing", headline: "A bitter mouthful, a steadier hand",
       action: `${state.hero.name} drinks one ${use.itemName} without leaving the room.`,
       consequence: `${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter} · HP ${use.healthBefore}→${use.healthAfter}/${use.maxHealth} (+${use.amount}). No movement, MP, XP or quest credit.`,
+      sensoryIntensity: 0 };
+  }
+  if (choice.command.type === "certify-weapon-technique" && depth.weaponTechniqueCertification !== undefined) {
+    const lesson = depth.weaponTechniqueCertification;
+    const location = depth.atlas.locations.find(entry => entry.id === lesson.locationId);
+    return { mode: "training", location: location?.name ?? opportunity.location,
+      goal: "Learn from a weapon actually used in battle", headline: `Blade lesson: ${lesson.ability.name}`,
+      action: `${state.hero.name} slows the familiar stroke with ${lesson.weapon.name}. The blade has one more lesson: leave the foe less strength to answer.`,
+      consequence: `Learned ${lesson.ability.name} · ${lesson.ability.manaCost} MP · half direct damage to soften a surviving foe's next retaliation. Previous techniques and weapon mastery unchanged.`,
       sensoryIntensity: 0 };
   }
   if (choice.command.type === "reunite-companion" && depth.companionReunion?.completed != null) {

@@ -462,6 +462,8 @@ export type AbilityKind = "spell" | "technique" | "secret";
 export type AbilityEffect = "arcane" | "burning" | "poison" | "weaken" | "piercing";
 
 export interface AbilityState {
+  /** Explicit glancing-strike tradeoff; absent abilities retain their existing damage. */
+  damageRule?: "weapon-check-half-v1";
   id: string;
   name: string;
   kind: AbilityKind;
@@ -1247,6 +1249,8 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
+  /** A permanent technique learned at an actual training boundary from an owned, used blade. */
+  weaponTechniqueCertification?: import("./weapon-technique").WeaponTechniqueCertification;
   /** One former baker's actual off-screen work; absent saves invent no past activity. */
   elsewhereLoaf?: import("./elsewhere-loaf").ElsewhereLoaf;
   /** Established only by this campaign's actual one spare-weapon sale. */
@@ -1309,6 +1313,7 @@ export type DepthCommand =
   | { type: "open-dungeon-passage"; dungeonId: string; fromCellId: string; toCellId: string }
   | { type: "use-dungeon-tonic"; dungeonId: string; cellId: string; itemId: string }
   | { type: "reunite-companion"; residentId: string; joinedTick: number; arrivalTick: number }
+  | { type: "certify-weapon-technique"; weaponId: string; receiptId: string }
   | { type: "start-room-challenge"; encounterId: string; locationId: string; buildingId: string; residentId: string }
   | { type: "answer-room-challenge"; encounterId: string; responseId: string }
   | { type: "read-useful-book"; lessonId: string; locationId: string; buildingId: string; residentId: string }

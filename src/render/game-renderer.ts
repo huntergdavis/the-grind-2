@@ -113,6 +113,7 @@ import { projectDungeonGuardianScene, projectDungeonLairMark, type DungeonGuardi
 import { projectRoadSupperCombat, projectRoadSupperScene, type RoadSupperScene } from "../ui/road-supper-view";
 import { drawRoadSupper, projectRoadSupperSteam, roadSupperTableau } from "./road-supper";
 import { projectSpareGearTradeScene, type SpareGearTradeScene } from "../ui/spare-gear-trade-view";
+import { projectWeaponTechniqueScene } from "../ui/weapon-technique-view";
 import { drawSpareGearTrade, spareGearTradeTableau } from "./spare-gear-trade";
 import { isElsewhereLoafPacket, projectElsewhereLoafPacket, type ElsewhereLoafPacket } from "../ui/elsewhere-loaf-view";
 import { drawElsewhereLoaf, elsewhereLoafTableau, projectElsewhereLoafPose } from "./elsewhere-loaf";
@@ -1246,6 +1247,8 @@ export class GameRenderer {
     this.smithyBinding = null;
     this.innBluffBinding = null;
     this.supperSteam = null;
+    for (const key of ["techniqueCommand", "techniqueAbility", "techniqueWeapon", "techniqueUseReceipt", "techniqueEffect",
+      "techniqueHeroPosition", "techniqueDummyPosition", "techniqueGlyphPosition", "techniqueVisual"]) delete this.host.dataset[key];
     for (const key of ["spareGearPhase", "spareGearCommand", "spareGearHero", "spareGearLocation", "spareGearMarket",
       "spareGearItem", "spareGearKeptWeapon", "spareGearQuantity", "spareGearGold", "spareGearSilhouette",
       "spareGearHeroPosition", "spareGearItemPosition", "spareGearCoinPosition", "spareGearVisual"]) delete this.host.dataset[key];
@@ -7806,8 +7809,14 @@ export class GameRenderer {
     this.worldLayer.addChild(rect(0, 129, designWidth, 51, 0x263c40));
     this.worldLayer.addChild(new Graphics().ellipse(160, 142, 76, 25).stroke({ color: palette[1], width: 2, alpha: 0.7 }));
     this.worldLayer.addChild(new Graphics().ellipse(160, 142, 52, 17).stroke({ color: palette[2], width: 1, alpha: 0.45 }));
-    const abilities = state.depth.hero.abilities.slice(0, 8);
-    const focus = [...abilities].sort(
+    const certification = projectWeaponTechniqueScene(state);
+    const certifiedAbility = certification === null ? undefined
+      : state.depth.hero.abilities.find(ability => ability.id === certification.abilityId);
+    let abilities = state.depth.hero.abilities.slice(0, 8);
+    if (certifiedAbility !== undefined && !abilities.some(ability => ability.id === certifiedAbility.id)) {
+      abilities = [...abilities.slice(0, 7), certifiedAbility];
+    }
+    const focus = certifiedAbility ?? [...abilities].sort(
       (left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
     )[0];
     for (let index = 0; index < abilities.length; index += 1) {
@@ -7818,6 +7827,9 @@ export class GameRenderer {
       const y = 91 + Math.sin(angle) * 25;
       const glyph = this.drawAbilityGlyph(ability.effect, x, y, ability.id === focus?.id ? 1.25 : 0.75);
       glyph.alpha = ability.id === focus?.id ? 1 : 0.58;
+      if (certification !== null && ability.id === certification.abilityId) {
+        this.host.dataset.techniqueGlyphPosition = `${x.toFixed(3)},${y.toFixed(3)}`;
+      }
     }
     this.worldLayer.addChild(rect(222, 103, 6, 41, 0x80634e));
     this.worldLayer.addChild(circle(225, 99, 12, 0x9c7958));
@@ -7827,6 +7839,13 @@ export class GameRenderer {
       this.drawCompanion(state, companion.id, companion.role, 88, 153, palette, 0.78, isInjuredPartyStatus(companion.status));
     }
     this.drawHero(state, 139, 145, palette);
+    if (certification !== null) {
+      Object.assign(this.host.dataset, { techniqueCommand: certification.commandId,
+        techniqueAbility: certification.abilityId, techniqueWeapon: certification.weaponId,
+        techniqueUseReceipt: certification.sourceUse.id, techniqueEffect: certification.effect,
+        techniqueHeroPosition: "139,145", techniqueDummyPosition: "225,112",
+        techniqueVisual: "actual-equipped-weapon|practice-dummy|certified-weaken-glyph" });
+    }
     if (focus !== undefined) {
       const color = abilityEffectColor(focus.effect);
       this.lightLayer.addChild(new Graphics().moveTo(153, 127).quadraticCurveTo(180, 99, 213, 112).stroke({ color, width: 2, alpha: 0.72 }));

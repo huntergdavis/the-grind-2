@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { heroWorldHashWithoutLoafReceipt, naturalExperimentalLoafFixture } from "../../tests/experimental-loaf-fixtures";
+import { naturalExperimentalLoafFixture } from "../../tests/experimental-loaf-fixtures";
+import { stepDepth } from "../depth/state";
 import { canonicalHash, canonicalStringify } from "./canonical";
-import { advanceWorld, upgradeWorldState } from "./simulation";
+import { actorPolicy, advanceWorld, campaignDirector, upgradeWorldState } from "./simulation";
 
 describe("Experimental Loaf alongside actual hero commands", () => {
   let journey: ReturnType<typeof naturalExperimentalLoafFixture>;
@@ -10,11 +11,18 @@ describe("Experimental Loaf alongside actual hero commands", () => {
   it("adds only an independent NPC receipt to the unchanged natural travel, route and camp beats", () => {
     const { before, admitted, completed, next } = journey;
     expect([before.tick, admitted.tick, completed.tick, next.tick]).toEqual([72, 73, 74, 75]);
-    expect(canonicalHash(before)).toBe("13656f8eed409523");
-    // Explicit old-world comparison, not a normalized imported save. Every
-    // other canonical field must remain byte-equivalent to the v178 proof.
-    expect([admitted, completed, next].map(heroWorldHashWithoutLoafReceipt))
-      .toEqual(["4ce6ee4356e6a55b", "6452ad3327e971a7", "5934800e8fab7bd7"]);
+    expect(canonicalHash(before)).toBe("ed93af27ca097d68");
+    // Compare the SAME current hero command with and without the existing NPC
+    // observer source. Keep every earned technique, mastery and other fact;
+    // these are reducer outputs, never normalized saves or fabricated worlds.
+    for (const world of [before, admitted, completed]) {
+      const raw = canonicalStringify(world), choice = actorPolicy(world, campaignDirector(world));
+      const { elsewhereLoaf: _withoutReceipt, ...withoutObserver } = stepDepth(world.depth, choice.command);
+      const { elsewhereLoaf: _withReceipt, ...withObserver } = stepDepth(world.depth, choice.command,
+        choice.commandId.slice(world.campaignId.length + 1));
+      expect(withObserver).toEqual(withoutObserver);
+      expect(canonicalStringify(world)).toBe(raw);
+    }
     expect([admitted, completed, next].map(world => world.chronicle.at(-1)?.commandType))
       .toEqual(["travel", "plan-route", "prepare-road-supper"]);
     expect([admitted, completed, next].map(world => world.scene.mode)).toEqual(["travel", "atlas", "camp"]);
@@ -39,7 +47,8 @@ describe("Experimental Loaf alongside actual hero commands", () => {
     const battle = advanceWorld(journey.next);
     expect(battle.tick).toBe(76);
     expect(battle.chronicle.at(-1)?.commandType).toBe("start-combat");
-    expect(heroWorldHashWithoutLoafReceipt(battle)).toBe("9fea9ef1f9ace3cc");
+    expect(battle.depth.hero.abilities).toEqual(journey.next.depth.hero.abilities);
+    expect(battle.depth.weaponTechniqueCertification).toEqual(journey.next.depth.weaponTechniqueCertification);
     expect(battle.depth.elsewhereLoaf).toEqual(journey.completed.depth.elsewhereLoaf);
   });
 

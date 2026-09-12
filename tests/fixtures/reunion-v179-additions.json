@@ -1,0 +1,78 @@
+{
+  "provenance": {
+    "version": "0.5.179",
+    "sourceCommit": "fdfc5390d3646681e8efedf3c88a54a5c28b475e",
+    "baseHash": "d9cce50f7bc14aa8",
+    "targetHash": "195410d557c0b9dc"
+  },
+  "beat": {
+    "goal": "Remember a line from the shared road",
+    "headline": "An old line returns: Ada Fen",
+    "action": "Aster Rook: “I brought an old line back with me: “I will accept being called cautious.”” Ada Fen: “It is exactly as I remember. I am still not sure what to make of it.”",
+    "consequence": "An actual witnessed answer returns to the conversation. The old judgment and fulfilled oath remain unchanged; no new reward or relationship change."
+  },
+  "completed": {
+    "sourceCommandId": "depth:86:reunite-companion:town:location:8:district:1:building:1:resident:0:28:85",
+    "tick": 86,
+    "memory": {
+      "schemaVersion": 1,
+      "rulesVersion": "reunion-witness-memory-v1",
+      "heroId": "hero:campaign:browser-repartee-memory",
+      "witnessId": "town:location:8:district:1:building:1:resident:0",
+      "joinedTick": 28,
+      "encounterId": "repartee:hero:campaign:browser-repartee-memory:location:8:witness-contest:town:location:8:district:1:building:1:resident:0:28",
+      "sourceReactionCommandId": "depth:32:repartee:repartee:hero:campaign:browser-repartee-memory:location:8:witness-contest:town:location:8:district:1:building:1:resident:0:28:round:2:cautious-courage:personality",
+      "sourceReactionTick": 32,
+      "sourceReactionId": "unmoved",
+      "evidenceSourceCommandId": "depth:32:repartee:repartee:hero:campaign:browser-repartee-memory:location:8:witness-contest:town:location:8:district:1:building:1:resident:0:28:round:2:cautious-courage:personality",
+      "evidenceRoundIndex": 2,
+      "rememberedReply": "I will accept being called cautious. I do not need your applause badly enough to perform a foolish dare.",
+      "quote": "I will accept being called cautious.",
+      "pose": "quiet",
+      "outcome": "draw",
+      "regardAfter": 0
+    },
+    "heroLine": "I brought an old line back with me: “I will accept being called cautious.”",
+    "companionLine": "It is exactly as I remember. I am still not sure what to make of it."
+  },
+  "logMessage": "Aster Rook: “I brought an old line back with me: “I will accept being called cautious.”” Ada Fen: “It is exactly as I remember. I am still not sure what to make of it.” The old oath remains fulfilled; this hello earns no reward.",
+  "loaf": {
+    "schemaVersion": 1,
+    "rulesVersion": "elsewhere-loaf-v1",
+    "id": "elsewhere-loaf:hero:campaign:browser-repartee-memory:town:location:8:district:1:building:1:resident:0:28:73",
+    "heroId": "hero:campaign:browser-repartee-memory",
+    "residentId": "town:location:8:district:1:building:1:resident:0",
+    "companionName": "Ada Fen",
+    "role": "baker",
+    "joinedTick": 28,
+    "departureTick": 45,
+    "locationId": "location:0",
+    "innId": "town:location:0:district:1:building:0",
+    "innName": "The Candle Inn",
+    "presenceRule": "retained-farewell-inn-worksite-v1",
+    "supplyRule": "inn-trial-dough-v1",
+    "admission": {
+      "tick": 73,
+      "triggerCommandId": "depth:73:travel:5",
+      "eventId": "elsewhere-loaf:hero:campaign:browser-repartee-memory:town:location:8:district:1:building:1:resident:0:28:73:admission",
+      "heroLocationId": "location:10",
+      "style": "steady",
+      "ovenRoll": 3,
+      "doughProvided": 1,
+      "doughAfter": 1,
+      "line": "One batch of dough. A loaf with no ambitions beyond being lunch."
+    },
+    "completion": {
+      "tick": 74,
+      "triggerCommandId": "depth:74:companion:return:town:location:8:district:1:building:1:resident:0:28:location:0",
+      "eventId": "elsewhere-loaf:hero:campaign:browser-repartee-memory:town:location:8:district:1:building:1:resident:0:28:73:completion",
+      "heroLocationId": "location:10",
+      "doughBefore": 1,
+      "doughConsumed": 1,
+      "doughAfter": 0,
+      "productQuantity": 1,
+      "outcome": "plain-loaf",
+      "line": "A perfectly ordinary loaf. There are worse things to be at lunchtime."
+    }
+  }
+}

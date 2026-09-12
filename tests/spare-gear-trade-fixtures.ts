@@ -16,7 +16,7 @@ let journey: NaturalSpareGearTradeJourney | undefined;
  */
 export function naturalSpareGearTradeBeforeFixture(): WorldState {
   const before = naturalRoadSupperPurchasedFixture();
-  if (before.tick !== 60 || canonicalHash(before) !== "82baa77aba72378e") {
+  if (before.tick !== 60 || canonicalHash(before) !== "5efbd135868e335e") {
     throw new Error("Spare-gear trade changed the actual pre-sale T60 campaign");
   }
   return before;

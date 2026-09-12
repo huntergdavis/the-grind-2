@@ -304,6 +304,8 @@ function isValidAbilityState(value: unknown): value is AbilityState {
     typeof value.name === "string" && value.name.length > 0 &&
     abilityKinds.includes(value.kind as AbilityState["kind"]) &&
     abilityEffects.includes(value.effect as AbilityState["effect"]) &&
+    (!Object.hasOwn(value, "damageRule") || value.damageRule === "weapon-check-half-v1"
+      && value.id === "technique:turning-check" && value.kind === "technique" && value.effect === "weaken") &&
     isBoundedInteger(level, 1, 20) &&
     isBoundedInteger(value.experience, abilityExperienceFloor(level), abilityExperienceFloor(20)) &&
     (level === 20

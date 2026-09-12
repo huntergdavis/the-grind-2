@@ -28,7 +28,7 @@ describe("canonical state serialization", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
       let world = createWorld(`golden:${seedIndex}`, `campaign:${seedIndex}`);
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
-      // v179 keeps Depth 35 and adds one optional, actually committed former-baker activity.
+      // v181 keeps Depth 35 and adds a source-backed technique at earned training.
       // Snapshot the entire resulting state; do not normalize away real mechanics.
       return canonicalHash(world);
     });
@@ -37,7 +37,7 @@ describe("canonical state serialization", () => {
       "7b41f754e220d1ac",
       "ae7c822856e64ac8",
       "7754231a8353130c",
-      "fcd59cc3e43f9b03",
+      "a5d3f1cc364299f4",
       "29eb1a0b46b87125",
       "24c5ca86e03e5490",
       "62f147b3b0c2b6fc",

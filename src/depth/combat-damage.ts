@@ -1,6 +1,8 @@
 import { randomInt } from "../core/rng";
 import type { AbilityState, CombatantState } from "./types";
 
+type DamageAbility = Pick<AbilityState, "effect" | "potency" | "level" | "damageRule">;
+
 export interface CombatDamageV1 {
   readonly rulesVersion: "combat-damage-v1";
   readonly variance: number;
@@ -21,7 +23,7 @@ export interface CombatDamageRangeV1 {
 function resolveDamageArithmetic(
   actor: Pick<CombatantState, "id" | "power">,
   target: Pick<CombatantState, "id" | "health" | "armor">,
-  ability: Pick<AbilityState, "effect" | "potency" | "level"> | null,
+  ability: DamageAbility | null,
   weakenedPotency: number,
   guarded: boolean,
   variance: number,
@@ -29,8 +31,11 @@ function resolveDamageArithmetic(
   const armorReduction = ability?.effect === "piercing"
     ? Math.floor(target.armor / 5)
     : Math.floor(target.armor / 2);
-  const rawDamage = actor.power + variance - weakenedPotency +
+  const fullDamage = actor.power + variance - weakenedPotency +
     (ability === null ? 0 : ability.potency + ability.level) - armorReduction;
+  // The learned checking stroke trades direct damage for control. Apply this
+  // before Guard; its restraint must never be mislabeled as Guard prevention.
+  const rawDamage = ability?.damageRule === "weapon-check-half-v1" ? Math.floor(fullDamage / 2) : fullDamage;
   const resolvedDamage = Math.max(1, Math.floor(rawDamage * (guarded ? 0.5 : 1)));
   return { armorReduction, rawDamage, resolvedDamage };
 }
@@ -39,7 +44,7 @@ function resolveDamageArithmetic(
 export function combatDamageRangeV1(
   actor: Pick<CombatantState, "id" | "power">,
   target: Pick<CombatantState, "id" | "health" | "armor">,
-  ability: Pick<AbilityState, "effect" | "potency" | "level"> | null,
+  ability: DamageAbility | null,
   weakenedPotency: number,
   guarded: boolean,
 ): CombatDamageRangeV1 {
@@ -55,7 +60,7 @@ export function combatDamageV1(
   turn: number,
   actor: Pick<CombatantState, "id" | "power">,
   target: Pick<CombatantState, "id" | "health" | "armor">,
-  ability: Pick<AbilityState, "effect" | "potency" | "level"> | null,
+  ability: DamageAbility | null,
   weakenedPotency: number,
   guarded: boolean,
 ): CombatDamageV1 {

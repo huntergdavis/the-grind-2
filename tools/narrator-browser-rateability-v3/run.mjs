@@ -75,6 +75,7 @@ const sourcePaths = Object.freeze([
   "src/depth/town-rest.ts",
   "src/depth/types.ts",
   "src/depth/useful-reply.ts",
+  "src/depth/weapon-technique.ts",
   "src/narrator/blind-evaluation-v3.ts",
   "src/narrator/blind-evaluation.ts",
   "src/narrator/capability.ts",

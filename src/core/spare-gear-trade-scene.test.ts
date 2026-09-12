@@ -12,7 +12,7 @@ describe("Spare change as an actual town action", () => {
   it("keeps the earned T60 prefix and explains the actual one-gold trade", () => {
     const { before, sold, next } = journey;
     expect(before.tick).toBe(60);
-    expect(canonicalHash(before)).toBe("82baa77aba72378e");
+    expect(canonicalHash(before)).toBe("5efbd135868e335e");
     const choice = actorPolicy(before, campaignDirector(before));
     expect(choice.command.type).toBe("sell-spare-gear");
     if (choice.command.type !== "sell-spare-gear") throw new Error("The real market did not offer the spare trade");

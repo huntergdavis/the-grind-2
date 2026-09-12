@@ -985,6 +985,39 @@ passes 3,790 tests in 287 files, with two optional skips. Public assets and nine
 emitted source entries match feature `95d47dc`. Initial failures and their
 corrections remain in the council record, not relabeled as first-attempt passes.
 
+## Turning Check — v0.5.181
+
+**In verification.** A well-used blade has something to teach. At one existing
+safe training opportunity, an actually equipped Roadworn Blade with an effective
+battle-use receipt teaches Turning Check. The hero practices against the existing
+dummy; the new weakening glyph is highlighted. One short Watch headline and the
+existing Skills tab carry the lesson. Exact weapon, original battle, town and
+training sources live in collapsed history, not a new permanent panel.
+
+Turning Check costs two MP and trades half direct damage for Weakened(2), which
+can soften a surviving foe's next retaliation. Damage is halved after armor and
+before Guard, with the existing one-damage minimum; forecast and resolution share
+the same calculation. This is not two guaranteed weakened attacks or a guarantee
+of prevented damage. Killed targets cannot retaliate and minimum damage still
+applies. Later training and actual uses advance the learned skill normally.
+
+The lesson uses the ordinary training action and its one hero XP. It does not
+also train an old skill, grant extra loot, credit an ability cast as a basic weapon
+strike, or filter the existing repertoire. It is permanent after equipment changes.
+Heroes who already know a weakening technique are not taught this redundant one.
+Older saves do not gain retrospective knowledge; a present source receipt must
+agree with retained weapon, ability and combat history. This is one blade lesson,
+not a full equipment skill tree, loadout system or technique-evolution framework.
+
+The unchanged known campaign earns the lesson at T59 from its actual T35 battle.
+The first cast at T77 is lethal; the genuine control payoff occurs later at T276–277:
+a Lantern Wolf survives at 15 HP, then its Moonhowl does 21 instead of 23 damage.
+The two-HP difference uses the identical retained hit without Weakened, not a new
+roll. The hero has already replaced the teaching blade with a dungeon weapon.
+The bounded revised source journey completes in 11,241 ms. The initial profile
+without the half-damage tradeoff and all verification findings remain in
+[the council record](../../COUNCIL_REVIEW.md#turning-check--v05181-in-verification).
+
 ## Make the adventures accumulate into a life
 
 Each authored adventure should leave at most a small number of useful facts:

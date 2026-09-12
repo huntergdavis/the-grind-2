@@ -1,7 +1,8 @@
 import { canonicalHash, canonicalStringify } from "../src/core/canonical";
 import { advanceWorld, upgradeWorldState } from "../src/core/simulation";
 import type { WorldState } from "../src/core/types";
-import { naturalReunionWitnessMemoryFixture } from "./reunion-witness-memory-fixtures";
+import { naturalReunionWitnessMemoryFixture, releasedCompanionReunionFixture } from "./reunion-witness-memory-fixtures";
+import releasedAdditions from "./fixtures/reunion-v179-additions.json" with { type: "json" };
 
 export const ovenReportCampaignId = "campaign:browser-repartee-memory";
 export interface OvenReportJourney { before: WorldState; completed: WorldState; next: WorldState }
@@ -15,7 +16,7 @@ export function naturalOvenReportFixture(): OvenReportJourney {
   if (journey !== undefined) return journey;
   const actual = naturalReunionWitnessMemoryFixture();
   const reunion = actual.completed.depth.companionReunion!, report = reunion.completed?.ovenReport;
-  if (actual.before.tick !== 85 || canonicalHash(actual.before) !== "f5b9799468cf117e"
+  if (actual.before.tick !== 85 || canonicalHash(actual.before) !== "8de0bf9b87c9e26c"
       || actual.completed.tick !== 86 || actual.next.tick !== 87 || report === undefined
       || report.sourceCompletionTick !== 74 || report.outcome !== "plain-loaf"
       || actual.completed.chronicle.at(-1)?.commandType !== "reunite-companion"
@@ -28,19 +29,23 @@ export function naturalOvenReportFixture(): OvenReportJourney {
 const oldAction = "Aster Rook: “I brought an old line back with me: “I will accept being called cautious.”” Ada Fen: “It is exactly as I remember. I am still not sure what to make of it.”";
 const oldLogMessage = "Aster Rook: “I brought an old line back with me: “I will accept being called cautious.”” Ada Fen: “It is exactly as I remember. I am still not sure what to make of it.” The old oath remains fulfilled; this hello earns no reward.";
 
-/** Explicit compact reconstruction, not a new source journey or another JSON
- * archive. Only the additive report and its two spoken/log renderings are
- * removed/restored using literal strings from the independently captured
- * unchanged fdfc539/v179 T86 save. The ENTIRE old world must match that proof's
- * hash before upgrade; otherwise this helper rejects the reconstruction.
+/** Compact historical reconstruction, independent of later gameplay changes.
+ * The existing frozen v177 archive plus exact captured v179 additions must
+ * reproduce the ENTIRE independently recorded old world hash before upgrade.
  * Local acceptance also compares canonical bytes with the ignored actual save.
  */
 export function releasedOvenReportBaselineFixture(): WorldState {
-  const raw = JSON.parse(canonicalStringify(naturalOvenReportFixture().completed)) as WorldState;
-  const reunion = raw.depth.companionReunion!, { ovenReport: _report, ...oldCompleted } = reunion.completed!;
-  raw.depth.companionReunion = { ...reunion, completed: oldCompleted };
-  raw.scene = { ...raw.scene, action: oldAction };
-  raw.chronicle = raw.chronicle.map(entry => entry.tick === 86 ? { ...entry, action: oldAction } : entry);
+  const raw = JSON.parse(canonicalStringify(releasedCompanionReunionFixture())) as WorldState;
+  if (canonicalHash(raw) !== releasedAdditions.provenance.baseHash
+      || releasedAdditions.provenance.targetHash !== "195410d557c0b9dc"
+      || releasedAdditions.beat.action !== oldAction || releasedAdditions.logMessage !== oldLogMessage) {
+    throw new Error("Unrecognized exact historical reunion additions");
+  }
+  raw.depth.companionReunion = { ...raw.depth.companionReunion!,
+    completed: JSON.parse(JSON.stringify(releasedAdditions.completed)) };
+  raw.depth.elsewhereLoaf = JSON.parse(JSON.stringify(releasedAdditions.loaf));
+  raw.scene = { ...raw.scene, ...releasedAdditions.beat };
+  raw.chronicle = raw.chronicle.map(entry => entry.tick === 86 ? { ...entry, ...releasedAdditions.beat } : entry);
   raw.depth.log = raw.depth.log.map(entry => entry.tick === 86 ? { ...entry, message: oldLogMessage } : entry);
   if (raw.tick !== 86 || canonicalHash(raw) !== "195410d557c0b9dc") throw new Error("Reconstructed old greeting differs from the independently captured whole-world hash");
   const restored = upgradeWorldState(raw);

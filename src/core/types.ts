@@ -463,6 +463,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "move-bell",
   "admit-deferred-secret",
   "train-ability",
+  "certify-weapon-technique",
   "progress-objective",
   "fulfill-quest",
   "apply-quest-reward",

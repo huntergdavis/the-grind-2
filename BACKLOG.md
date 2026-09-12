@@ -58,6 +58,17 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
+## Current release in verification — Turning Check (v0.5.181)
+
+One equipped blade's actual battle use teaches a permanent control technique at
+a safe training opportunity. Two MP and half direct damage can soften a surviving
+foe's next retaliation. The existing training scene and Skills history show the
+lesson; the full repertoire stays available after changing weapons. The revised
+actual journey proves both learning and later damage prevention. The production
+browser and three inspected layouts pass; CI and public verification are pending.
+LLM work stays paused.
+[Scope](docs/design/ADVENTURE_FORMS.md#turning-check--v05181).
+
 ## Latest verified release — News from the oven (v0.5.180)
 
 Publicly source-verified **2026-09-11 16:51:16 PDT**. Feature `1f90a1c`

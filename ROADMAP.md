@@ -5,10 +5,15 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **In verification: Turning Check (v0.5.181).** An actual safe training
+   opportunity and an equipped blade's earned use teach a permanent technique.
+   Its glancing strike trades half direct damage and two MP for weakening a
+   surviving foe. Existing training/Skills screens retain the lesson and source.
+   Deployment is not yet verified.
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
-2. News from the oven is shipped, not an outstanding task. LLM work remains
+3. News from the oven is shipped, not an outstanding task. LLM work remains
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
@@ -270,11 +275,15 @@ general framework. All remain client-side and work without an LLM.
 - Small class skill trees with meaningful prerequisites and competing choices.
 - Prepared ability loadouts changed at appropriate rest/training opportunities.
   Dependency: a broader earned repertoire and preservation of unprepared mastery.
-  The 2026-09-11 single known journey has only two techniques at every training
-  opportunity, so two slots add no decision. No loadout is implemented; see
+  The pre-v181 assessment of the 2026-09-11 single known journey found only two
+  techniques at every training opportunity, so two slots added no decision.
+  Reassess after the new earned lesson; no loadout is implemented. See
   [the council assessment](COUNCIL_REVIEW.md#next-lane-assessment-prepared-abilities).
 - Clear acquisition histories, repertoire swapping and technique retirement.
 - Equipment-taught abilities and permanent certification of learned techniques.
+  First slice in verification: [Turning Check](docs/design/ADVENTURE_FORMS.md#turning-check--v05181),
+  learned from an actually used Roadworn Blade and retained after replacement.
+  Further equipment lessons and meaningful loadout choices remain future work.
 - Spell and technique evolution: delivery, status and cost branches.
 - Explicit weapon attribution for hybrid techniques and teaching.
 - Equipment wear, breakage, camp patching and smith repairs.

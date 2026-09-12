@@ -78,6 +78,7 @@ const sourceAffinity: Readonly<Partial<Record<RecordedDepthCommandType, HeroGrow
   "disarm-dungeon-trap": "growth-v1:inner-pattern",
   "unlock-dungeon-gate": "growth-v1:inner-pattern",
   "train-ability": "growth-v1:inner-pattern",
+  "certify-weapon-technique": "growth-v1:inner-pattern",
 });
 
 const classAffinity: Readonly<Record<string, HeroGrowthPackageId>> = Object.freeze({
