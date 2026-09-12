@@ -12,14 +12,12 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
-<summary>Current release candidate: First shared victory plate, v0.5.184</summary>
+<summary>Current release candidate: The Grind 2 v1.0.0</summary>
 
-The first verified win achieved with an active companion now becomes one local
-Chronicle Plate. It preserves only the source-bound hero/companion names,
-battle place/headline/tick, and whether the companion was healthy or injured.
-The existing Plates archive and a quiet two-figure sketch are reused; this is
-not a replay, canonical save, emotion claim, LLM request, or new HUD panel.
-Town plates remain unchanged. Verification receipt pending.
+The first stable release packages the autonomous adventure, screensaver-first
+interface, local Chronicle history, story-rich encounter forms, and optional
+on-device narration. The deterministic game remains fully playable without an
+LLM. Verification receipt pending.
 </details>
 
 <details>
