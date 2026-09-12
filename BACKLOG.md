@@ -41,7 +41,10 @@ cutaway and permanent Company history. Browser, CI and public-source
 verification pass. **News from the oven (v0.5.180)** is live: a newly earned
 matching reunion lets the former baker report the completed loaf. Original
 dialogue and older greetings stay intact. Browser, CI and public-source
-verification pass.
+verification pass. **Turning Check (v0.5.181)** is live: an actual blade-use
+receipt teaches one permanent control technique, with visible training and
+collapsed Skills history. Actual later retaliation, browser, CI and public-source
+verification pass. This is one equipment lesson, not a full loadout system.
 The mana-draught proposal is deferred: the bounded unchanged journey found
 45 living solo dungeon observations with full MP, not a genuine purchase-to-use
 opportunity. No need, inventory, or route was fabricated to force that feature.
@@ -58,18 +61,20 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Current release in verification — Turning Check (v0.5.181)
+## Latest verified release — Turning Check (v0.5.181)
 
-One equipped blade's actual battle use teaches a permanent control technique at
+Publicly source-verified **2026-09-11 18:25:50 PDT**. One equipped blade's actual battle use teaches a permanent control technique at
 a safe training opportunity. Two MP and half direct damage can soften a surviving
 foe's next retaliation. The existing training scene and Skills history show the
 lesson; the full repertoire stays available after changing weapons. The revised
-actual journey proves both learning and later damage prevention. The production
-browser and three inspected layouts pass; CI and public verification are pending.
-LLM work stays paused.
+actual journey proves both learning and later damage prevention. Fifty-one focused
+checks, the 123.5-second production browser, three inspected layouts and public
+HTML/asset/source comparison pass. [CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34664493658)
+passes **3,854 tests in 300 files**, with two optional skips. Feature `355394a`
+and its test-only correction `c52e1a1` are pushed. LLM work stays paused.
 [Scope](docs/design/ADVENTURE_FORMS.md#turning-check--v05181).
 
-## Latest verified release — News from the oven (v0.5.180)
+## Previous verified release — News from the oven (v0.5.180)
 
 Publicly source-verified **2026-09-11 16:51:16 PDT**. Feature `1f90a1c`
 connects an actual earlier bake with a later reunion report. Original witnessed

@@ -5,19 +5,31 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. **In verification: Turning Check (v0.5.181).** An actual safe training
-   opportunity and an equipped blade's earned use teach a permanent technique.
-   Its glancing strike trades half direct damage and two MP for weakening a
-   surviving foe. Existing training/Skills screens retain the lesson and source.
-   Deployment is not yet verified.
-2. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
-3. News from the oven is shipped, not an outstanding task. LLM work remains
+2. Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
-<summary>Latest verified release: News from the oven, v0.5.180</summary>
+<summary>Latest verified release: Turning Check, v0.5.181</summary>
+
+Publicly source-verified **2026-09-11 18:25:50 PDT**. An actually used Roadworn
+Blade teaches one permanent control technique at safe training. Two MP and half
+direct damage can soften a surviving foe's next retaliation. The existing training
+scene and Skills history retain the lesson; later weapon changes keep the skill.
+The actual later fight proves two HP prevented. No new panel or LLM work.
+
+[Release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34664493658)
+passes **3,854 tests in 300 files**, with two optional skips. Fifty-one focused
+checks, the 123.5-second production browser and three inspected layouts pass.
+Complete public HTML, three assets and eleven source entries match `c52e1a1`.
+The initial CI fixture correction is retained in [the council record](COUNCIL_REVIEW.md).
+[Scope](docs/design/ADVENTURE_FORMS.md#turning-check--v05181).
+</details>
+
+<details>
+<summary>Previous release: News from the oven, v0.5.180</summary>
 
 Publicly source-verified **2026-09-11 16:51:16 PDT**. On a newly earned matching
 reunion, the former baker reports the actual completed loaf. Original witnessed
@@ -281,7 +293,7 @@ general framework. All remain client-side and work without an LLM.
   [the council assessment](COUNCIL_REVIEW.md#next-lane-assessment-prepared-abilities).
 - Clear acquisition histories, repertoire swapping and technique retirement.
 - Equipment-taught abilities and permanent certification of learned techniques.
-  First slice in verification: [Turning Check](docs/design/ADVENTURE_FORMS.md#turning-check--v05181),
+  First slice shipped in v0.5.181: [Turning Check](docs/design/ADVENTURE_FORMS.md#turning-check--v05181),
   learned from an actually used Roadworn Blade and retained after replacement.
   Further equipment lessons and meaningful loadout choices remain future work.
 - Spell and technique evolution: delivery, status and cost branches.

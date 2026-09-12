@@ -987,7 +987,7 @@ corrections remain in the council record, not relabeled as first-attempt passes.
 
 ## Turning Check — v0.5.181
 
-**In verification.** A well-used blade has something to teach. At one existing
+**Live and source-verified 2026-09-11 18:25:50 PDT.** A well-used blade has something to teach. At one existing
 safe training opportunity, an actually equipped Roadworn Blade with an effective
 battle-use receipt teaches Turning Check. The hero practices against the existing
 dummy; the new weakening glyph is highlighted. One short Watch headline and the
@@ -1016,7 +1016,14 @@ The two-HP difference uses the identical retained hit without Weakened, not a ne
 roll. The hero has already replaced the teaching blade with a dungeon weapon.
 The bounded revised source journey completes in 11,241 ms. The initial profile
 without the half-damage tradeoff and all verification findings remain in
-[the council record](../../COUNCIL_REVIEW.md#turning-check--v05181-in-verification).
+[the council record](../../COUNCIL_REVIEW.md#turning-check--v05181-verified-release).
+
+Fifty-one focused checks, the 123.5-second production browser and three inspected
+desktop/mobile/Focus captures pass. [Corrected release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34664493658)
+passes 3,854 tests in 300 files, with two optional skips. Public HTML, three
+assets and eleven source entries match feature `355394a` plus test-only fix
+`c52e1a1`. The earlier bell-fixture CI failure remains documented; no runtime
+rule or test limit was weakened to pass it. Wider equipment lessons remain backlog.
 
 ## Make the adventures accumulate into a life
 

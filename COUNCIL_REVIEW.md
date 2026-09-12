@@ -2,7 +2,18 @@
 
 Status: council reviews, latest update 2026-09-11
 
-## Turning Check — v0.5.181 in verification
+## Turning Check — v0.5.181 verified release
+
+**Live and publicly source-verified 2026-09-11 18:25:50 PDT.** Feature
+`355394afad0637f327f34001a94fb8f37e914db8` and test-only correction
+`c52e1a1868ba492dcc5c0976740a77363ccbffa3` are pushed to `origin/main`.
+[Corrected release CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34664493658)
+passes **3,854 tests in 300 files**, with two optional audits skipped.
+The main suite takes **241.10s**, canonical replay **4/4 in 19.566s**, forward
+motion **8/8 in 6.899s**, and deployment **4m50s**. Complete public HTML,
+three emitted assets and eleven source entries match the exact corrected commit.
+Both LLM workers are unchanged. Fifty-one distinct focused checks and the
+123.5-second production browser pass; three layouts are directly inspected.
 
 Reuses the equipment-taught technique item in [ROADMAP.md](ROADMAP.md), the
 existing effective weapon-use receipts, training opportunity, status engine and
@@ -52,8 +63,8 @@ tradeoff and collapsed source history. The corrected production browser passes
 in **123.5s**, inside its unchanged 150s case limit; all three desktop/mobile/Focus
 captures are inspected. Exact learning, Skills/Status history, reload, the actual
 later surviving target, its retaliation and ordinary continuation pass with zero
-runtime errors, external requests or model requests. CI and public verification
-are pending. A late optional payload-export helper failed while closing; this is
+runtime errors, external requests or model requests. Corrected CI and public
+verification pass as recorded above. A late optional payload-export helper failed while closing; this is
 recorded separately from the already completed compact gameplay proof.
 
 Current later-playthrough anchors are refreshed from that actual journey; frozen
@@ -85,7 +96,7 @@ The one existing ten-campaign snapshot pass produces every full result in
 timeout, not a test pass. Only golden:4 earns the technique, at T117, and changes
 to `a5d3f1cc364299f4`. All nine without certification retain their exact previous
 hashes. No state is normalized away; only that observed full-state anchor is
-updated. The complete unchanged replay gate still runs in release CI.
+updated. The complete unchanged replay gate passes in release CI.
 
 First release CI [34663966239](https://github.com/huntergdavis/the-grind-2/actions/runs/34663966239)
 does not deploy: **3,851 tests pass, three fail, two optional audits skip** in
@@ -102,7 +113,7 @@ code, built assets, frozen old saves and test limits are unchanged. Canonical
 replay already passes **4/4 in 26.377s** on that first CI run, including all ten
 golden hashes. All eight corrected bell presentation checks pass locally in
 3.63s of test time, bringing focused coverage to 51 distinct checks. The corrected
-full release check remains required.
+full release check then passes, as recorded in the verified summary above.
 
 ## News from the oven — v0.5.180 verified release
 
