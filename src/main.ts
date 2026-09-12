@@ -33,6 +33,7 @@ import { projectDungeonGuardianScene } from "./ui/dungeon-guardian-view";
 import { projectRoadSupperCombat, projectRoadSupperScene } from "./ui/road-supper-view";
 import { projectSpareGearTradeScene } from "./ui/spare-gear-trade-view";
 import { projectCombatAftermathScene } from "./ui/combat-aftermath";
+import { projectCombatControlScene } from "./ui/combat-control-recap";
 import { projectPennywiseGateScene } from "./ui/pennywise-gate-view";
 import { projectSmithyJobScene } from "./ui/smithy-job-view";
 import { projectInnBluffScene } from "./ui/inn-bluff-view";
@@ -5061,6 +5062,7 @@ function present(): void {
     elements.stageFocusHeadline.dataset.techniqueCommand = techniqueLesson.commandId;
   }
   for (const key of ["aftermathCommand", "aftermathCombat", "aftermathTick"]) delete elements.stageFocusHeadline.dataset[key];
+  for (const key of ["controlCommand", "controlCombat", "controlApplicationTurn", "controlRetaliationTurn"]) delete elements.stageFocusHeadline.dataset[key];
   const millrace = state.scene.mode === "battle" && combat !== null ? projectMillraceReversal(combat) : null;
   if (millrace !== null) {
     elements.stageFocusHeadline.textContent = millrace.headline;
@@ -5069,8 +5071,16 @@ function present(): void {
       elements.stageFocusHeadline.prepend(sharedOpeningPip);
     }
   } else {
-    const aftermath = projectCombatAftermathScene(state);
-    if (aftermath !== null) {
+    const control = projectCombatControlScene(state);
+    const aftermath = control === null ? projectCombatAftermathScene(state) : null;
+    if (control !== null) {
+      elements.stageFocusHeadline.textContent = control.compactDetail;
+      elements.stageFocusHeadline.title = control.detail;
+      elements.stageFocusHeadline.dataset.controlCommand = control.commandId;
+      elements.stageFocusHeadline.dataset.controlCombat = control.combatId;
+      elements.stageFocusHeadline.dataset.controlApplicationTurn = String(control.applicationTurn);
+      elements.stageFocusHeadline.dataset.controlRetaliationTurn = String(control.retaliationTurn);
+    } else if (aftermath !== null) {
       elements.stageFocusHeadline.textContent = aftermath.compactDetail;
       elements.stageFocusHeadline.title = `${aftermath.headline}: ${aftermath.detail}`;
       elements.stageFocusHeadline.dataset.aftermathCommand = aftermath.commandId;

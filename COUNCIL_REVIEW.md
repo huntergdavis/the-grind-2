@@ -2,6 +2,48 @@
 
 Status: council reviews, latest update 2026-09-11
 
+## A weakened answer — v0.5.182 in progress
+
+Reuses the committed combat-recap backlog, v176's Last exchange projector and
+v181's actual Turning Check journey. `deja "the_grind_2 prepared abilities Turning
+Check backlog"` recovers the earlier backlog session (`01a06835-15f`); the committed
+roadmap remains authoritative. Rules, presentation and acceptance reviewers split
+this small UI-only slice. Prepared loadouts remain unimplemented; LLM work stays
+paused. No gameplay rule, canonical field, storage schema or extra panel is added.
+
+The single unchanged source journey completes in **9,899 ms** within its original
+T320/20-second post-import limit. T276 applies Turning Check to Lantern Wolf 2;
+T277 that same wolf's still-weakened Moonhowl deals 21 HP (42→21). At T278,
+**Lantern Wolf 1**, not the controlled wolf, deals the final 21 HP and the hero
+falls. T279 performs ordinary recovery to 11 HP. Exact terminal and next hashes
+are `1368a2efa16e279c` and `5f9f91bfa93e73a2`. No seed, choice, resources,
+foe or outcome is altered. The closing Last exchange remains truthful and intact.
+
+The source review rejects a generic numeric saved-HP claim: retained abilities
+can level during combat, while old damage events lack the pre-hit ability snapshot.
+This slice reports only the real application, still-active weakening and applied
+damage. It does not add XP rewinding, counterfactual combat, tactical blame or
+invented emotion. Full details identify both actors and all source events.
+
+Current retaliation can use the live caption; current terminal Status can include
+the earlier control chain beside the unchanged closing recap. Historical joins
+require an existing timestamped supper/lair receipt. This actual later road fight
+has neither, so at T279 the generic combat ring is not used to invent an absolute
+historical binding. Original Chronicle and mechanics facts remain available.
+No new archive or retroactive rewrite is introduced. All **29 focused checks**
+pass: eight source/scene projector checks, six new Status joins, five old aftermath
+checks and ten existing history checks. TypeScript, version/boundary checks and
+the production build pass. Initial test-helper typing errors were corrected;
+no production rule was changed to satisfy a test. The compact caption explicitly
+says “HP lost,” never “HP saved.” A fresh application is required, so refreshing
+another source's existing weakening earns no new attribution. The production
+browser check passes on its first attempt in 78.5 seconds: live T277, defeat and
+reload T278, and stale-history clearing T279. All three desktop/narrow captures
+were inspected by the lead and acceptance reviewer; no browser errors, external
+requests or model requests occurred, and the owned preview port is closed.
+Public release verification remains pending. The simulation worker, both LLM workers,
+CSS and canonical snapshots remain unchanged; no local golden replay is added.
+
 ## Turning Check — v0.5.181 verified release
 
 **Live and publicly source-verified 2026-09-11 18:25:50 PDT.** Feature

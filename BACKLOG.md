@@ -61,6 +61,15 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
+## In progress — A weakened answer (v0.5.182)
+
+The existing Watch caption names a hero's actual weakening technique and the same
+foe's still-weakened retaliation, with applied HP loss. A separate collapsed Status
+disclosure shows the exact source chain without changing the old ending recap.
+The known fight still ends in defeat to another wolf; the presentation must not
+imply victory or invent how much damage was saved. No new canonical state, panel,
+archive, display timer or LLM request. [Scope](docs/design/ADVENTURE_FORMS.md#a-weakened-answer--v05182).
+
 ## Latest verified release — Turning Check (v0.5.181)
 
 Publicly source-verified **2026-09-11 18:25:50 PDT**. One equipped blade's actual battle use teaches a permanent control technique at

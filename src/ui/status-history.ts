@@ -2,6 +2,7 @@ import type { ActorDecisionTrace, ChronicleEntry, RecordedDepthCommandType, Scen
 import { maximumDepthLogEntries } from "../depth/state";
 import type { DepthLogEntry, DepthState } from "../depth/types";
 import type { BoundCombatAftermath } from "./combat-aftermath";
+import type { BoundCombatControlRecap } from "./combat-control-recap";
 
 // These are display bounds for the existing retained sources, not a second archive.
 // The canonical reducer retains the latest 32 Chronicle entries.
@@ -33,6 +34,7 @@ export interface ChronicleStatusHistoryRow extends StatusHistoryIdentity {
   readonly consequence: string;
   readonly decision: StatusHistoryDecision;
   readonly aftermath?: BoundCombatAftermath;
+  readonly control?: BoundCombatControlRecap;
 }
 
 export interface MechanicsStatusHistoryRow extends StatusHistoryIdentity {
@@ -86,6 +88,7 @@ function copyDecisionTrace(trace: ActorDecisionTrace | undefined): Readonly<Acto
 export function projectStatusHistory(
   state: StatusHistorySource,
   aftermaths: readonly BoundCombatAftermath[] = [],
+  controls: readonly BoundCombatControlRecap[] = [],
 ): readonly StatusHistoryRow[] {
   const chronicle: readonly ChronicleStatusHistoryRow[] = newestUniqueEntries(
     state.chronicle, maximumStatusChronicleEntries,
@@ -95,6 +98,10 @@ export function projectStatusHistory(
     const aftermath = entry.commandType !== "combat-action" || entry.mode !== "battle" ? undefined
       : aftermaths.find((candidate) => candidate.chronicleId === entry.id && candidate.tick === entry.tick
         && candidate.commandId === entry.commandId && candidate.commandId.startsWith(`${state.campaignId}:depth:`));
+    const control = entry.commandType !== "combat-action" || entry.mode !== "battle" ? undefined
+      : controls.find((candidate) => candidate.chronicleId === entry.id && candidate.tick === entry.tick
+        && candidate.commandId === entry.commandId && candidate.commandId.startsWith(`${state.campaignId}:depth:`)
+        && candidate.heroId === `hero:${state.campaignId}`);
     return Object.freeze({
       source: "chronicle" as const,
       eventId: entry.id,
@@ -114,6 +121,7 @@ export function projectStatusHistory(
         trace: copyDecisionTrace(entry.decisionTrace),
       }),
       ...(aftermath === undefined ? {} : { aftermath }),
+      ...(control === undefined ? {} : { control }),
     });
   });
   const mechanics: readonly MechanicsStatusHistoryRow[] = newestUniqueEntries(

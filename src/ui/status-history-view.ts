@@ -1,6 +1,7 @@
 import type { WorldState } from "../core/types";
 import { projectStatusHistory, type StatusHistoryRow } from "./status-history";
 import { projectCombatAftermathEntry } from "./combat-aftermath";
+import { projectCombatControlEntry } from "./combat-control-recap";
 
 /** Read-only snapshot: a running adventure must not replace focused/open rows. */
 export function createStatusHistoryView(root: HTMLElement) {
@@ -87,6 +88,25 @@ export function createStatusHistoryView(root: HTMLElement) {
         paragraph(`Combat events · ${recap.sourceEventIds.join(" · ")}`, "journal-status-receipt"));
       item.append(exchange);
     }
+    if (entry.control !== undefined) {
+      const recap = entry.control;
+      const control = doc.createElement("details");
+      control.className = "journal-status-decision journal-status-control";
+      control.dataset.controlCommand = recap.commandId;
+      control.dataset.controlCombat = recap.combatId;
+      control.dataset.controlTick = String(recap.tick);
+      control.dataset.controlEvents = JSON.stringify(recap.sourceEventIds);
+      control.dataset.applicationTurn = String(recap.applicationTurn);
+      control.dataset.retaliationTurn = String(recap.retaliationTurn);
+      control.dataset.hero = recap.heroId;
+      control.dataset.enemy = recap.enemyId;
+      const summary = doc.createElement("summary");
+      summary.textContent = "A weakened answer";
+      control.append(summary, paragraph(recap.detail, "journal-status-action"),
+        paragraph(`Battle ${recap.combatId} · T${recap.tick} · Command ${recap.commandId}`, "journal-status-receipt"),
+        paragraph(`Combat events · ${recap.sourceEventIds.join(" · ")}`, "journal-status-receipt"));
+      item.append(control);
+    }
     return item;
   }
   function refresh(): void {
@@ -97,7 +117,11 @@ export function createStatusHistoryView(root: HTMLElement) {
       const recap = projectCombatAftermathEntry(snapshot, entry);
       return recap === null ? [] : [recap];
     });
-    const entries = projectStatusHistory(shown, aftermaths);
+    const controls = snapshot.chronicle.flatMap((entry) => {
+      const recap = projectCombatControlEntry(snapshot, entry);
+      return recap === null ? [] : [recap];
+    });
+    const entries = projectStatusHistory(shown, aftermaths, controls);
     root.dataset.campaign = shown.campaignId;
     root.dataset.snapshotTick = String(shown.tick);
     summary.textContent = `${shown.hero.name} · Snapshot T${shown.tick} · ${entries.length} records`;

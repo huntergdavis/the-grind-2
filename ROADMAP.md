@@ -5,10 +5,14 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 
 ## Execution lane
 
-1. Continue the larger gameplay/UI inventory below, one playable vertical slice
+1. **In progress: A weakened answer (v0.5.182).** The existing Watch caption
+   links an actual technique to the same foe's still-weakened reply and HP lost.
+   Collapsed Status details preserve eligible source events alongside the actual
+   ending. No speculative saved-HP claim, new panel, simulation or LLM change.
+2. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
-2. Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
+3. Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
@@ -274,6 +278,8 @@ general framework. All remain client-side and work without an LLM.
 - Post-battle turning-point recaps, including a clearly labeled unused alternative.
   First source-backed **Last exchange** slice shipped in v0.5.176; it does not yet
   judge tactical turning points or invent counterfactual outcomes.
+  **A weakened answer** is in progress: a factual control/reply chain using the
+  same existing captions and Status rows, not a claim that it decided the battle.
 - Learned tactical instincts with limited slots and replacement rules.
 - **Adventure Impressions:** experiences gradually create bounded behavioral traits.
 - Broader flyting tactics and challenge families beyond F1's learned replies, public calls and personality-aware selection.
