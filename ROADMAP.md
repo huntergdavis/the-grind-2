@@ -8,7 +8,7 @@ delivery evidence and detailed older specifications remain in [BACKLOG.md](BACKL
 1. Continue the larger gameplay/UI inventory below, one playable vertical slice
    and feature commit at a time. Verify gameplay, saves and presentation, push
    to `origin/main`, then verify the public deployment.
-2. First shared victory plate, A better question, A weakened answer, Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
+2. First shared victory plate, A weakened answer, Turning Check and News from the oven are shipped, not outstanding tasks. LLM work remains
    paused. Deferred proposals do not block other gameplay lanes.
 
 <details>
@@ -21,17 +21,13 @@ LLM. Verification receipt pending.
 </details>
 
 <details>
-<summary>Previous release candidate: A better question, v0.5.183</summary>
+<summary>Previous release: First shared victory plate, v0.5.184</summary>
 
-One later public copy of **Questions Without Traps** teaches the original
-good-faith-question frame. At the actual earlier public-challenge town, after
-the established later obligations settle, the hero reads it and has one
-source-bound exchange with an eligible non-companion resident. Curiosity can
-choose the learned open question; concession and dismissal remain legitimate
-alternatives. The book desk, two-speaker stage, foreground hold and collapsed
-Adventure → Books & Flyting record are reused. This has no score, reputation,
-regard, bond, resource, reward or hidden effect. Schema 36 adds one nullable
-receipt; migration manufactures none. Verification receipt pending.
+One verified first win achieved with an active companion becomes a local
+Chronicle Plate: source-bound hero/companion names, battle place/headline/tick,
+and companion condition only. The existing Plates archive and quiet two-figure
+sketch are reused; this is not a replay, canonical save, emotion claim, LLM
+request, or new HUD panel.
 </details>
 
 <details>

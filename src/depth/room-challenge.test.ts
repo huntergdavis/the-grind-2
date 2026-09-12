@@ -179,7 +179,7 @@ describe("one source-bound public point after the lesson and Bell delivery", () 
 
   it("migrates Depth33 to no challenge and rejects unsupported, rewritten, or temporally impossible receipts", () => {
     const { roomChallenge: _challenge, ...old } = ready.depth;
-    expect(reload({ ...old, schemaVersion: 33 } as unknown as DepthState)).toMatchObject({ schemaVersion: 36, roomChallenge: null });
+    expect(reload({ ...old, schemaVersion: 33 } as unknown as DepthState)).toMatchObject({ schemaVersion: 35, roomChallenge: null });
     expect(() => upgradeDepthState({ ...old, schemaVersion: 33, roomChallenge: undefined }, ready.seed, ready.hero.id, ready.hero.name)).toThrow();
     const source = completed.depth.roomChallenge!, result = source.result!;
     for (const invalid of [{}, { ...source, rulesVersion: "room-challenge-v2" }, { ...source, contentVersion: 2 },

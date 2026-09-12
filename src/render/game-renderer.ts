@@ -5149,9 +5149,9 @@ export class GameRenderer {
       companion.scale.x = -1.7;
       return;
     }
-    if (scene.phase === "lesson-reading" || scene.phase === "lesson-practice" || scene.phase === "question-reading" || scene.phase === "question-exchange") {
+    if (scene.phase === "lesson-reading" || scene.phase === "lesson-practice") {
       for (const key of ["reparteeRound", "reparteeMomentum", "reparteeOutcome", "reparteeWitness", "reparteeWitnessPose", "reparteeRegard"]) delete this.host.dataset[key];
-      this.host.dataset.reparteeLesson = "lessonId" in scene ? scene.lessonId : scene.conversationId;
+      this.host.dataset.reparteeLesson = scene.lessonId;
       this.host.dataset.reparteeClassification = scene.classification;
     }
     if ("challengeId" in scene) {
@@ -5185,9 +5185,9 @@ export class GameRenderer {
       witness.rotation = scene.memory.pose === "nod" ? 0.04 : scene.memory.pose === "frown" ? -0.04 : scene.memory.pose === "laugh" ? -0.06 : 0;
       return;
     }
-    this.host.dataset.reparteeVisual = scene.phase === "reading" || scene.phase === "lesson-reading" || scene.phase === "question-reading"
+    this.host.dataset.reparteeVisual = scene.phase === "reading" || scene.phase === "lesson-reading"
       ? "actual-hero|public-copy|reading-desk|no-resource-damage"
-      : scene.phase === "lesson-practice" || scene.phase === "question-exchange" ? "actual-hero|actual-resident|speaking-gestures|unscored-conversation|no-witness|no-score|no-new-reward"
+      : scene.phase === "lesson-practice" ? "actual-hero|actual-resident|speaking-gestures|unscored-practice|no-witness|no-score|no-new-reward"
       : "challengeId" in scene ? `actual-hero|actual-resident|public-claim|single-answer|${scene.score === null ? "awaiting-reply" : "one-result-mark"}|no-witness|no-resource-damage`
       : scene.witness !== null ? "actual-hero|actual-resident|actual-companion|witnessed-encore|three-marks|no-resource-damage|bond-unchanged"
       : "actual-hero|actual-resident|speaking-gestures|three-marks|no-resource-damage";
@@ -5218,7 +5218,7 @@ export class GameRenderer {
       }
       this.worldLayer.addChild(pages);
     };
-    if (scene.phase === "reading" || scene.phase === "lesson-reading" || scene.phase === "question-reading") {
+    if (scene.phase === "reading" || scene.phase === "lesson-reading") {
       this.worldLayer.addChild(rect(155, 135, 7, 29, 0x6b4832), rect(205, 135, 7, 29, 0x6b4832), rect(146, 128, 75, 9, 0x986e43));
       this.host.dataset.reparteeHeroPosition = "122,139";
       this.drawHero(state, 122, 139, palette, 1.7, scene.heroId, false);
@@ -5269,7 +5269,7 @@ export class GameRenderer {
       return;
     }
     // Practice teaches a reply; it is not another scored contest or witness reaction.
-    if (scene.phase === "lesson-practice" || scene.phase === "question-exchange") return;
+    if (scene.phase === "lesson-practice") return;
     for (let index = 0; index < 3; index += 1) {
       const delta = scene.marks[index];
       const x = 146 + index * 15;

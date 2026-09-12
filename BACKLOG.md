@@ -68,17 +68,12 @@ interface, local Chronicle history, story-rich encounter forms, and optional
 on-device narration. The deterministic game remains complete without an LLM.
 Release verification pending.
 
-## Previous release candidate — A better question (v0.5.183)
+## Previous release — First shared victory plate (v0.5.184)
 
-One original later public book, **Questions Without Traps**, teaches a
-good-faith question: what might change a person's mind. It opens one actual
-eligible resident exchange in the existing public-challenge town after the
-recorded later obligations. The existing book desk, dialogue scene, foreground
-hold and collapsed Books & Flyting journal record the exact reading and reply
-sources. It adds no score, reputation, regard, bond, resource, reward, hidden
-outcome, permanent panel or LLM request. Depth schema 36 holds one nullable
-validated receipt; old saves learn nothing retrospectively. Release verification
-is pending.
+The first verified companion victory records one local Chronicle Plate after
+the durable transition saves. It retains exact source event/tick,
+hero/companion names, place/headline and condition only; it is independent of
+narrator mode, not canonical state, and not a claim about private emotion.
 
 ## Previous verified release — A weakened answer (v0.5.182)
 

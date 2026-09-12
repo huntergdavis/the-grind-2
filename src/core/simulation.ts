@@ -10,7 +10,6 @@ import { isValidCampaignDungeonLair } from "../depth/dungeon-lair";
 import { isValidCampaignRoadSupper } from "../depth/road-supper";
 import { isValidCampaignElsewhereLoaf } from "../depth/elsewhere-loaf";
 import { isValidCampaignCompanionCredit } from "../depth/companion-credit";
-import { isValidCampaignBetterQuestion } from "../depth/better-question";
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
@@ -368,8 +367,6 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "answer-room-challenge":
     case "read-useful-book":
     case "practice-useful-reply":
-    case "read-better-question-book":
-    case "answer-better-question":
     case "start-bell":
     case "roll-bell":
     case "move-bell":
@@ -452,8 +449,6 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "answer-room-challenge":
     case "read-useful-book":
     case "practice-useful-reply":
-    case "read-better-question-book":
-    case "answer-better-question":
     case "start-bell":
     case "roll-bell":
     case "move-bell":
@@ -1709,11 +1704,11 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 36 ||
+    state.depth.schemaVersion !== 35 ||
     !isValidCampaignSmithyJob(state.depth) || !isValidCampaignInnBluff(state.depth) || !isValidCampaignDungeonLair(state.depth) || !isValidCampaignRoadSupper(state.depth) || !isValidCampaignElsewhereLoaf(state.depth) ||
     !isValidCampaignPennywiseGate(state.depth) ||
     (state.depth.dungeon !== null && !isValidDungeonSecretPassage(state.depth.dungeon, state.tick)) ||
-    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignBetterQuestion(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||
+    !isValidCampaignRepartee(state.depth) || !isValidCampaignReparteeCallback(state.depth) || !isValidCampaignBorrowedBell(state.depth) || !isValidBellDeliveryMemory(state.depth) || !isValidCampaignUsefulReply(state.depth) || !isValidCampaignRoomChallenge(state.depth) || !isValidCampaignCompanionReunion(state.depth) || !isValidCampaignDungeonFieldMedicine(state.depth) || !isValidCampaignCompanionCredit(state.depth) ||
     state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
