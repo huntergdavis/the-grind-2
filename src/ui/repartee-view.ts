@@ -7,6 +7,7 @@ import {
 import { isValidCampaignReparteeCallback } from "../depth/repartee-memory";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyResponses } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeResponses } from "../depth/room-challenge";
+import { betterQuestionBook, betterQuestionResponses, isValidCampaignBetterQuestion } from "../depth/better-question";
 import { projectCompanionReunionScene, type CompanionReunionSceneView } from "./companion-reunion-view";
 import { projectCompanionCreditScene, type CompanionCreditSceneView } from "./companion-credit-view";
 
@@ -73,7 +74,19 @@ export interface ReparteeRoomSceneView extends Omit<ReparteeContestSceneView, "p
   readonly encore: false;
 }
 
-export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView | CompanionReunionSceneView | CompanionCreditSceneView;
+export interface ReparteeBetterQuestionSceneView extends Omit<ReparteeContestSceneView, "phase" | "momentum"> {
+  readonly phase: "question-reading" | "question-exchange";
+  readonly conversationId: string;
+  readonly classification: "learned" | "open" | "concession" | "dismissal";
+  readonly readingSourceCommandId: string;
+  readonly marks: readonly [];
+  readonly momentum: null;
+  readonly outcome: null;
+  readonly witness: null;
+  readonly encore: false;
+}
+
+export type ReparteeSceneView = ReparteeContestSceneView | ReparteeMemorySceneView | ReparteeLessonSceneView | ReparteeRoomSceneView | ReparteeBetterQuestionSceneView | CompanionReunionSceneView | CompanionCreditSceneView;
 
 export interface ReparteeWitnessView {
   readonly id: string;
@@ -233,10 +246,40 @@ export function projectRoomChallengeScene(state: WorldState): ReparteeRoomSceneV
   });
 }
 
+/** The saved book and its one exchange only occupy the stage on their committed tick. */
+export function projectBetterQuestionScene(state: WorldState): ReparteeBetterQuestionSceneView | null {
+  const question = state.depth.betterQuestion;
+  const source = state.chronicle.at(-1);
+  if (question === null || !isValidCampaignBetterQuestion(state.depth) || source === undefined
+    || source.tick !== state.tick || state.depth.tick !== state.tick || source.mode !== "chronicle" || state.scene.mode !== "chronicle"
+    || question.heroId !== state.depth.hero.id || question.locationId !== state.depth.atlas.currentLocationId) return null;
+  const exchanging = source.commandType === "answer-better-question";
+  const receipt = exchanging ? question.exchange : source.commandType === "read-better-question-book" && question.exchange === null ? question.reading : null;
+  if (receipt === null || receipt.tick !== state.tick || source.commandId !== `${state.campaignId}:${receipt.sourceCommandId}`) return null;
+  const town = state.depth.towns[question.locationId];
+  const building = town?.buildings.find((entry) => entry.id === question.buildingId);
+  const resident = town?.residents.find((entry) => entry.id === question.residentId && entry.name === question.residentName);
+  if (town === undefined || building === undefined || resident === undefined) return null;
+  return Object.freeze({
+    phase: exchanging ? "question-exchange" : "question-reading", commandId: source.commandId, tick: source.tick,
+    heroId: question.heroId, heroName: state.hero.name, residentId: exchanging ? resident.id : null, residentName: exchanging ? resident.name : null,
+    buildingId: building.id, buildingName: building.name, bookId: betterQuestionBook.id,
+    conversationId: question.conversationId, classification: exchanging ? question.exchange!.classification : "learned",
+    readingSourceCommandId: question.reading.sourceCommandId,
+    title: exchanging ? `A better question · ${question.exchange!.classification}` : betterQuestionBook.title,
+    call: exchanging ? question.exchange!.claim : betterQuestionBook.excerpt,
+    reply: exchanging ? question.exchange!.response : null,
+    marks: Object.freeze([]) as readonly [], momentum: null, outcome: null, witness: null, encore: false,
+    consequence: exchanging ? `${question.exchange!.explanation} No reputation, regard, reward, or hidden outcome changes.`
+      : `One good-faith question learned · a future exchange may remain open without requiring agreement.`,
+  });
+}
+
 /** The current command must own the receipt; revisiting town cannot replay a duel. */
 export function projectReparteeScene(state: WorldState): ReparteeSceneView | null {
   if (["share-companion-credit", "farewell-companion"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectCompanionCreditScene(state);
   if (state.chronicle.at(-1)?.commandType === "reunite-companion") return projectCompanionReunionScene(state);
+  if (["read-better-question-book", "answer-better-question"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectBetterQuestionScene(state);
   if (["start-room-challenge", "answer-room-challenge"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectRoomChallengeScene(state);
   if (["read-useful-book", "practice-useful-reply"].includes(state.chronicle.at(-1)?.commandType ?? "")) return projectUsefulReplyScene(state);
   if (state.chronicle.at(-1)?.commandType === "recall-repartee") return projectReparteeMemory(state);
@@ -445,12 +488,12 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
       caption.replaceChildren(...children);
       return;
     }
-    if ("lessonId" in scene) {
+    if ("lessonId" in scene || "conversationId" in scene) {
       for (const key of ["round", "momentum", "outcome", "witness", "reaction", "regard", "encore"]) delete caption.dataset[key];
-      caption.dataset.lesson = scene.lessonId;
+      caption.dataset.lesson = "lessonId" in scene ? scene.lessonId : scene.conversationId;
       caption.dataset.classification = scene.classification;
       caption.dataset.readingSource = scene.readingSourceCommandId;
-      const children = [title, scene.phase === "lesson-reading"
+      const children = [title, scene.phase === "lesson-reading" || scene.phase === "question-reading"
         ? paragraph(`“${scene.call}”`, "repartee-call")
         : dialogue(scene.residentName!, scene.call, "repartee-call")];
       if (scene.reply !== null) children.push(dialogue(scene.heroName, scene.reply, "repartee-reply"));
@@ -487,7 +530,7 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
     if (latest === null) return;
     const state = latest;
     const progress = state.depth.repartee;
-    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}:${JSON.stringify(state.depth.usefulReply)}:${JSON.stringify(state.depth.roomChallenge)}`;
+    const key = `${state.campaignId}:${JSON.stringify(progress)}:${JSON.stringify(state.depth.reparteeWitness)}:${JSON.stringify(state.depth.reparteeCallback)}:${JSON.stringify(state.depth.usefulReply)}:${JSON.stringify(state.depth.roomChallenge)}:${JSON.stringify(state.depth.betterQuestion)}`;
     if (key === shownKey || (!force && journal.open && shownCampaign === state.campaignId)) return;
     shownKey = key;
     shownCampaign = state.campaignId;
@@ -695,6 +738,46 @@ export function createReparteeView(caption: HTMLElement, journal: HTMLDetailsEle
       }
       alternatives.append(alternativeSummary, list);
       record.append(alternatives);
+      nodes.push(record);
+    }
+    const question = state.depth.betterQuestion;
+    if (question !== null && isValidCampaignBetterQuestion(state.depth)) {
+      const questionTown = state.depth.towns[question.locationId];
+      const questionLocation = state.depth.atlas.locations.find((entry) => entry.id === question.locationId);
+      const questionBuilding = questionTown?.buildings.find((entry) => entry.id === question.buildingId);
+      const record = doc.createElement("details");
+      record.dataset.betterQuestion = question.conversationId;
+      const summary = doc.createElement("summary");
+      summary.textContent = `${betterQuestionBook.title} · ${question.exchange === null ? "read" : question.exchange.classification}`;
+      const reading = doc.createElement("div");
+      reading.dataset.readingSource = question.reading.sourceCommandId;
+      reading.append(paragraph(betterQuestionBook.excerpt),
+        paragraph(`Learned “${betterQuestionBook.expression}”: ${betterQuestionBook.definition} Frame: ${betterQuestionBook.frameId}.`),
+        paragraph(`${state.hero.name} read the public copy at ${questionBuilding?.name ?? question.buildingId}, ${questionLocation?.name ?? question.locationId}, T${question.reading.tick}. Reading source: ${question.reading.sourceCommandId}. Content v${question.contentVersion}. Learned repertoire, not an inventory book.`, "journal-repartee-source"));
+      record.append(summary, reading);
+      if (question.exchange !== null) {
+        const exchange = question.exchange;
+        const conversation = doc.createElement("div");
+        conversation.dataset.exchangeSource = exchange.sourceCommandId;
+        conversation.dataset.classification = exchange.classification;
+        conversation.append(heading(`${state.hero.name} & ${question.residentName} · an open question`),
+          dialogue(question.residentName, exchange.claim, "repartee-call"), dialogue(state.hero.name, exchange.response, "repartee-reply"),
+          paragraph(`${exchange.classification} · ${exchange.explanation}`),
+          paragraph(`T${exchange.tick} · Command: ${exchange.sourceCommandId}. Reading source: ${exchange.readingSourceCommandId ?? "starter response"}. Resident: ${question.residentId}. No score, reputation, regard, bond, resource, reward, or hidden outcome change.`, "journal-repartee-source"));
+        record.append(conversation);
+      } else record.append(paragraph("The book has been read; the resident exchange is still to come. It is a conversation, not a scored contest."));
+      const choices = doc.createElement("details");
+      const choiceSummary = doc.createElement("summary");
+      choiceSummary.textContent = "Known answers and their meaning";
+      const list = doc.createElement("ul");
+      for (const response of betterQuestionResponses(question)) {
+        const item = doc.createElement("li");
+        item.dataset.response = response.id;
+        item.textContent = `${response.id === question.exchange?.responseId ? "Chosen: " : "Known: "}${response.text} — ${response.explanation} ${response.expressionId === null ? "Starter response." : `Learned “${betterQuestionBook.expression}”; reading source: ${question.reading.sourceCommandId}.`}`;
+        list.append(item);
+      }
+      choices.append(choiceSummary, list);
+      record.append(choices);
       nodes.push(record);
     }
     content.replaceChildren(...nodes);

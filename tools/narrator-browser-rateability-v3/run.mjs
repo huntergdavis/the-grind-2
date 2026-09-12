@@ -43,6 +43,7 @@ const sourcePaths = Object.freeze([
   "src/core/rng.ts",
   "src/core/types.ts",
   "src/depth/atlas.ts",
+  "src/depth/better-question.ts",
   "src/depth/borrowed-bell-campaign.ts",
   "src/depth/borrowed-bell-memory.ts",
   "src/depth/borrowed-bell.ts",

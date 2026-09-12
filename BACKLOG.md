@@ -61,7 +61,19 @@ for context and recovery. Their older priorities, duplicate IDs and stale
 umbrella statuses do not override the current roadmap. New research is linked
 from the roadmap and is not proof of shipped gameplay.
 
-## Latest verified release — A weakened answer (v0.5.182)
+## Current release candidate — A better question (v0.5.183)
+
+One original later public book, **Questions Without Traps**, teaches a
+good-faith question: what might change a person's mind. It opens one actual
+eligible resident exchange in the existing public-challenge town after the
+recorded later obligations. The existing book desk, dialogue scene, foreground
+hold and collapsed Books & Flyting journal record the exact reading and reply
+sources. It adds no score, reputation, regard, bond, resource, reward, hidden
+outcome, permanent panel or LLM request. Depth schema 36 holds one nullable
+validated receipt; old saves learn nothing retrospectively. Release verification
+is pending.
+
+## Previous verified release — A weakened answer (v0.5.182)
 
 The existing Watch caption names a hero's actual weakening technique and the same
 foe's still-weakened retaliation, with applied HP loss. A separate collapsed Status

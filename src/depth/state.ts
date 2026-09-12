@@ -137,6 +137,7 @@ import { borrowedBellCommandCandidates, describeBorrowedBell, isValidCampaignBor
 import { isValidBellDeliveryMemory, selectBellDeliveryMemory } from "./borrowed-bell-memory";
 import { isValidCampaignUsefulReply, stepCampaignUsefulReply, usefulReplyBook, usefulReplyCall, usefulReplyCommandCandidates } from "./useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeCommandCandidates, stepCampaignRoomChallenge } from "./room-challenge";
+import { betterQuestionBook, betterQuestionClaim, betterQuestionCommandCandidates, isValidCampaignBetterQuestion, stepCampaignBetterQuestion } from "./better-question";
 import { captureCompanionReunionArrival, isValidCampaignCompanionReunion, selectCompanionReturn, selectCompanionReunion, stepCampaignCompanionReunion } from "./companion-reunion";
 import { isValidCampaignDungeonFieldMedicine, selectDungeonFieldMedicine, stepDungeonFieldMedicine } from "./dungeon-field-medicine";
 import { captureCompanionCredit, captureCompanionCreditFarewell, companionCreditChoices, companionCreditCommandId, isValidCampaignCompanionCredit, selectCompanionCredit, stepCompanionCredit } from "./companion-credit";
@@ -861,9 +862,9 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34 && value.schemaVersion !== 35) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34 && value.schemaVersion !== 35 && value.schemaVersion !== 36) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34 && value.schemaVersion !== 35) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21 && value.schemaVersion !== 22 && value.schemaVersion !== 23 && value.schemaVersion !== 24 && value.schemaVersion !== 25 && value.schemaVersion !== 26 && value.schemaVersion !== 27 && value.schemaVersion !== 28 && value.schemaVersion !== 29 && value.schemaVersion !== 30 && value.schemaVersion !== 31 && value.schemaVersion !== 32 && value.schemaVersion !== 33 && value.schemaVersion !== 34 && value.schemaVersion !== 35 && value.schemaVersion !== 36) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     // Aggregate lore and retained old battles never manufacture retrospective research credit.
@@ -952,6 +953,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 35) {
+    // Earlier history does not prove this later conversation was held.
+    return upgradeDepthState({ ...value, schemaVersion: 36,
+      betterQuestion: Object.hasOwn(value, "betterQuestion") ? value.betterQuestion : null,
+    }, seed, heroId, heroName);
+  }
+  if (value.schemaVersion === 36) {
     const state = value as unknown as DepthState;
     // V1 resumes its known cooldowns; no old status/history invents a new opening.
     const upgradeRuntime = (combat: CombatState): CombatState => {
@@ -965,7 +972,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
     }
     if (
-      !isValidCampaignWeaponTechniqueCertification(state) || !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
+      !isValidCampaignWeaponTechniqueCertification(state) || !isValidDetailedHeroState(value.hero) || !isValidCampaignRepartee(state) || !isValidCampaignReparteeCallback(state) || !isValidCampaignBorrowedBell(state) || !isValidBellDeliveryMemory(state) || !isValidCampaignUsefulReply(state) || !isValidCampaignRoomChallenge(state) || !isValidCampaignBetterQuestion(state) || !isValidCampaignCompanionReunion(state) || !isValidCampaignDungeonFieldMedicine(state) ||
       !isValidCampaignCompanionCredit(state) || !isValidCampaignPennywiseGate(state) || !isValidCampaignSmithyJob(state) || !isValidCampaignInnBluff(state) || !isValidCampaignDungeonLair(state) || !isValidCampaignRoadSupper(state) || !isValidCampaignSpareGearTrade(state) || !isValidCampaignElsewhereLoaf(state) ||
       (state.dungeon !== null && !isValidDungeonSecretPassage(state.dungeon, state.tick)) ||
       (state.dungeon !== null && !isValidDungeonTrapRules(state.dungeon)) ||
@@ -1452,7 +1459,8 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 35,
+    schemaVersion: 36,
+    betterQuestion: null,
     companionReunion: null,
     companionCredit: null,
     roomChallenge: null,
@@ -1546,6 +1554,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
     && command.type !== "pass-pennywise-gate") throw new Error("Finish the active Pennywise Gate before another command");
   if (input.roomChallenge !== null && input.roomChallenge.result === null && command.type !== "answer-room-challenge") throw new Error("Answer the active room challenge before another command");
   if (input.usefulReply !== null && input.usefulReply.reply === null && command.type !== "practice-useful-reply") throw new Error("Finish the pending practice reply before another command");
+  if (input.betterQuestion !== null && input.betterQuestion.exchange === null && command.type !== "answer-better-question") throw new Error("Answer the active better question before another command");
   if (input.bellExpedition !== null && input.bellExpedition.completion === null
     && command.type !== "roll-bell" && command.type !== "move-bell") throw new Error("Finish the active Borrowed Bell expedition before another command");
   if (input.repartee.active !== null && command.type !== "repartee-action") throw new Error("Finish the active flyting contest before another command");
@@ -1662,6 +1671,13 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       return appendLog({ ...state, usefulReply }, "town", usefulReply.reply === null
         ? `${input.hero.name} reads ${usefulReplyBook.title}. “${usefulReplyBook.excerpt}” Learned ${usefulReplyBook.expression}. ${usefulReply.residentName} offers a practice claim: “${usefulReplyCall.text}”`
         : `${usefulReply.residentName}: “${usefulReply.reply.call}” ${input.hero.name}: “${usefulReply.reply.reply}” Unscored practice; no rewards or relationship changes.`);
+    }
+    case "read-better-question-book":
+    case "answer-better-question": {
+      const betterQuestion = stepCampaignBetterQuestion(input, command), exchange = betterQuestion.exchange;
+      return appendLog({ ...state, betterQuestion }, "town", exchange === null
+        ? `${input.hero.name} reads ${betterQuestionBook.title}. “${betterQuestionBook.excerpt}” Learned ${betterQuestionBook.expression}. ${betterQuestion.residentName} offers one question: “${betterQuestionClaim.text}”`
+        : `${betterQuestion.residentName}: “${exchange.claim}” ${input.hero.name}: “${exchange.response}” ${exchange.explanation} No reputation, resources, relationship value or reward changes.`);
     }
     case "start-bell":
     case "roll-bell":
@@ -2970,6 +2986,11 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     if (candidates === null || candidates.length === 0) throw new Error("The active lesson has no legal reply");
     return candidates;
   }
+  if (state.betterQuestion !== null && state.betterQuestion.exchange === null) {
+    const candidates = betterQuestionCommandCandidates(state);
+    if (candidates === null || candidates.length === 0) throw new Error("The active better question has no legal answer");
+    return candidates;
+  }
   if (state.bellExpedition !== null && state.bellExpedition.completion === null) {
     const candidates = borrowedBellCommandCandidates(state);
     if (candidates === null || candidates.length === 0) throw new Error("The active Borrowed Bell expedition has no legal action");
@@ -3258,6 +3279,8 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   if (bellCandidates !== null) return bellCandidates;
   const roomCandidates = roomChallengeCommandCandidates(state);
   if (roomCandidates !== null) return roomCandidates;
+  const betterQuestionCandidates = betterQuestionCommandCandidates(state);
+  if (betterQuestionCandidates !== null) return betterQuestionCandidates;
   const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
   if (
     questLead !== null &&

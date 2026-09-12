@@ -108,6 +108,24 @@ assets and eight runtime source-map entries match feature commit
 `fd7224d9d3de42c6dbb14b1a1cc03883fac66162`. The repaired older rest acceptance
 uses explicitly staged HP and does not claim natural rest reachability.
 
+## F3c current scope — A better question (v0.5.183)
+
+**Questions Without Traps** is a finite original later public book, not an
+imported text or generated word list. It teaches one provenance-bound
+good-faith question: asking what might change a speaker's mind rather than
+cornering them. After the actual prior public challenge and the existing later
+obligations settle, one eligible non-companion resident in that same real town
+can receive one source-bound exchange. Curiosity favors the learned open
+question; a calm concession and sharp dismissal remain known alternatives.
+
+The old book desk, two-speaker stage, foreground hold and collapsed
+Adventure → Books & Flyting journal record are reused. The receipt stores exact
+content/rules versions, venue/resident, reading source, response source and
+ticks. It grants no contest score, reputation, regard, bond, resource, reward
+or hidden effect. Migration adds a nullable empty receipt only; it never claims
+an old hero read or said anything. This is a conversation, not a disguised
+combat or relationship system.
+
 ## F3b proposed next slice — Let the room answer
 
 Original read-only council scope, 2026-09-11, retained for recovery. Current

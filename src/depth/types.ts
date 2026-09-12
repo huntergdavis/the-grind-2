@@ -1265,7 +1265,9 @@ export interface DepthState {
   pennywiseGate?: import("./pennywise-gate").PennywiseGate | null;
   /** One earned conduct exchange; absent older saves contain no retrospective credit. */
   companionCredit?: import("./companion-credit").CompanionCredit | null;
-  schemaVersion: 35;
+  schemaVersion: 36;
+  /** One later public book and bounded de-escalation exchange; old saves have no retrospective conversation. */
+  betterQuestion: import("./better-question").BetterQuestion | null;
   companionReunion: import("./companion-reunion").CompanionReunion | null;
   roomChallenge: import("./room-challenge").RoomChallenge | null;
   usefulReply: import("./useful-reply").UsefulReplyLesson | null;
@@ -1318,6 +1320,8 @@ export type DepthCommand =
   | { type: "answer-room-challenge"; encounterId: string; responseId: string }
   | { type: "read-useful-book"; lessonId: string; locationId: string; buildingId: string; residentId: string }
   | { type: "practice-useful-reply"; lessonId: string; responseId: string }
+  | { type: "read-better-question-book"; conversationId: string; locationId: string; buildingId: string; residentId: string }
+  | { type: "answer-better-question"; conversationId: string; responseId: string }
   | { type: "start-bell"; instanceId: string; locationId: string }
   | { type: "roll-bell"; instanceId: string; turn: number }
   | { type: "move-bell"; instanceId: string; turn: number; pace: "stride" | "steady"; route: number | null }

@@ -19,6 +19,7 @@ import { reparteeBook, reparteeResponses, type ReparteeResponse } from "../depth
 import { isValidCampaignRepartee } from "../depth/repartee-campaign";
 import { isValidCampaignUsefulReply, usefulReplyBook, usefulReplyCommandId, usefulReplyResponses } from "../depth/useful-reply";
 import { isValidCampaignRoomChallenge, roomChallengeCommandId, roomChallengeResponses } from "../depth/room-challenge";
+import { betterQuestionBook, betterQuestionCommandId, betterQuestionResponses, isValidCampaignBetterQuestion } from "../depth/better-question";
 import { companionCreditChoices, companionCreditCommandId, selectCompanionCredit } from "../depth/companion-credit";
 import { pennywiseGateChoices, pennywiseGateCommandId, selectPennywiseGate } from "../depth/pennywise-gate";
 import { selectSmithyJob, selectSmithyJobVenue, smithyJobCommandId, smithyStrokeOptions } from "../depth/smithy-job";
@@ -189,6 +190,14 @@ function knownRoomChallengeReply(state: WorldState, candidate: DepthCommandCandi
   return roomChallengeResponses(state.depth).find((response) => response.id === command.responseId);
 }
 
+function knownBetterQuestionReply(state: WorldState, candidate: DepthCommandCandidate) {
+  const command = candidate.command, question = state.depth.betterQuestion;
+  if (command.type !== "answer-better-question" || question === null || question.exchange !== null
+    || command.conversationId !== question.conversationId || candidate.deciderId !== state.depth.hero.id
+    || candidate.id !== betterQuestionCommandId(state.depth.tick + 1, command) || !isValidCampaignBetterQuestion(state.depth)) return undefined;
+  return betterQuestionResponses(question).find((response) => response.id === command.responseId);
+}
+
 function knownCompanionCreditReply(state: WorldState, candidate: DepthCommandCandidate) {
   const command = candidate.command, credit = selectCompanionCredit(state.depth);
   if (command.type !== "share-companion-credit" || credit === null || command.residentId !== credit.residentId
@@ -311,6 +320,28 @@ function scoreCandidate(
     reason = response.classification === "constructive"
       ? `the actual reading of ${usefulReplyBook.title} unlocked a constructive answer; practice tests that new idea without seeking applause or a reward; ${response.explanation}`
       : `this plain response was already known before reading; ${response.explanation}`;
+  } else if (command.type === "read-better-question-book") {
+    score = 60;
+    reason = `a real later public copy of ${betterQuestionBook.title} offers a way to test disagreement without declaring either speaker defeated`;
+  } else if (command.type === "answer-better-question") {
+    const response = knownBetterQuestionReply(state, candidate);
+    if (response === undefined) throw new Error("Actor Policy cannot select an unlearned or foreign good-faith question");
+    const curious = state.hero.values.includes("curiosity");
+    const merciful = state.hero.values.includes("mercy");
+    const courageous = state.hero.values.includes("courage");
+    score = response.classification === "open" ? 30 : response.classification === "concession" ? 20 : 10;
+    if (curious && response.classification === "open") {
+      score += 60;
+      reason = `curiosity uses the good-faith question actually learned from ${betterQuestionBook.title}; ${response.explanation}`;
+    } else if (!curious && merciful && response.classification === "concession") {
+      score += 60;
+      reason = `mercy leaves a disagreement unsettled rather than making a person into an opponent; ${response.explanation}`;
+    } else if (!curious && !merciful && courageous && response.classification === "dismissal") {
+      score += 60;
+      reason = `courage without curiosity or mercy favors a sharp exit over an open exchange; ${response.explanation}`;
+    } else {
+      reason = `this is a known answer to an actual resident, with no reputation, regard, reward, or hidden outcome; ${response.explanation}`;
+    }
   } else if (command.type === "repartee-action") {
     const response = knownReparteeResponse(state, candidate, knowledge);
     if (response === undefined) throw new Error("Actor Policy cannot score an unknown repartee response");
@@ -720,6 +751,8 @@ function presentationLabels(
     case "answer-room-challenge": return { actionLabel: knownRoomChallengeReply(state, candidate)?.text ?? "the unavailable answer", targetLabel: state.depth.roomChallenge?.residentName ?? "the recorded resident" };
     case "read-useful-book": return { actionLabel: "reads a new public book", targetLabel: usefulReplyBook.title };
     case "practice-useful-reply": return { actionLabel: knownUsefulReply(state, candidate)?.text ?? "the unavailable practice reply", targetLabel: state.depth.usefulReply?.residentName ?? "the recorded resident" };
+    case "read-better-question-book": return { actionLabel: "reads a later public book", targetLabel: "Questions Without Traps" };
+    case "answer-better-question": return { actionLabel: candidate.label, targetLabel: state.depth.betterQuestion?.residentName ?? "the recorded resident" };
     case "read-book": return { actionLabel: "reads a public copy", targetLabel: reparteeBook.title };
     case "start-repartee": return {
       actionLabel: "accepts a flyting contest",
@@ -843,6 +876,8 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
       ? knownUsefulReply(state, candidate) !== undefined : candidate.command.type !== "practice-useful-reply")
     .filter((candidate) => state.depth.roomChallenge !== null && state.depth.roomChallenge.result === null
       ? knownRoomChallengeReply(state, candidate) !== undefined : candidate.command.type !== "answer-room-challenge")
+    .filter((candidate) => state.depth.betterQuestion !== null && state.depth.betterQuestion.exchange === null
+      ? knownBetterQuestionReply(state, candidate) !== undefined : candidate.command.type !== "answer-better-question")
     .filter((candidate) => candidate.command.type !== "share-companion-credit" || knownCompanionCreditReply(state, candidate) !== undefined);
   const context = contextFor(state, candidates);
   const profile = actorInstinctProfiles[context];
@@ -901,7 +936,7 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
     : `${combatFacts(state, guardedAlternative.candidate).target?.name ?? "The foe"}'s Guard prevents a guaranteed finish; ${selected.reason}`;
   const reasons = [forwardReason ?? selectedReason];
   const rationale = forwardReason === null
-    ? selectedCommand.type === "repartee-action" || selectedCommand.type === "practice-useful-reply" || selectedCommand.type === "answer-room-challenge"
+    ? selectedCommand.type === "repartee-action" || selectedCommand.type === "practice-useful-reply" || selectedCommand.type === "answer-room-challenge" || selectedCommand.type === "answer-better-question"
       ? `${actor.name} chose the reply “${selected.candidate.label}” because ${selectedReason.replace(/[.!?]+$/u, "")}.`
       : `${actor.name} chose to ${selected.candidate.label} because ${selectedReason}.`
     : `${actor.name} chose to ${selected.candidate.label} because ${forwardReason}.`;
